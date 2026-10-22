@@ -67,10 +67,11 @@ export function recoverOutlineOnlyEps(input){
   const recovered=recoverUnpaintedCorelOutlines(program,metadata);
   if(!recovered)return null;
   const outlineRecovery={source:recovered.source,count:recovered.count,previewStrokePt:recovered.previewStrokePt};
+  const producer=recovered.source==='relief-forge-outline-paths'?'Relief Forge':'CorelDRAW';
   return {
     svg:recovered.svg,widthPt:metadata.widthPt,heightPt:metadata.heightPt,
     metadata,outlineRecovery,
-    warnings:[`Обнаружено ${recovered.count} непечатаемых контуров CorelDRAW. Видимая тонкая обводка используется только для просмотра и анализа, а не для печати.`],
+    warnings:[`Обнаружено ${recovered.count} непечатаемых контуров ${producer}. Видимая тонкая обводка используется только для просмотра и анализа, а не для печати.`],
     logs:['CorelDRAW literal path-only EPS; original geometry recovered without rendering engines.']
   };
 }
@@ -93,7 +94,7 @@ export async function interpretEps(input,{runGhostscript,mupdf,fonts=[],progress
       // appending showpage then creates an invalid two-page EPS result.
       const recovery=hasVisibleGeometry?null:recoverUnpaintedCorelOutlines(program,metadata);
       if(attempt===0&&!hasVisibleGeometry&&!recovery&&!/\bshowpage\b/.test(new TextDecoder('latin1').decode(program)))continue;
-      if(recovery)warnings.push(`Обнаружено ${recovery.count} непечатаемых контуров CorelDRAW. Добавлена только видимая обводка для анализа; в исходном EPS заливки и толщины не изменены.`);
+      if(recovery)warnings.push(`Обнаружено ${recovery.count} непечатаемых контуров ${recovery.source==='relief-forge-outline-paths'?'Relief Forge':'CorelDRAW'}. Добавлена только видимая обводка для анализа; в исходном EPS заливки и толщины не изменены.`);
       return {...rendered,svg:recovery?.svg||rendered.svg,outlineRecovery:recovery?{source:recovery.source,count:recovery.count,previewStrokePt:recovery.previewStrokePt}:null,metadata,warnings:[...new Set(warnings)],logs};
     }
   }
