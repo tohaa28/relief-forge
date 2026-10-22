@@ -85,6 +85,7 @@ test('unified autoheal has one Apply action, problems and both smoothing/optimiz
  assert.match(app,/smoothPaths\(doc,scope,smoothingAmount\)/);
  assert.match(app,/optimizePaths\(smoothed.document,scope,optimizationTolerance\)/);
  assert.match(app,/task\.action===0\)buildUnifiedPreview\(\)/);
+ assert.match(app,/if\(!action\.startsWith\('import-'\)&&action!=='unified-apply'\)requestRecalculation\(\)/);
  assert.match(app,/if\(ready&&doc\.paths\.some\(p=>p\.kind!=='image'\)\)calculate\(0\)/);
  assert.match(app,/class:'comparison-path '/);
  assert.match(app,/class:'comparison-ghost'/);
