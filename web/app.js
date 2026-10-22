@@ -76,7 +76,7 @@ function render(){
   $('compare-before').setAttribute('aria-pressed',String(!comparison||compareStage==='before'));
   $('compare-after').setAttribute('aria-pressed',String(Boolean(comparison&&compareStage==='after')));
   $('compare-status').textContent=comparison?
-    (compareStage==='after'?'ПОСЛЕ':'ДО')+' · '+visibleDoc.paths.length+' контуров · '+(curvePreview?('сегменты '+(compareStage==='after'?curvePreview.stats.result:curvePreview.stats.original)+(compareStage==='after'?(curvePreview.afterDiagnosed?' · замечаний '+visibleIssues.length:' · диагностика не выполнена'):' · исходные')):visibleIssues.length+' замечаний')+(curvePreview?' · автоисправление':' · применено'):
+    (compareStage==='after'?'ПОСЛЕ':'ДО')+' · '+visibleDoc.paths.length+' контуров · '+(curvePreview?('стыков '+curvePreview.stats.smoothedJoints+' · сегменты '+(compareStage==='after'?curvePreview.stats.result:curvePreview.stats.original)+(compareStage==='after'?(curvePreview.afterDiagnosed?' · замечаний '+visibleIssues.length:' · проверка после выполняется'):' · исходные')):visibleIssues.length+' замечаний')+(curvePreview?' · автоисправление':' · применено'):
     'Сравнение после автоисправления';
   $('width').value=doc.width;$('height').value=doc.height;$('count').textContent=visibleDoc.paths.length;
   for(const id of ['sheet','grid-bg']){$(id).setAttribute('width',visibleDoc.width);$(id).setAttribute('height',visibleDoc.height);}
@@ -88,7 +88,15 @@ function render(){
   visibleDoc.paths.forEach((p,i)=>{
     const sel=!reviewing&&selected.has(i);
     const attrs={d:pathData(p),'data-path':i};
-    if(p.artwork){
+    if(reviewing&&p.kind!=='image'){
+      // Draw the exact geometry commands, not the original imported SVG
+      // markup: that artwork could still contain the unsmoothed curves.
+      if(compareStage==='after'&&comparison?.beforeDoc.paths[i]&&
+         worldData(comparison.beforeDoc.paths[i])!==worldData(p)){
+        el('path',{d:worldData(comparison.beforeDoc.paths[i]),class:'comparison-ghost'},$('geometry'));
+      }
+      el('path',{...attrs,class:'comparison-path '+(compareStage==='after'?'after':'before')},$('geometry'));
+    }else if(p.artwork){
       const painted=el('g',{'data-path':i,class:visibleDoc.epsImport?.outlineRecovery?'outline-artwork':'svg-artwork'},$('geometry'));
       appendMarkup(painted,artworkMarkup(p));
       if(sel)el('path',{...attrs,class:'path selected rich-selection'},$('geometry'));
