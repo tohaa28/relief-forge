@@ -235,7 +235,7 @@ $('auto-next').onclick=()=>{if(autoPreview){autoIndex=(autoIndex+1)%Math.max(1,a
 function previewCurveOptimization(){
   if(busy||currentComparison())return;
   const tolerance=Number($('optimization-tolerance').value);
-  const scope=doc.paths.map((p,i)=>i).filter(i=>p.kind!=='image'&&(!$('selection-only').checked||!selected.size||selected.has(i)));
+  const scope=doc.paths.map((p,i)=>i).filter(i=>doc.paths[i].kind!=='image'&&(!$('selection-only').checked||!selected.size||selected.has(i)));
   if(!scope.length){status('Выберите векторные кривые для оптимизации.');return;}
   try{
     const result=optimizePaths(doc,scope,tolerance),st=result.stats;
