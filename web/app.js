@@ -1,11 +1,12 @@
-import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js';
+import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.16';
 import {issueViewBox} from './issue-focus.js';
 import {issueColors,issueLabels,visibleHealthyAnchors,circlePath} from './vector-points.js';
-import {exportEps} from './eps-export.js?v=0.2.0-alpha.15';
+import {exportEps} from './eps-export.js?v=0.2.0-alpha.16';
 import {packedInput} from './auto-repair.js';
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
-import {selectedVectorIndices,smoothAndOptimizePaths} from './curve-optimizer.js?v=0.2.0-alpha.15';
+import {selectedVectorIndices,smoothAndOptimizePaths} from './curve-optimizer.js?v=0.2.0-alpha.16';
+import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.16';
 const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
 let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null;
@@ -136,7 +137,7 @@ function render(){
   $('toggle-points').textContent=pointsVisible?'Скрыть здоровые точки':'Показать здоровые точки';
   $('toggle-markers').textContent=markersVisible?'Скрыть маркеры':'Показать маркеры';
   $('apply-changes').disabled=busy||!curvePreview||!curvePreview.hasGeometryChange;
-  $('auto-status').textContent=busy?'Идёт расчёт…':curvePreview?'Предварительный результат рассчитан, просмотрите ПОСЛЕ.':doc.paths.length?'Проверка и расчёт после открытия файла.':'Откройте файл для автоматической проверки.';
+  $('auto-status').textContent=busy?'Идёт расчёт…':curvePreview?'Предварительный результат рассчитан, просмотрите ПОСЛЕ.':appliedComparison?'Изменения применены. ДО / ПОСЛЕ доступны для проверки.':doc.paths.length?'Проверка и расчёт после открытия файла.':'Откройте файл для автоматической проверки.';
   $('toggle-markers').disabled=busy||!visibleIssues.length;
   $('undo').disabled=busy||!past.length;$('redo').disabled=busy||!future.length;
   $('delete').disabled=busy||reviewing;
@@ -155,11 +156,16 @@ function buildUnifiedPreview(){
   try{
     const smoothingAmount=Number($('smoothing-amount').value);
     const optimizationTolerance=Number($('optimization-tolerance').value);
-    const optimized=smoothAndOptimizePaths(doc,scope,smoothingAmount,optimizationTolerance);
-    const st={...optimized.stats,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
+    const diagnosticTolerance=Number($('tolerance').value);
+    const repaired=repairVectorPoints(doc,scope,diagnosticTolerance);
+    const optimized=smoothAndOptimizePaths(repaired.document,scope,smoothingAmount,optimizationTolerance);
+    const st={...optimized.stats,pointRepairs:repaired.stats,diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
       smoothingDeviation:optimized.stats.smoothingError};
     const different=scope.some(i=>worldData(doc.paths[i])!==worldData(optimized.document.paths[i]));
-    const msg='Кривые: сглажено стыков '+st.smoothedJoints+
+    const msg='Точки: убрано коротких/нулевых сегментов '+st.pointRepairs.removedNodes+
+      ' · замкнуто близких концов '+st.pointRepairs.closedGaps+'.'+
+      '\nПересечения, наложения и неоднозначные соединения требуют ручного решения.'+
+      '\nКривые: сглажено стыков '+st.smoothedJoints+
       ' · оценённое отклонение сглаживания до '+st.smoothingDeviation.toFixed(5)+' мм.'+
       '\nСегментов: '+st.original+' → '+st.result+
       ' (−'+st.removed+'), оценка отклонения оптимизации до '+st.maxError.toFixed(5)+' мм.'+
@@ -168,7 +174,7 @@ function buildUnifiedPreview(){
         '\nПри этих допусках форма не изменена.');
     $('optimization-result').textContent=msg;
     const pv={source:clone(doc),result:optimized.document,stats:st,hasGeometryChange:different,
-      afterDiagnosed:false,comparisonData:{
+      beforeDiagnosticComplete:diagnosticComplete,afterDiagnosed:false,comparisonData:{
         beforeDoc:clone(doc),afterDoc:optimized.document,beforeIssues:clone(issues),afterIssues:[]
       }};
     curvePreview=pv;compareStage='after';
@@ -194,17 +200,23 @@ function applyUnifiedChanges(){
   if(busy||!curvePreview||!curvePreview.hasGeometryChange)return;
   const pv=curvePreview;
   if(Number($('smoothing-amount').value)!==pv.stats.smoothingAmount||
-     Number($('optimization-tolerance').value)!==pv.stats.tolerance){
+     Number($('optimization-tolerance').value)!==pv.stats.tolerance||
+     Number($('tolerance').value)!==pv.stats.diagnosticTolerance){
     status('Параметры изменились. Автоматический расчёт ещё не завершён.');return;
   }
   const baseline=clone(doc),comparison=pv.comparisonData;
   checkpoint(baseline);doc=clone(pv.result);
   changed('unified-apply');appliedComparison=comparison;compareStage='after';render();
   const st=pv.stats;
-  updateFileHistory({status:'Сглажено стыков: '+st.smoothedJoints+' · сегментов '+st.original+' → '+st.result,
-    diagnosis:null,repair:null});
+  const beforeCount=comparison.beforeIssues.length,afterCount=comparison.afterIssues.length;
+  const complete=pv.afterDiagnosed&&pv.afterDiagnosticComplete&&pv.beforeDiagnosticComplete;
+  updateFileHistory({status:'Исправлено точек: '+st.pointRepairs.removedNodes+' · замкнуто: '+st.pointRepairs.closedGaps+
+      ' · сглажено стыков: '+st.smoothedJoints+' · сегментов '+st.original+' → '+st.result,
+    diagnosis:pv.afterDiagnosed?{count:afterCount,complete:pv.afterDiagnosticComplete}:null,
+    repair:complete?{before:beforeCount,after:afterCount}:null});
   record('unified-apply',{stats:st});
-  status('Изменения применены: '+st.smoothedJoints+' сглаженных стыков, '+st.removed+
+  status('Изменения применены: '+st.pointRepairs.removedNodes+' исправлений точек, '+st.pointRepairs.closedGaps+
+    ' замыканий, '+st.smoothedJoints+' сглаженных стыков, '+st.removed+
     ' удалённых сегментов. Undo восстанавливает исходные кривые.');
 }
 function requestRecalculation(){
@@ -348,7 +360,7 @@ function stopEps(){epsWorker?.terminate();epsWorker=null;clearTimeout(epsTimer);
 function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта EPS…';record('eps-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsWorker=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.15',import.meta.url));
+  epsWorker=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.16',import.meta.url));
   const fail=message=>{stopEps();lock(false);status(message);$('import-report').textContent='Не удалось открыть EPS: '+message;record('eps-error',{name,message});updateFileHistory({status:'Ошибка открытия: '+String(message).slice(0,180)});};
   epsTimer=setTimeout(()=>fail('EPS превысил лимит 120 секунд. Импорт отменён, документ сохранён.'),120000);
   epsWorker.onerror=e=>fail('Ошибка EPS: '+e.message);
@@ -376,7 +388,7 @@ $('fonts').onchange=async e=>{try{const files=[...e.target.files];if(files.reduc
 $('demo-eps').onclick=async()=>{try{const response=await fetch('examples/curves-text-clip.eps');if(!response.ok)throw Error('Не удалось загрузить пример');importEps(new Uint8Array(await response.arrayBuffer()),'curves-text-clip.eps');}catch(e){status(e.message);}};
 $('heal-copy').onclick=()=>{try{const ids=[...selected].filter(i=>doc.paths[i].kind!=='image');if(!ids.length)throw Error('Выделите импортированные векторы');const tol=Number($('tolerance').value);if(!Number.isFinite(tol)||tol<1e-6||tol>1000)throw Error('Укажите допуск от 0.000001 до 1000 мм');const copies=ids.flatMap(i=>sampledContours(doc.paths[i],tol));checkpoint();const start=doc.paths.length;doc.paths.push(...copies);selected=new Set(copies.map((_,i)=>start+i));changed('create-healing-copy');status(`Создано ${copies.length} полилиний, допуск ${tol} мм. Исходные кривые сохранены отдельными объектами.`);}catch(e){status(e.message);}};
 $('export').onclick=()=>{download('relief-forge.svg',exportDocument(doc),'image/svg+xml');record('export-svg');};
-$('export-eps').onclick=()=>{try{const eps=exportEps(doc);const resultName=epsResultFilename(doc.sourceFileName||doc.epsImport?.name||'relief-forge.eps');download(resultName,eps,'application/postscript');updateFileHistory({exportName:resultName,exportAt:new Date().toISOString()});record('export-eps',{name:resultName,source:doc.sourceFileName||null,paths:doc.paths.length,bytes:eps.length});status('EPS сохранён: подтверждённые бесцветные кривые'+(currentComparison()?' (предпросмотр ДО/ПОСЛЕ не экспортирован)':'')+'. Для импорта откройте в ArtCAM.');}catch(e){status(e.message);record('eps-export-error',{message:e.message});}};
+$('export-eps').onclick=()=>{try{const eps=exportEps(doc);const resultName=epsResultFilename(doc.sourceFileName||doc.epsImport?.name||'relief-forge.eps');download(resultName,eps,'application/postscript');updateFileHistory({exportName:resultName,exportAt:new Date().toISOString()});record('export-eps',{name:resultName,source:doc.sourceFileName||null,paths:doc.paths.length,bytes:eps.length});status('EPS сохранён: подтверждённые бесцветные кривые'+(curvePreview?' (неприменённый предпросмотр не экспортирован)':currentComparison()?' (применённые изменения включены)':'')+'. Для импорта откройте в ArtCAM.');}catch(e){status(e.message);record('eps-export-error',{message:e.message});}};
 $('log').onclick=()=>download('relief-forge-session.jsonl',journal.map(x=>JSON.stringify(x)).join('\n'),'application/x-ndjson');
 $('demo').onclick=()=>{activeHistoryId=null;checkpoint();doc={format:'relief-forge',version:1,width:150,height:100,paths:[{closed:true,points:[[10,10],[50,50],[10,50],[50,10]]},{closed:true,points:[[70,10],[110,10],[110,40],[70,40]]},{closed:true,points:[[110,40],[110,10],[70,10],[70,40]]},{closed:false,points:[[10,70],[30,70],[30.003,70],[50,70]]},{closed:false,points:[[50.005,70],[80,70],[80,90]]}]};selected.clear();changed('load-demo');fit();};
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
@@ -388,4 +400,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();
 });
-record('session-start',{version:'0.2.0-alpha.15'});renderFileHistory();spawnWorker();fit();
+record('session-start',{version:'0.2.0-alpha.16'});renderFileHistory();spawnWorker();fit();
