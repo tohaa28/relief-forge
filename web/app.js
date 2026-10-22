@@ -6,6 +6,7 @@ import {AUTO_STEPS,basicPaths,packedInput,isChanged,comparisonBox,proposedIssueL
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
 import {optimizePaths,selectedVectorIndices} from './curve-optimizer.js';
+import {removedCurveAnchors,changedCurveIndices} from './curve-diff.js';
 const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
 let diagnosticComplete=true,markersVisible=true,pointsVisible=true,autoPreview=null,autoIndex=0,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null;
@@ -107,9 +108,14 @@ function render(){
     // Show the removed/relocated original curve overlay separately from the
     // optimized Bezier, so real changes can be inspected at any zoom.
     const ghost=el('g',{class:'optimized-before-ghost','pointer-events':'none'},$('geometry'));
-    for(const i of curvePreview.scope||[]){
+    for(const i of curvePreview.changedScope||[]){
       const path=curvePreview.source.paths[i];
       if(path?.kind!=='image'&&path)el('path',{d:pathData(path),class:'optimized-before-path'},ghost);
+    }
+    $('geometry').prepend(ghost); // Original red ghost must not hide the new green Bezier.
+    const gone=curvePreview.removedAnchors||[];
+    if(gone.length){const marks=el('g',{class:'optimized-removed-anchors','pointer-events':'none'},$('markers'));
+      for(const {point:[cx,cy]} of gone)el('circle',{cx,cy,r:radius*1.5},marks);
     }
   }
   if(pointsVisible){
@@ -248,12 +254,15 @@ function previewCurveOptimization(){
   if(!scope.length){status('Выберите векторные кривые для оптимизации.');return;}
   try{
     const result=optimizePaths(doc,scope,tolerance,Number($('optimization-range').value)),st=result.stats;
+    const changedScope=changedCurveIndices(doc,result.document,scope);
+    const removedAnchors=removedCurveAnchors(doc,result.document,changedScope);
     record('curve-optimize-measure',{tolerance,scope,stats:st});
     const summary='Сегментов: '+st.original+' → '+st.result+' (−'+st.removed+').'+
-      '\nИзмеренное отклонение: до '+st.maxError.toFixed(5)+' мм, допуск '+tolerance+' мм.';
+      '\nУдалено опорных точек: '+removedAnchors.length+'.'+
+      '\nОценённое отклонение кривой: до '+st.maxError.toFixed(5)+' мм (допуск '+tolerance+' мм).';
     $('optimization-result').textContent=st.removed?summary+'\nПОСЛЕ: зелёные кривые, пунктиром — прежние; точки показывают реальное сокращение.':summary+'\nБезопасных сокращений не найдено. Увеличьте допуск или степень оптимизации.';
     if(!st.removed){curvePreview=null;appliedComparison=null;render();status('Не удалось сократить число узлов в заданном допуске.');return;}
-    curvePreview={source:clone(doc),result:result.document,scope,stats:st,afterDiagnosed:false,
+    curvePreview={source:clone(doc),result:result.document,scope,changedScope,removedAnchors,stats:st,afterDiagnosed:false,
       comparisonData:{beforeDoc:clone(doc),afterDoc:result.document,beforeIssues:clone(issues),afterIssues:[]}};
     compareStage='after';render();
     // Diagnose the candidate, preserving a sampled-contour-to-object map.
