@@ -21,6 +21,31 @@ test('document creation tools are in a closed-by-default native disclosure',()=>
   assert.match(html,/<details id="creation-tools" class="creation-tools"><summary>Создание документа<\/summary>/);
   assert.doesNotMatch(html,/<details id="creation-tools"[^>]*\bopen\b/);
   const menu=html.slice(html.indexOf('id="creation-tools"'),html.indexOf('</details>'));
-  for(const id of ['new','line','rect','circle','demo'])assert.ok(menu.includes('id="'+id+'"'),id);
-  assert.ok(!menu.includes('id="select"'),'Selection tool stays outside hidden group');
+  for(const id of ['new','save','export','select','line','rect','circle','undo','redo','delete','demo'])assert.ok(menu.includes('id="'+id+'"'),id);
+  const header=html.slice(html.indexOf('<header>'),html.indexOf('</header>'));
+  assert.ok(header.includes('id="open"')&&header.includes('id="export-eps"'));
+  for(const id of ['save','export','new','select','undo','redo','delete'])assert.ok(!header.includes('id="'+id+'"'),'Button must not be in header: '+id);
+  const nav=html.slice(html.indexOf('<nav>'),html.indexOf('</nav>'));
+  for(const id of ['fit','zoom-in','zoom-out'])assert.ok(nav.includes('id="'+id+'"'),id);
+});
+
+
+test('diagnostic legend, issue list and all manual actions are collapsed by default',()=>{
+  for(const id of ['legend-panel','point-controls','issues-panel','manual-repairs','auto-local-details']){
+    assert.match(html,new RegExp('<details id="'+id+'"'));
+    assert.doesNotMatch(html,new RegExp('<details id="'+id+'"[^>]*\\bopen\\b'));
+  }
+  const repairs=html.slice(html.indexOf('id="manual-repairs"'),html.indexOf('</details>',html.indexOf('id="manual-repairs"')));
+  for(const action of [1,2,3,4,5,6,7,8])assert.ok(repairs.includes('data-action="'+action+'"'),'manual action '+action);
+  assert.match(css,/\.compact-section>summary/);
+});
+test('central comparison includes toggles, exit and distinct node overlay',()=>{
+  assert.match(html,/id="central-compare"/);
+  for(const id of ['compare-before','compare-after','compare-exit','nodes','markers']){
+    assert.ok(html.includes('id="'+id+'"'),id);
+  }
+  assert.match(css,/\.healthy-anchors\{fill:#fff;/);
+  assert.match(css,/\.path\{stroke-width:\.75px\}/);
+  assert.match(app,/activeComparisonFrame\(comparison,compareStage,doc,issues\)/);
+  assert.match(app,/compareStage='after'/);
 });
