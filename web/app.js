@@ -252,7 +252,8 @@ $('canvas').addEventListener('pointerdown',e=>{
   if(e.button===1){e.preventDefault();pan={pos};const b=canvas.viewBox.baseVal;pan.view=[b.x,b.y,b.width,b.height];canvas.setPointerCapture(e.pointerId);return;}
   if(e.button!==0)return;
   const issueMarker=e.target.closest('[data-issue]');
-  if(issueMarker){const issue=issues[Number(issueMarker.dataset.issue)];if(issue)focusIssue(issue);return;}
+  if(issueMarker){const issue=displayedIssues[Number(issueMarker.dataset.issue)];if(issue)focusIssue(issue);return;}
+  if(currentComparison()){status('Сравнение ДО/ПОСЛЕ доступно только для просмотра. Нажмите × для редактирования.');return;}
   if(mode==='line'){draft.push(pos);render();return;}
   if(mode==='rect'||mode==='circle'){drag={start:pos,before:clone(doc),shape:mode};canvas.setPointerCapture(e.pointerId);return;}
   const target=e.target.closest('[data-path]');
@@ -279,7 +280,7 @@ $('canvas').addEventListener('pointerup',e=>{
   if(JSON.stringify(doc)!==JSON.stringify(drag.before)){checkpoint(drag.before);changed(drag.shape?'draw-'+drag.shape:'move-nodes');}else render();drag=null;
 });
 $('canvas').addEventListener('pointercancel',()=>{if(drag)doc=drag.before;drag=null;pan=null;render();});
-$('canvas').addEventListener('wheel',e=>{if(busy)return;e.preventDefault();const p=at(e),b=$('canvas').viewBox.baseVal,f=e.deltaY>0?1.15:1/1.15;if(b.width*f<.1||b.width*f>1e7)return;b.x=p[0]+(b.x-p[0])*f;b.y=p[1]+(b.y-p[1])*f;b.width*=f;b.height*=f;render();},{passive:false});
+$('canvas').addEventListener('wheel',e=>{if(busy)return;e.preventDefault();zoom(e.deltaY>0?1.15:1/1.15,at(e));},{passive:false});
 document.addEventListener('keydown',e=>{if(busy||e.target.matches('input'))return;if(e.key==='Escape'){draft=[];render();}if(e.key==='Enter'&&draft.length>1){checkpoint();doc.paths.push({closed:false,points:draft});draft=[];changed('draw-polyline');}if(e.key==='Delete')$('delete').click();if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();$('undo').click();}});
 for(const m of ['select','line','rect','circle'])$(m).onclick=()=>setMode(m);
 $('fit').onclick=fit;
@@ -332,7 +333,7 @@ $('fonts').onchange=async e=>{try{const files=[...e.target.files];if(files.reduc
 $('demo-eps').onclick=async()=>{try{const response=await fetch('examples/curves-text-clip.eps');if(!response.ok)throw Error('Не удалось загрузить пример');importEps(new Uint8Array(await response.arrayBuffer()),'curves-text-clip.eps');}catch(e){status(e.message);}};
 $('heal-copy').onclick=()=>{try{const ids=[...selected].filter(i=>doc.paths[i].kind!=='image');if(!ids.length)throw Error('Выделите импортированные векторы');const tol=Number($('tolerance').value);if(!Number.isFinite(tol)||tol<1e-6||tol>1000)throw Error('Укажите допуск от 0.000001 до 1000 мм');const copies=ids.flatMap(i=>sampledContours(doc.paths[i],tol));checkpoint();const start=doc.paths.length;doc.paths.push(...copies);selected=new Set(copies.map((_,i)=>start+i));changed('create-healing-copy');status(`Создано ${copies.length} полилиний, допуск ${tol} мм. Исходные кривые сохранены отдельными объектами.`);}catch(e){status(e.message);}};
 $('export').onclick=()=>{download('relief-forge.svg',exportDocument(doc),'image/svg+xml');record('export-svg');};
-$('export-eps').onclick=()=>{try{const eps=exportEps(doc);download('relief-forge-result.eps',eps,'application/postscript');record('export-eps',{paths:doc.paths.length,bytes:eps.length});status('EPS сохранён: бесцветные контуры без заливки и толщины линий. В обычном просмотрщике такой EPS будет пустым — откройте его в ArtCAM.');}catch(e){status(e.message);record('eps-export-error',{message:e.message});}};
+$('export-eps').onclick=()=>{if(autoPreview){status('Сначала примените или отмените предварительное автоисправление.');return;}try{const eps=exportEps(doc);download('relief-forge-result.eps',eps,'application/postscript');record('export-eps',{paths:doc.paths.length,bytes:eps.length});status('EPS сохранён: бесцветные контуры без заливки и толщины линий. В обычном просмотрщике такой EPS будет пустым — откройте его в ArtCAM.');}catch(e){status(e.message);record('eps-export-error',{message:e.message});}};
 $('log').onclick=()=>download('relief-forge-session.jsonl',journal.map(x=>JSON.stringify(x)).join('\n'),'application/x-ndjson');
 $('demo').onclick=()=>{checkpoint();doc={format:'relief-forge',version:1,width:150,height:100,paths:[{closed:true,points:[[10,10],[50,50],[10,50],[50,10]]},{closed:true,points:[[70,10],[110,10],[110,40],[70,40]]},{closed:true,points:[[110,40],[110,10],[70,10],[70,40]]},{closed:false,points:[[10,70],[30,70],[30.003,70],[50,70]]},{closed:false,points:[[50.005,70],[80,70],[80,90]]}]};selected.clear();changed('load-demo');fit();};
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
