@@ -138,6 +138,87 @@ function optimizeSegments(segs,tol){
   }
   return {out,removed,maxError};
 }
+
+// Tangent smoothing at already-smooth cubic joins. This is actual geometry
+// modification, not merely hiding markers. Guard both sides with the same
+// adaptive geometric check as the optimizer. Sharp corners are untouched.
+function smoothSegments(segs,tolerance){
+  const copy=segs.map(s=>({...s,p0:[...s.p0],p1:[...s.p1],p2:[...s.p2],p3:[...s.p3]}));
+  let changed=0,maxError=0;
+  if(!(tolerance>0))return {segments:copy,changed,maxError};
+  for(let i=0;i<copy.length-1;i++){
+    const a=copy[i],b=copy[i+1],join=a.p3;
+    if(dist(join,b.p0)>1e-8||a.original==='L'||b.original==='L')continue;
+    const va=sub(join,a.p2),vb=sub(b.p1,join),la=norm(va),lb=norm(vb);
+    if(la<1e-8||lb<1e-8)continue;
+    const ua=mul(va,1/la),ub=mul(vb,1/lb),dot=ua[0]*ub[0]+ua[1]*ub[1];
+    // Preserve intentional corners and sharp cusp shapes.
+    if(dot<.90||dot>.9999999)continue;
+    const target=unit(add(ua,ub));if(!target)continue;
+    const strength=.32,oldA={...a,p2:[...a.p2]},oldB={...b,p1:[...b.p1]};
+    a.p2=lerp(a.p2,sub(join,mul(target,la)),strength);
+    b.p1=lerp(b.p1,add(join,mul(target,lb)),strength);
+    const forward=[...sample(oldA,tolerance),...sample(oldB,tolerance).slice(1)];
+    const after=[...sample(a,tolerance),...sample(b,tolerance).slice(1)];
+    const deviation=Math.max(maxDeviation(forward,after),maxDeviation(after,forward));
+    if(!Number.isFinite(deviation)||deviation>tolerance*.55){
+      a.p2=oldA.p2;b.p1=oldB.p1;continue;
+    }
+    changed++;maxError=Math.max(maxError,deviation);
+  }
+  return {segments:copy,changed,maxError};
+}
+function serializeSegments(paths){
+  const combined=[];
+  for(const path of paths){
+    combined.push(['M',...path.start]);
+    for(const s of path.segments){
+      if(s.original==='L')combined.push(['L',...s.p3]);
+      else combined.push(['C',...s.p1,...s.p2,...s.p3]);
+    }
+    if(path.closed)combined.push(['Z']);
+  }
+  return combined;
+}
+export function smoothVectorPath(path,tolerance=.01){
+  if(!Number.isFinite(tolerance)||tolerance<0||tolerance>2)throw Error('Допуск сглаживания: от 0 до 2 мм');
+  if(path.kind==='image')throw Error('Растр не является вектором');
+  if(path.artwork&&/(?:clip-path|mask=|filter=|<image\b|fill="url\()/i.test(path.artwork))throw Error('Сглаживание масок и обтравки не поддерживается');
+  const cmds=path.artwork?path.commands:(path.points||[]).map((p,i)=>[i?'L':'M',...p]).concat(path.closed?[['Z']]:[]);
+  const paths=makeSegments(cmds,path.offset||[0,0]);
+  let changed=0,maxError=0;
+  const converted=paths.map(p=>{
+    const result=smoothSegments(p.segments,tolerance);
+    changed+=result.changed;maxError=Math.max(maxError,result.maxError);
+    return {...p,segments:result.segments};
+  });
+  if(!changed)return {path:structuredClone(path),changed:0,maxError:0};
+  const commands=serializeSegments(converted);
+  const d=commands.map(c=>c.join(' ')).join(' ');
+  return {path:{...structuredClone(path),kind:'vector',commands,offset:[0,0],
+    points:commands.filter(c=>c[0]!=='Z').map(c=>c.slice(-2)),
+    artwork:'<path d="'+d+'" fill="none" stroke="#34465b" stroke-width="0.07"/>'},
+    changed,maxError};
+}
+export function smoothAndOptimizePaths(doc,indices,smoothTolerance,optimizeTolerance){
+  if(!Number.isFinite(smoothTolerance)||smoothTolerance<0||smoothTolerance>2)throw Error('Неверный допуск сглаживания');
+  const selection=new Set(indices),source=structuredClone(doc);
+  let smoothed=0,smoothingError=0;
+  source.paths=source.paths.map((p,i)=>{
+    if(!selection.has(i))return p;
+    const result=smoothVectorPath(p,smoothTolerance);
+    smoothed+=result.changed;smoothingError=Math.max(smoothingError,result.maxError);
+    return result.path;
+  });
+  const optimized=optimizePaths(source,indices,optimizeTolerance);
+  // Estimate separate changes conservatively rather than presenting their
+  // individual numeric estimates as a certified total Hausdorff distance.
+  return {document:optimized.document,stats:{
+    ...optimized.stats,smoothed,smoothingError,smoothTolerance,
+    estimateCombinedError:smoothingError+optimized.stats.maxError
+  }};
+}
+
 export function optimizeVectorPath(path,tolerance=.01){
   if(!Number.isFinite(tolerance)||tolerance<.00001||tolerance>2)throw Error('Допуск оптимизации должен быть от 0.00001 до 2 мм');
   if(path.kind==='image')throw Error('Растровый объект невозможно оптимизировать как кривую');
