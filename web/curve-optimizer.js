@@ -115,13 +115,13 @@ function exactStraight(segments){
   }
   return true;
 }
-function optimizeSegments(segs,tol){
+function optimizeSegments(segs,tol,maxMerge=10){
   const optimized=[],out=[];
   let removed=0,maxError=0;
   for(let i=0;i<segs.length;){
     let best={count:1,seg:segs[i],error:0,straight:false};
     let length=1;
-    for(let end=i+1;end<segs.length&&length<10;end++){
+    for(let end=i+1;end<segs.length&&length<maxMerge;end++){
       const group=segs.slice(i,end+1);length=group.length;
       if(exactStraight(group)){
         best={count:group.length,seg:{p0:group[0].p0,p3:group.at(-1).p3},error:0,straight:true};continue;
@@ -138,8 +138,9 @@ function optimizeSegments(segs,tol){
   }
   return {out,removed,maxError};
 }
-export function optimizeVectorPath(path,tolerance=.01){
-  if(!Number.isFinite(tolerance)||tolerance<.00001||tolerance>2)throw Error('Допуск оптимизации должен быть от 0.00001 до 2 мм');
+export function optimizeVectorPath(path,tolerance=.01,maxMerge=10){
+  if(!Number.isFinite(tolerance)||tolerance<.00001||tolerance>2)throw Error('Допуск сглаживания должен быть от 0.00001 до 2 мм');
+  if(!Number.isInteger(maxMerge)||maxMerge<2||maxMerge>20)throw Error('Степень оптимизации должна быть от 2 до 20 сегментов');
   if(path.kind==='image')throw Error('Растровый объект невозможно оптимизировать как кривую');
   if(path.artwork&&/(?:clip-path|mask=|filter=|<image\b|fill="url\()/i.test(path.artwork))throw Error('Оптимизация: маски, обтравка и растровое оформление пока не поддерживаются без потери свойств');
   const cmds=path.artwork?path.commands:(path.points||[]).map((p,i)=>[i?'L':'M',...p]).concat(path.closed?[['Z']]:[]);
@@ -147,7 +148,7 @@ export function optimizeVectorPath(path,tolerance=.01){
   const offset=path.offset||[0,0],paths=makeSegments(cmds,offset);
   let removed=0,maxError=0;const combined=[];
   for(const p of paths){
-    const o=optimizeSegments(p.segments,tolerance);
+    const o=optimizeSegments(p.segments,tolerance,maxMerge);
     removed+=o.removed;maxError=Math.max(maxError,o.maxError);
     combined.push(['M',...p.start],...o.out);
     if(p.closed)combined.push(['Z']);
@@ -163,14 +164,14 @@ export function optimizeVectorPath(path,tolerance=.01){
   return {path:out,removed,before:paths.reduce((n,p)=>n+p.segments.length,0),
     after:paths.reduce((n,p)=>n+p.segments.length,0)-removed,maxError};
 }
-export function optimizePaths(source,indices,tolerance){
+export function optimizePaths(source,indices,tolerance,maxMerge=10){
   if(!Array.isArray(source?.paths))throw Error('Нет векторов для оптимизации');
   const set=new Set(indices);
   let original=0,result=0,removed=0,maxError=0;const paths=source.paths.map((path,i)=>{
     if(!set.has(i))return structuredClone(path);
-    const r=optimizeVectorPath(path,tolerance);
+    const r=optimizeVectorPath(path,tolerance,maxMerge);
     original+=r.before;result+=r.after;removed+=r.removed;maxError=Math.max(maxError,r.maxError);
     return r.path;
   });
-  return {document:{...structuredClone(source),paths},stats:{original,result,removed,maxError,tolerance}};
+  return {document:{...structuredClone(source),paths},stats:{original,result,removed,maxError,tolerance,maxMerge}};
 }
