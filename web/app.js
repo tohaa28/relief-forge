@@ -139,151 +139,88 @@ function render(){
 }
 function lock(value,{coverCanvas=true}={}){busy=value;if(value){$('busy-label').textContent='Расчёт в Rust…';$('import-progress').value=0;}$('busy').hidden=!value;$('busy').classList.toggle('compact',value&&!coverCanvas);document.querySelectorAll('button,input').forEach(e=>{if(e.id!=='cancel'&&e.id!=='log')e.disabled=value;});if(!value)render();}
 
-function renderAutoPreview(){
-  const box=$('auto-preview');box.hidden=!autoPreview;
-  if(!autoPreview)return;
-  const v=autoPreview,sites=v.sites;
-  const point=sites[autoIndex%Math.max(sites.length,1)]||null;
-  const changed=isChanged(v.beforeSample,v.after);
-  $('auto-summary').textContent=
-    'Исходные дефекты: '+v.beforeIssues.length+'; после: '+v.afterIssues.length+
-    '. Предлагается '+v.beforeDoc.length+' → '+v.after.length+' контуров.'+
-    (v.hasCurves?'\nВнимание: EPS / Безье превращаются в полилинии с допуском '+v.tolerance+' мм. Оригинал сохраняется в Undo.':'')+
-    (!changed?'\nБезопасных изменений для этих объектов не найдено.':'');
-  $('auto-apply').disabled=busy||!changed;
-  $('auto-prev').disabled=sites.length<2;$('auto-next').disabled=sites.length<2;
-  $('auto-index').textContent=point?(autoIndex%sites.length+1)+'/'+sites.length+' · '+(issueLabels[point.kind]||point.kind)+(point.resolved?' · устранено':' · остаётся'):'Общий вид';
-  const view=comparisonBox(v.beforeSample,v.after,point,v.tolerance);
-  for(const [id,paths,original] of [['auto-before',v.beforeDoc,true],['auto-after',v.after,false]]){
-    const svg=$(id);svg.replaceChildren();svg.setAttribute('viewBox',[view.x,view.y,view.width,view.height].join(' '));
-    paths.forEach(p=>{const d=pathData(p);if(d)el('path',{d,fill:'none'},svg);});
-    if(point)el('circle',{cx:point.point[0],cy:point.point[1],r:Math.max(view.width/40,.015),fill:original?(issueColors[point.kind]||'#c93e53'):'#12947d',stroke:'white','stroke-width':Math.max(view.width/180,.006)},svg);
-  }
-}
-function nextAutoStage(chain,index){
-  const action=index===0?0:AUTO_STEPS[index-1].action;
-  const id=++sequence;
-  pending={id,autoStage:index,chain};
-  $('busy-label').textContent=index===0?'Автолечение · исходная диагностика…':'Автолечение · '+AUTO_STEPS[index-1].name+'…';
-  record('auto-stage-start',{stage:index,action,paths:chain.current.length});
-  worker.postMessage({id,input:packedInput(chain.current,chain.tolerance,action)});
-}
-function startAutoHeal(){
-  if(!ready||busy)return;
-  autoPreview=null;appliedComparison=null;curvePreview=null;compareStage='before';
-  const scope=doc.paths.map((p,i)=>i).filter(i=>pIsVector(doc.paths[i])&&(!$('selection-only').checked||!selected.size||selected.has(i)));
-  if(!scope.length){status('Нет векторных объектов для автоматического лечения.');return;}
-  const tolerance=Number($('tolerance').value);
-  try{
-    const original=scope.map(i=>clone(doc.paths[i]));
-    const samples=[],sampleScope=[];
-    for(const i of scope)for(const contour of sampledContours(doc.paths[i],tolerance)){samples.push(contour);sampleScope.push(i);}
-    const beforeSample=basicPaths(samples);
-    packedInput(beforeSample,tolerance,0);
-    const chain={scope,original,sampleScope,beforeSample,current:basicPaths(beforeSample),tolerance,
-      hasCurves:original.some(p=>p.artwork),beforeIssues:[]};
-    record('auto-preview-start',{scope,segments:beforeSample.length,tolerance,hasCurves:chain.hasCurves});
-    lock(true,{coverCanvas:false});nextAutoStage(chain,0);
-  }catch(e){lock(false);status('Автолечение: '+e.message);}
-}
-function pIsVector(p){return p.kind!=='image';}
-function finishAutoStage(task,data){
-  const chain=task.chain,index=task.autoStage;
-  if(index===0)chain.beforeIssues=data.output.issues;
-  else chain.current=basicPaths(data.output.paths);
-  if(index<AUTO_STEPS.length){nextAutoStage(chain,index+1);return;}
-  lock(false);
-  const after=basicPaths(data.output.paths);
-  autoPreview={scope:chain.scope,beforeDoc:chain.original,beforeSample:chain.beforeSample,after,
-    beforeIssues:chain.beforeIssues,afterIssues:data.output.issues,tolerance:chain.tolerance,
-    hasCurves:chain.hasCurves,
-    sites:proposedIssueLocations(chain.beforeIssues,data.output.issues,chain.tolerance),
-    comparisonData:mappedComparison(doc,chain.scope,chain.sampleScope,chain.beforeIssues,data.output.issues,after)};
-  autoIndex=0;compareStage='before';render();
-  const revised=isChanged(chain.beforeSample,after);
-  status(revised?'Автолечение рассчитано. Сравните до/после и подтвердите применение.':'Автолечение завершено: безопасных изменений не найдено.');
-  record('auto-preview-ready',{beforeIssues:chain.beforeIssues.length,afterIssues:data.output.issues.length,beforePaths:chain.original.length,afterPaths:after.length,changes:revised});
-}
-function applyAutoHeal(){
-  if(busy||!autoPreview||!isChanged(autoPreview.beforeSample,autoPreview.after))return;
-  if(Number($('tolerance').value)!==autoPreview.tolerance){status('Допуск изменился после расчёта. Запустите автоисправление заново.');return;}
-  const v=autoPreview,comparisonSnapshot=v.comparisonData,before=clone(doc),scope=new Set(v.scope),newPaths=[],selectedPaths=[];
-  let inserted=false;
-  for(let i=0;i<doc.paths.length;i++){
-    if(scope.has(i)){
-      if(!inserted){
-        for(const p of v.after){selectedPaths.push(newPaths.length);newPaths.push(clone(p));}
-        inserted=true;
-      }
-    }else newPaths.push(doc.paths[i]);
-  }
-  doc.paths=newPaths;selected=new Set(selectedPaths);checkpoint(before);
-  record('auto-apply',{sourceObjects:v.scope.length,resultObjects:v.after.length,tolerance:v.tolerance,
-    beforeIssues:v.beforeIssues.length,afterIssues:v.afterIssues.length,curveSampling:v.hasCurves});
-  changed('auto-apply');updateFileHistory({repair:{before:v.beforeIssues.length,after:v.afterIssues.length},status:'Автоисправлено'});appliedComparison=comparisonSnapshot;compareStage='after';render();status('Изменения применены. В центре можно сравнить ДО/ПОСЛЕ; Undo возвращает исходные кривые.');
-}
-$('auto-heal').onclick=startAutoHeal;
-$('auto-apply').onclick=applyAutoHeal;
-$('auto-discard').onclick=()=>{autoPreview=null;appliedComparison=null;compareStage='before';render();status('Предложенные исправления отклонены. Исходный макет не изменён.');};
-$('auto-prev').onclick=()=>{if(autoPreview){autoIndex=(autoIndex-1+Math.max(1,autoPreview.sites.length))%Math.max(1,autoPreview.sites.length);renderAutoPreview();}};
-$('auto-next').onclick=()=>{if(autoPreview){autoIndex=(autoIndex+1)%Math.max(1,autoPreview.sites.length);renderAutoPreview();}};
-
-
-function previewCurveOptimization(){
-  if(busy||currentComparison())return;
-  const tolerance=Number($('optimization-tolerance').value);
+// The automatic section is declarative: settings trigger calculation, no
+// "start/cancel" action. Only Apply commits a candidate to the document.
+function buildUnifiedPreview(){
+  if(busy||!doc.paths.length)return;
   const scope=selectedVectorIndices(doc,selected,$('selection-only').checked);
-  if(!scope.length){status('Выберите векторные кривые для оптимизации.');return;}
+  if(!scope.length){curvePreview=null;$('optimization-result').textContent='Нет векторных кривых для обработки.';render();return;}
   try{
-    const result=optimizePaths(doc,scope,tolerance),st=result.stats;
-    record('curve-optimize-measure',{tolerance,scope,stats:st});
-    const summary='Сегментов: '+st.original+' → '+st.result+' (−'+st.removed+').'+
-      '\nИзмеренное отклонение: до '+st.maxError.toFixed(5)+' мм, допуск '+tolerance+' мм.';
-    $('optimization-result').textContent=st.removed?summary+'\nСравните ДО/ПОСЛЕ в центральном окне, затем примените.':summary+'\nБезопасных сокращений при этом допуске нет. Увеличьте допуск для более сильной оптимизации.';
-    if(!st.removed){status('Не удалось сократить число узлов в заданном допуске.');return;}
-    curvePreview={source:clone(doc),result:result.document,stats:st,afterDiagnosed:false,
-      comparisonData:{beforeDoc:clone(doc),afterDoc:result.document,beforeIssues:clone(issues),afterIssues:[]}};
-    compareStage='before';render();
-    // Diagnose the candidate, preserving a sampled-contour-to-object map.
-    // If the Rust limit is reached, show the candidate but never claim it is clean.
+    const smoothingAmount=Number($('smoothing-amount').value);
+    const optimizationTolerance=Number($('optimization-tolerance').value);
+    const smoothed=smoothPaths(doc,scope,smoothingAmount);
+    const optimized=optimizePaths(smoothed.document,scope,optimizationTolerance);
+    const st={...optimized.stats,smoothingAmount,smoothedJoints:smoothed.stats.joints,
+      maxHandleShift:smoothed.stats.maxHandleShift};
+    const different=visibleGeometryChange(doc,optimized.document,scope);
+    const msg='Кривые: сглажено стыков '+st.smoothedJoints+
+      ' · смещение управляющих точек до '+st.maxHandleShift.toFixed(5)+' мм.'+
+      '\nСегментов: '+st.original+' → '+st.result+
+      ' (−'+st.removed+'), оценка отклонения оптимизации до '+st.maxError.toFixed(5)+' мм.'+
+      '\nДопуски: сглаживание '+smoothingAmount+' мм · оптимизация '+optimizationTolerance+' мм.'+
+      (different?'\nДля просмотра изменений выберите ДО / ПОСЛЕ. Красный пунктир — исходная кривая, зелёный — результат.':
+        '\nПри этих допусках форма не изменена.');
+    $('optimization-result').textContent=msg;
+    const pv={source:clone(doc),result:optimized.document,stats:st,hasGeometryChange:different,
+      afterDiagnosed:false,comparisonData:{
+        beforeDoc:clone(doc),afterDoc:optimized.document,beforeIssues:clone(issues),afterIssues:[]
+      }};
+    curvePreview=pv;compareStage='after';
+    record('autoheal-curve-preview',{scope,stats:st,changed:different});
+    render();
+    if(!ready)return;
     try{
-      if(!ready)throw Error('Rust/WASM пока не готов');
-      const diagnosticTolerance=Number($('tolerance').value),samples=[],mapping=[];
-      for(const i of scope)for(const part of sampledContours(result.document.paths[i],diagnosticTolerance)){
+      const tolerance=Number($('tolerance').value),samples=[],mapping=[];
+      for(const i of scope)for(const part of sampledContours(optimized.document.paths[i],tolerance)){
         samples.push(part);mapping.push(i);
       }
-      const input=packedInput(samples,diagnosticTolerance,0),id=++sequence;
-      pending={id,optimizeDiagnostic:true,scope:mapping};
+      const input=packedInput(samples,tolerance,0),id=++sequence;
+      pending={id,unifiedAfterDiagnostic:true,scope:mapping,preview:pv};
       lock(true,{coverCanvas:false});
       worker.postMessage({id,input});
     }catch(err){
-      status('Предпросмотр готов. Диагностика ПОСЛЕ недоступна: '+err.message);
+      status('Геометрия ПОСЛЕ рассчитана; Rust-проверка недоступна: '+err.message);
+      $('optimization-result').textContent+='\nПроверка дефектов ПОСЛЕ недоступна: '+err.message;
     }
-  }catch(e){$('optimization-result').textContent=e.message;status('Оптимизация: '+e.message);}
+  }catch(err){curvePreview=null;$('optimization-result').textContent=err.message;render();status('Автоисправление: '+err.message);}
 }
-function applyCurveOptimization(){
-  if(!curvePreview||busy)return;
+function applyUnifiedChanges(){
+  if(busy||!curvePreview||!curvePreview.hasGeometryChange)return;
   const pv=curvePreview;
-  if(Number($('optimization-tolerance').value)!==pv.stats.tolerance){
-    status('Допуск изменён. Пересчитайте оптимизацию перед применением.');return;
+  if(Number($('smoothing-amount').value)!==pv.stats.smoothingAmount||
+     Number($('optimization-tolerance').value)!==pv.stats.tolerance){
+    status('Параметры изменились. Автоматический расчёт ещё не завершён.');return;
   }
-  checkpoint(clone(doc));
-  doc=clone(pv.result);
-  const comparison=pv.comparisonData;
-  changed('curve-optimize-apply');
-  appliedComparison=comparison;compareStage='after';render();
-  updateFileHistory({status:'Оптимизировано: '+pv.stats.original+' → '+pv.stats.result+' сегментов; требуется повторная диагностика',diagnosis:null,repair:null});
-  record('curve-optimize-apply',{stats:pv.stats});
-  status('Оптимизация применена. Сегменты: '+pv.stats.original+' → '+pv.stats.result+'. Undo восстанавливает оригинальные кривые.');
+  const baseline=clone(doc),comparison=pv.comparisonData;
+  checkpoint(baseline);doc=clone(pv.result);
+  changed('unified-apply');appliedComparison=comparison;compareStage='after';render();
+  const st=pv.stats;
+  updateFileHistory({status:'Сглажено стыков: '+st.smoothedJoints+' · сегментов '+st.original+' → '+st.result,
+    diagnosis:null,repair:null});
+  record('unified-apply',{stats:st});
+  status('Изменения применены: '+st.smoothedJoints+' сглаженных стыков, '+st.removed+
+    ' удалённых сегментов. Undo восстанавливает исходные кривые.');
 }
-$('optimization-range').oninput=()=>{$('optimization-tolerance').value=$('optimization-range').value;};
-$('optimization-tolerance').oninput=()=>{
+function requestRecalculation(){
+  clearTimeout(settingsTimeout);settingsTimeout=setTimeout(()=>{
+    if(busy){requestRecalculation();return;}
+    curvePreview=null;appliedComparison=null;compareStage='before';
+    if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);
+    else render();
+  },180);
+}
+$('optimization-range').oninput=()=>{
+  $('optimization-tolerance').value=$('optimization-range').value;requestRecalculation();
+};
+$('optimization-tolerance').onchange=()=>{
   const t=Number($('optimization-tolerance').value);
   if(Number.isFinite(t))$('optimization-range').value=String(Math.max(.001,Math.min(.25,t)));
+  requestRecalculation();
 };
-$('optimize-preview').onclick=previewCurveOptimization;
-$('optimize-apply').onclick=applyCurveOptimization;
-$('optimize-cancel').onclick=()=>{curvePreview=null;compareStage='before';$('optimization-result').textContent='Предварительные изменения отклонены.';render();status('Исходные кривые не изменены.');};
+$('smoothing-amount').onchange=requestRecalculation;
+$('tolerance').onchange=requestRecalculation;
+$('selection-only').onchange=requestRecalculation;
+$('apply-changes').onclick=applyUnifiedChanges;
 
 function spawnWorker(){
   worker=new Worker(new URL('worker.js',import.meta.url),{type:'module'});
