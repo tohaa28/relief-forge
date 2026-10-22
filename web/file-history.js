@@ -24,7 +24,7 @@ export function readHistory(storage){
   }catch{return [];}
 }
 export function persistHistory(storage,entries){
-  try{storage?.setItem(HISTORY_KEY,JSON.stringify(entries.slice(0,HISTORY_LIMIT)));return true;}
+  try{if(!storage?.setItem)return false;storage.setItem(HISTORY_KEY,JSON.stringify(entries.slice(0,HISTORY_LIMIT)));return true;}
   catch{return false;}
 }
 export function createHistoryEntry(entries,{id,filename,openedAt}){
