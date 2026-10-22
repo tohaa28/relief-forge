@@ -154,3 +154,174 @@ export function deleteCurveNode(path,index,options){
   const commands=parts.flatMap(p=>[['M',...p.start],...p.segments.map(s=>s.c),...(p.closed?[['Z']]:[])]);
   return write(path,commands,options);
 }
+// Corel-style cubic handles operate on actual Bézier commands. A native
+// polyline is promoted to a single unpainted SVG path only when it gains a
+// C/Q segment; this prevents losing the curve on the next editor gesture.
+const finitePoint=p=>Array.isArray(p)&&p.length===2&&p.every(v=>Number.isFinite(v)&&Math.abs(v)<1e9);
+function saveEditedCurve(path,commands){
+  let source=path;
+  if(!path.artwork&&commands.some(c=>c[0]==='C'||c[0]==='Q')){
+    const original=read(path).commands;
+    source={...path,artwork:'<path d="'+data(original)+'" fill="none" stroke="#007e79"/>',
+      commands:original,offset:[0,0]};
+  }
+  const result=write(source,commands);
+  if(path.nodeKinds)result.nodeKinds={...path.nodeKinds};
+  return result;
+}
+function nodeContext(path,index){
+  const node=curveNodes(path).find(n=>n.index===index);
+  if(!node)throw Error('Выберите существующий узел');
+  const readout=read(path),part=readout.parts[node.part],n=node.ordinal;
+  return {node,part,n,incoming:n?part.segments[n-1]:part.closed?part.segments.at(-1):null,
+    outgoing:part.segments[n]||null,commands:readout.commands};
+}
+const magnitude=v=>Math.hypot(v[0],v[1]);
+const normalized=v=>{const n=magnitude(v);return n>1e-12?v.map(x=>x/n):null;};
+const incomingControl=s=>s?.c[0]==='C'?s.c.slice(3,5):s?.c[0]==='Q'?s.c.slice(1,3):null;
+const outgoingControl=s=>s?.c[0]==='C'?s.c.slice(1,3):s?.c[0]==='Q'?s.c.slice(1,3):null;
+function getKind(ctx,path){
+  const saved=path.nodeKinds?.[ctx.node.index];
+  if(['cusp','smooth','symmetric'].includes(saved))return saved;
+  const a=incomingControl(ctx.incoming),b=outgoingControl(ctx.outgoing);
+  if(!a||!b)return 'cusp';
+  const p=ctx.part.segments[ctx.n-1]?.c?end(ctx.incoming.c):ctx.part.start;
+  const v=a.map((n,i)=>n-p[i]),w=b.map((n,i)=>n-p[i]),av=magnitude(v),bv=magnitude(w);
+  if(av<1e-10||bv<1e-10||Math.abs(v[0]*w[1]-v[1]*w[0])>av*bv*1e-5||v[0]*w[0]+v[1]*w[1]>=0)return 'cusp';
+  return Math.abs(av-bv)<=Math.max(av,bv)*1e-5?'symmetric':'smooth';
+}
+export function curveNodeType(path,index){return getKind(nodeContext(path,index),path);}
+export function curveHandles(path,index){
+  const ctx=nodeContext(path,index),shift=offset(path),answer={type:getKind(ctx,path),anchor:ctx.node.point,handles:[]};
+  for(const [side,segment,control]of [['in',ctx.incoming,incomingControl(ctx.incoming)],
+                                       ['out',ctx.outgoing,outgoingControl(ctx.outgoing)]]){
+    if(segment)answer.handles.push({side,point:(control||ctx.node.point.map((v,i)=>v-shift[i])).map((v,i)=>v+shift[i]),
+      convertible:segment.c[0]!=='C'});
+  }
+  return answer;
+}
+function cubicFor(s){return cubic(s);}
+function editableContext(path,index){
+  // Materialize an implicit Z closing line as an explicit L before turning
+  // it into a cubic. Z remains in place and the contour stays closed.
+  const base=nodeContext(path,index),commands=base.commands;
+  if(base.incoming?.closing)commands.splice(base.incoming.index,0,['L',...base.part.start]);
+  const virtual={...path,artwork:'<path/>',commands};
+  const parts=read(virtual).parts,part=parts[base.node.part],n=base.n;
+  return {commands,part,n,anchor:n?end(part.segments[n-1].c):part.start,
+    incoming:n?part.segments[n-1]:part.closed?part.segments.at(-1):null,
+    outgoing:part.segments[n]||null};
+}
+function assureCubic(ctx,side){
+  const s=side==='in'?ctx.incoming:ctx.outgoing;
+  if(!s)throw Error('На конце открытой кривой нет второй ручки');
+  if(s.c[0]!=='C')ctx.commands[s.index]=cubicFor(s);
+  return ctx.commands[s.index];
+}
+function saveKinds(path,next,index,type){
+  // Command indices may shift when a closing Z is materialized. Re-associate
+  // previously explicit node types by position/contour rather than by index.
+  const oldNodes=curveNodes(path),newNodes=curveNodes(next),kinds={};
+  for(const old of oldNodes){
+    const kind=path.nodeKinds?.[old.index];if(!kind)continue;
+    const match=newNodes.find(n=>n.part===old.part&&dist(n.point,old.point)<1e-8);
+    if(match)kinds[match.index]=kind;
+  }
+  if(type){const old=oldNodes.find(n=>n.index===index);
+    const node=newNodes.find(n=>n.part===old.part&&dist(n.point,old.point)<1e-8);
+    if(node)kinds[node.index]=type;
+  }
+  next.nodeKinds=kinds;
+  return next;
+}
+export function setCurveNodeType(path,index,type,options){
+  if(!['cusp','smooth','symmetric'].includes(type))throw Error('Неизвестный тип узла');
+  if(type==='cusp'){
+    const result=structuredClone(path);return saveKinds(path,result,index,type);
+  }
+  const ctx=editableContext(path,index);
+  if(!ctx.incoming||!ctx.outgoing)throw Error('Сглаженный или симметричный узел требует два смежных сегмента');
+  const left=assureCubic(ctx,'in'),right=assureCubic(ctx,'out'),anchor=ctx.anchor;
+  const inVec=left.slice(3,5).map((v,i)=>v-anchor[i]),outVec=right.slice(1,3).map((v,i)=>v-anchor[i]);
+  const lenIn=magnitude(inVec),lenOut=magnitude(outVec);
+  const direction=normalized(outVec)||normalized(inVec)?.map(x=>-x)||
+    normalized(end(right).map((v,i)=>v-ctx.incoming.p0[i]))||[1,0];
+  const leftLen=type==='symmetric'?(lenIn+lenOut)/2:lenIn;
+  const rightLen=type==='symmetric'?leftLen:lenOut;
+  for(let i=0;i<2;i++){left[3+i]=anchor[i]-direction[i]*leftLen;right[1+i]=anchor[i]+direction[i]*rightLen;}
+  const result=saveEditedCurve(path,ctx.commands);
+  return saveKinds(path,result,index,type);
+}
+export function moveCurveHandle(path,index,side,target,options){
+  if(!['in','out'].includes(side)||!finitePoint(target))throw Error('Некорректная координата управляющей ручки');
+  const type=curveNodeType(path,index),ctx=editableContext(path,index);
+  const handle=assureCubic(ctx,side),shift=offset(path),local=target.map((v,i)=>v-shift[i]);
+  const start=side==='in'?3:1,otherSide=side==='in'?'out':'in';
+  for(let i=0;i<2;i++)handle[start+i]=local[i];
+  if(type!=='cusp'&&ctx.incoming&&ctx.outgoing){
+    const other=assureCubic(ctx,otherSide),o=otherSide==='in'?3:1;
+    const vec=local.map((v,i)=>v-ctx.anchor[i]),unit=normalized(vec);
+    const old=other.slice(o,o+2).map((v,i)=>v-ctx.anchor[i]);
+    const length=type==='symmetric'?magnitude(vec):magnitude(old);
+    for(let i=0;i<2;i++)other[o+i]=ctx.anchor[i]-(unit?.[i]||0)*length;
+  }
+  const result=saveEditedCurve(path,ctx.commands);
+  return saveKinds(path,result,index,type);
+}
+export function setCurveSegmentType(path,index,type,options){
+  if(!['line','curve'].includes(type))throw Error('Неизвестный тип сегмента');
+  const ctx=editableContext(path,index),s=ctx.outgoing||ctx.incoming;
+  if(!s)throw Error('Не найден смежный сегмент');
+  ctx.commands[s.index]=type==='line'?['L',...end(s.c)]:cubicFor(s);
+  return saveKinds(path,saveEditedCurve(path,ctx.commands),index);
+}
+export function reverseCurveDirection(path,options){
+  const {parts}=read(path),commands=[];
+  for(const p of parts){
+    const segments=p.segments;
+    if(!segments.length){commands.push(['M',...p.start]);continue;}
+    // For closed paths, the last segment (possibly an implicit Z edge)
+    // returns to M: reversing that edge first preserves M as start.
+    const start=p.closed?p.start:end(segments.at(-1).c);
+    commands.push(['M',...start]);
+    for(const s of [...segments].reverse()){
+      const c=s.c;
+      commands.push(c[0]==='C'?['C',...c.slice(3,5),...c.slice(1,3),...s.p0]:
+        c[0]==='Q'?['Q',...c.slice(1,3),...s.p0]:['L',...s.p0]);
+    }
+    if(p.closed)commands.push(['Z']);
+  }
+  return saveKinds(path,saveEditedCurve(path,commands),null);
+}
+export function closeCurveAtNode(path,index,options){
+  const ctx=nodeContext(path,index);
+  if(ctx.part.closed)throw Error('Этот контур уже замкнут');
+  const all=read(path).parts,commands=[];
+  all.forEach((p,i)=>{
+    commands.push(['M',...p.start],...p.segments.map(s=>s.c));
+    if(p.closed||i===ctx.node.part)commands.push(['Z']);
+  });
+  return saveKinds(path,saveEditedCurve(path,commands),null);
+}
+export function breakCurveAtNode(path,index,options){
+  const ctx=nodeContext(path,index),all=read(path).parts,commands=[];
+  for(let i=0;i<all.length;i++){
+    const p=all[i];
+    if(i!==ctx.node.part){commands.push(['M',...p.start],...p.segments.map(s=>s.c),...(p.closed?[['Z']]:[]));continue;}
+    if(p.closed){
+      const seq=p.segments;
+      const n=ctx.n;const count=seq.length;
+      // Rotate contour to selected anchor, retaining a closing explicit
+      // segment but dropping the Z operator.
+      const start=n?end(seq[n-1].c):p.start;
+      commands.push(['M',...start]);
+      for(let k=0;k<count;k++)commands.push(seq[(n+k)%count].c);
+    }else{
+      if(ctx.n===0||ctx.n===p.segments.length)throw Error('Выберите внутренний узел для разъединения');
+      const cut=end(p.segments[ctx.n-1].c);
+      commands.push(['M',...p.start],...p.segments.slice(0,ctx.n).map(s=>s.c),
+        ['M',...cut],...p.segments.slice(ctx.n).map(s=>s.c));
+    }
+  }
+  return saveEditedCurve(path,commands);
+}
