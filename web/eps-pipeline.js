@@ -1,4 +1,4 @@
-import {recoverUnpaintedCorelOutlines} from './corel-outline.js?v=0.2.0-alpha.4';
+import {recoverUnpaintedCorelOutlines} from './corel-outline.js?v=0.2.0-alpha.5';
 export const EPS_MAX_BYTES=64*1024*1024;
 export function epsProgram(input){
   const bytes=input instanceof Uint8Array?input:new Uint8Array(input);
@@ -14,17 +14,30 @@ export function epsProgram(input){
   return program;
 }
 export function epsMetadata(bytes){
-  const text=new TextDecoder('latin1').decode(bytes);let depth=0,bbox=null,hires=null;
+  const text=new TextDecoder('latin1').decode(bytes);
+  // A DSC EPS can contain both a DOCUMENT BoundingBox and a PAGE BoundingBox.
+  // CorelDRAW writes its real trimmed artwork box in the EPS header, then
+  // writes a different %%BoundingBox within %%Page (often the whole A4 sheet).
+  // Never let the page-local value overwrite the EPS header dimensions.
+  let depth=0,inPage=false,inTrailer=false;
+  let headerBox=null,headerHiRes=null,trailerBox=null,trailerHiRes=null;
   for(const line of text.split(/\r\n|\n|\r/)){
     if(/^%%BeginDocument\b/.test(line)){depth++;continue;}
     if(/^%%EndDocument\b/.test(line)){depth=Math.max(0,depth-1);continue;}
     if(depth)continue;
-    const m=line.match(/^%%(HiRes)?BoundingBox:\s*([^\r\n]*)/);if(!m||m[2].includes('(atend)'))continue;
+    if(/^%%Page:\s/.test(line)){inPage=true;inTrailer=false;continue;}
+    if(/^%%Trailer\b/.test(line)){inPage=false;inTrailer=true;continue;}
+    if(inPage)continue;
+    const m=line.match(/^%%(HiRes)?BoundingBox:\s*([^\r\n]*)/);
+    if(!m||m[2].includes('(atend)'))continue;
     const v=m[2].trim().split(/\s+/).map(Number);
     if(v.length!==4||v.some(x=>!Number.isFinite(x))||v[2]<=v[0]||v[3]<=v[1])continue;
-    if(m[1])hires=v;else bbox=v;
+    if(inTrailer){if(m[1])trailerHiRes=v;else trailerBox=v;}
+    else if(m[1])headerHiRes??=v;
+    else headerBox??=v;
   }
-  const box=hires||bbox;
+  const box=headerHiRes||trailerHiRes||headerBox||trailerBox;
+  const hires=Boolean(headerHiRes||trailerHiRes);
   if(!box)throw Error('В EPS не найден корректный %%BoundingBox / %%HiResBoundingBox.');
   if(box.some(v=>Math.abs(v)>1e7))throw Error('Размеры EPS выходят за допустимый диапазон.');
   return {boundingBox:box,hires:!!hires,widthPt:box[2]-box[0],heightPt:box[3]-box[1]};

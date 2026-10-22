@@ -120,3 +120,27 @@ test('unrecognized/painted EPS cannot bypass normal Ghostscript importer',()=>{
   assert.equal(recoverOutlineOnlyEps(encoded(base.replace('30 20 L','30 20 L\nstroke'))),null);
   assert.equal(recoverOutlineOnlyEps(encoded(base.replace('N\n%%PageTrailer','fill\n%%PageTrailer'))),null);
 });
+
+
+test('CorelDRAW document BoundingBox wins over a conflicting A4 page BoundingBox',async()=>{
+  const fixtureBytes=new Uint8Array(readFileSync(new URL('tests/fixtures/eps/corel-unpainted.eps',root)));
+  const m=epsMetadata(fixtureBytes);
+  assert.deepEqual(m.boundingBox,[10,20,110,60]);
+  assert.equal(m.widthPt,100);
+  assert.equal(m.heightPt,40);
+  const r=recoverOutlineOnlyEps(fixtureBytes);
+  assert.equal(r.metadata.widthPt,100);
+  const doc=importRichSvg(r.svg,{unitsPerInch:72,Parser:DOMParser});
+  assert.ok(Math.abs(doc.width-100*25.4/72)<1e-8);
+  assert.ok(Math.abs(doc.height-40*25.4/72)<1e-8);
+  assert.equal(doc.paths.length,2);
+  for(const p of doc.paths)for(const [x,y] of p.points){
+    assert.ok(x>=-0.0001&&x<=doc.width+0.0001);
+    assert.ok(y>=-0.0001&&y<=doc.height+0.0001);
+  }
+});
+test('EPS metadata supports trailer BoundingBox and rejects nested/page overrides',()=>{
+  const content=['%!PS-Adobe-3.0 EPSF-3.0','%%BoundingBox: (atend)','%%Page: 1 1','%%BoundingBox: 0 0 595 841','%%PageTrailer','%%Trailer','%%BoundingBox: 592 407 707 431','%%EOF'].join('\n');
+  const data=new TextEncoder().encode(content);
+  assert.deepEqual(epsMetadata(data).boundingBox,[592,407,707,431]);
+});
