@@ -31,7 +31,7 @@ test('document creation tools are in a closed-by-default native disclosure',()=>
 
 
 test('diagnostic legend, issue list and all manual actions are collapsed by default',()=>{
-  for(const id of ['legend-panel','point-controls','issues-panel','manual-repairs','auto-local-details','auto-notes']){
+  for(const id of ['legend-panel','point-controls','issues-panel','manual-repairs','auto-local-details']){
     assert.match(html,new RegExp('<details id="'+id+'"'));
     assert.doesNotMatch(html,new RegExp('<details id="'+id+'"[^>]*\\bopen\\b'));
   }
@@ -66,16 +66,24 @@ test('file history presents date / original filename / result in a closed sectio
   assert.match(css,/\.file-history-table/);
 });
 
-test('Bezier optimization exposes a bounded adjustable tolerance and central comparison',()=>{
- const start=html.indexOf('id="curve-optimization"');
- assert.ok(start>0);
- const area=html.slice(start,html.indexOf('</details>',start));
- for(const id of ['optimization-range','optimization-tolerance','optimize-preview','optimize-apply','optimize-cancel','optimization-result','optimization-actions'])assert.ok(area.includes('id="'+id+'"'),id);
- assert.match(area,/type="range" min="0.001" max="0.25"/);
- assert.match(area,/type="number" min="0.00001" max="2"/);
- assert.match(app,/function previewCurveOptimization\(\)/);
- assert.match(app,/function applyCurveOptimization\(\)/);
- assert.match(app,/curvePreview\?\.comparisonData/);
- assert.match(app,/checkpoint\(clone\(doc\)\)/);
- assert.match(app,/appliedComparison=comparison;compareStage='after'/);
+test('autoheal is only section heading and only Apply changes is actionable',()=>{
+ const area=html.slice(html.indexOf('id="heal-section"'),html.indexOf('</section>',html.indexOf('id="heal-section"')));
+ assert.match(area,/<h2 id="auto-heal">Автоисправление<\/h2>/);
+ for(const id of ['tolerance','optimization-tolerance','optimization-range','issues','summary','auto-apply'])assert.ok(area.includes('id="'+id+'"'),id);
+ const controls=[...area.matchAll(/<button\s+id="([^"]+)"/g)].map(x=>x[1]);
+ assert.deepEqual(controls,['toggle-points','toggle-markers','auto-apply']); // Display toggles are view-only.
+ assert.ok(!area.includes('id="optimize-preview"'));
+ assert.ok(!area.includes('id="optimize-apply"'));
+ assert.match(app,/\$\('auto-apply'\)\.onclick=applyCurveOptimization/);
+ assert.doesNotMatch(app,/\$\('auto-heal'\)\.onclick=/);
+ assert.match(app,/function scheduleHealing\(\)/);
+ assert.match(app,/previewCurveOptimization\(\)/);
+});
+test('after preview visibly overlays original and highlighted optimized Bézier curves',()=>{
+ assert.match(app,/class:'optimized-before-ghost'/);
+ assert.match(app,/class:'optimized-before-path'/);
+ assert.match(app,/curvePreview\.scope\.includes\(i\)/);
+ assert.match(css,/#canvas\.show-optimized #geometry .optimized-before-path/);
+ assert.match(css,/#canvas\.show-optimized #geometry g\.optimized-path path/);
+ assert.match(app,/curvePreview=\{source:clone\(doc\),result:result\.document,scope,stats:st/);
 });
