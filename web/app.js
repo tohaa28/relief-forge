@@ -6,6 +6,7 @@ import {packedInput} from './auto-repair.js';
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
 import {selectedVectorIndices,smoothAndOptimizePaths} from './curve-optimizer.js?v=0.2.0-alpha.13';
+import {changedCurveIndices,removedCurveAnchors,changedBezierSites} from './curve-diff.js';
 const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
 let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null;
@@ -63,11 +64,13 @@ const pathData=worldData;
 function appendMarkup(parent,text){const parsed=new DOMParser().parseFromString(`<svg xmlns="${ns}" xmlns:xlink="http://www.w3.org/1999/xlink">${text}</svg>`,'image/svg+xml');for(const child of [...parsed.documentElement.children])parent.append(document.importNode(child,true));}
 function render(){
   const comparison=currentComparison();
+  const changedView=curvePreview||appliedComparison?.optimization;
   const frame=activeComparisonFrame(comparison,compareStage,doc,issues);
   const visibleDoc=frame.document,visibleIssues=frame.issues;
   displayedIssues=visibleIssues;
   const reviewing=frame.readOnly;
   $('canvas').classList.toggle('is-comparing',reviewing);
+  $('canvas').classList.toggle('show-optimized',Boolean(changedView&&compareStage==='after'));
   $('compare-exit').hidden=!comparison;
   $('compare-exit').disabled=busy;
   $('compare-before').disabled=busy||!comparison;
@@ -96,7 +99,7 @@ function render(){
       }
       el('path',{...attrs,class:'comparison-path '+(compareStage==='after'?'after':'before')},$('geometry'));
     }else if(p.artwork){
-      const painted=el('g',{'data-path':i,class:visibleDoc.epsImport?.outlineRecovery?'outline-artwork':'svg-artwork'},$('geometry'));
+      const painted=el('g',{'data-path':i,class:(visibleDoc.epsImport?.outlineRecovery?'outline-artwork':'svg-artwork')+(changedView&&compareStage==='after'&&changedView.changedScope.includes(i)?' optimized-path':'')},$('geometry'));
       appendMarkup(painted,artworkMarkup(p));
       if(sel)el('path',{...attrs,class:'path selected rich-selection'},$('geometry'));
     }else el('path',{...attrs,class:'path '+(sel?'selected':'')},$('geometry'));
@@ -110,6 +113,20 @@ function render(){
   });
   // White-backed hollow rings always overlie the geometric stroke, at a
   // fixed screen-pixel radius. No diagnostic markup enters exported EPS.
+  if(changedView&&compareStage==='after'){
+    const ghost=el('g',{class:'optimized-before-ghost','pointer-events':'none'},$('geometry'));
+    for(const i of changedView.changedScope){
+      const original=changedView.source.paths[i];
+      if(original?.kind!=='image'&&original)el('path',{d:pathData(original),class:'optimized-before-path'},ghost);
+    }
+    $('geometry').prepend(ghost);
+    const removed=changedView.removedAnchors||[];
+    if(removed.length){const marks=el('g',{class:'optimized-removed-anchors','pointer-events':'none'},$('markers'));
+      for(const {point:[cx,cy]} of removed)el('circle',{cx,cy,r:radius*1.5},marks);}
+    const smooth=changedView.smoothedSites||[];
+    if(smooth.length){const marks=el('g',{class:'optimized-smoothed-sites','pointer-events':'none'},$('markers'));
+      for(const {point:[cx,cy]} of smooth)el('circle',{cx,cy,r:radius*2.4},marks);}
+  }
   if(pointsVisible){
     const healthy=visibleHealthyAnchors(visibleDoc,visibleIssues,Number($('tolerance').value));
     if(healthy.length)el('path',{d:circlePath(healthy,radius),class:'healthy-anchors'},$('nodes'));
@@ -156,6 +173,9 @@ function buildUnifiedPreview(){
     const smoothingAmount=Number($('smoothing-amount').value);
     const optimizationTolerance=Number($('optimization-tolerance').value);
     const optimized=smoothAndOptimizePaths(doc,scope,smoothingAmount,optimizationTolerance);
+    const changedScope=changedCurveIndices(doc,optimized.document,scope);
+    const removedAnchors=removedCurveAnchors(doc,optimized.document,changedScope);
+    const smoothedSites=changedBezierSites(doc,optimized.document,changedScope);
     const st={...optimized.stats,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
       smoothingDeviation:optimized.stats.smoothingError};
     const different=scope.some(i=>worldData(doc.paths[i])!==worldData(optimized.document.paths[i]));
@@ -167,7 +187,7 @@ function buildUnifiedPreview(){
       (different?'\nДля просмотра изменений выберите ДО / ПОСЛЕ. Красный пунктир — исходная кривая, зелёный — результат.':
         '\nПри этих допусках форма не изменена.');
     $('optimization-result').textContent=msg;
-    const pv={source:clone(doc),result:optimized.document,stats:st,hasGeometryChange:different,
+    const pv={source:clone(doc),result:optimized.document,changedScope,removedAnchors,smoothedSites,stats:st,hasGeometryChange:different,
       afterDiagnosed:false,comparisonData:{
         beforeDoc:clone(doc),afterDoc:optimized.document,beforeIssues:clone(issues),afterIssues:[]
       }};
@@ -197,7 +217,7 @@ function applyUnifiedChanges(){
      Number($('optimization-tolerance').value)!==pv.stats.tolerance){
     status('Параметры изменились. Автоматический расчёт ещё не завершён.');return;
   }
-  const baseline=clone(doc),comparison=pv.comparisonData;
+  const baseline=clone(doc),comparison={...pv.comparisonData,optimization:{source:pv.source,changedScope:pv.changedScope,removedAnchors:pv.removedAnchors,smoothedSites:pv.smoothedSites}};
   checkpoint(baseline);doc=clone(pv.result);
   changed('unified-apply');appliedComparison=comparison;compareStage='after';render();
   const st=pv.stats;
