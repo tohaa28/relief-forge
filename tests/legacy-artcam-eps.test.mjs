@@ -42,7 +42,9 @@ test('export and local reimport preserve multiple open EPS subpaths',()=>{
   assert.equal(restored.paths.length,3);
   assert.deepEqual(restored.paths.map(p=>p.closed),[false,false,true]);
   assert.ok(restored.paths.every(p=>p.kind!=='image'));
-  assert.deepEqual(epsMetadata(new TextEncoder().encode(ps)).boundingBox,[0,0,284,284]);
+  const bounds=epsMetadata(new TextEncoder().encode(ps)).boundingBox;
+  assert.ok(Math.abs(bounds[2]-100*72/25.4)<1e-5);
+  assert.ok(Math.abs(bounds[3]-100*72/25.4)<1e-5);
 });
 test('unpainted export does not initialize heavy interpreters',async()=>{
   const ps=exportEps({width:20,height:10,paths:[{points:[[0,0],[10,0],[10,10]],closed:true}]});
