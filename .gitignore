@@ -3,3 +3,5 @@
 /web/engine.wasm
 /evidence/private/
 *.log
+
+/.sites-preview/
