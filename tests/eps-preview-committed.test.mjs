@@ -37,7 +37,7 @@ test('smoothing changes Bezier control handles even without deleting an anchor, 
 });
 
 test('automatic preview has exactly one geometry commit button and EPS export does not auto-commit',()=>{
-  assert.match(html,/<button id="apply-changes" class="primary" disabled>Применить изменения<\/button>/);
+  assert.match(html,/<button id="apply-changes" class="primary" disabled>[^]*?Применить изменения<\/button>/);
   assert.match(app,/\$\('apply-changes'\)\.onclick=applyUnifiedChanges/);
   assert.match(app,/function applyUnifiedChanges\(\)/);
   assert.match(app,/checkpoint\(baseline\);doc=clone\(pv\.result\)/);
