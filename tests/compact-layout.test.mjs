@@ -96,7 +96,7 @@ test('unified Autoheal AFTER exposes actual changed cubic overlay without an ext
  assert.match(html,/id="smoothing-amount"/);
  assert.match(html,/id="optimization-tolerance"/);
  assert.match(html,/id="apply-changes"/);
- assert.match(app,/\\$('apply-changes')\\.onclick=applyUnifiedChanges/);
+ assert.ok(app.includes("$('apply-changes').onclick=applyUnifiedChanges"));
  assert.match(app,/const changedScope=changedCurveIndices\\(doc,optimized\\.document,scope\\)/);
  assert.match(app,/const smoothedSites=changedBezierSites\\(doc,optimized\\.document,changedScope\\)/);
  assert.match(app,/class:'optimized-before-path'/);
