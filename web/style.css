@@ -301,3 +301,14 @@ footer{flex:none;min-height:34px;height:auto;padding:7px 14px;background:#fff;bo
   nav button{min-height:38px}
   .mascot-welcome strong{font-size:15px}
 }
+
+
+/* alpha.22 — pixel-exact approved PNGs. No recoloring, rasterization or editing.
+   All display scaling is handled by the browser, not image file transformations. */
+.brand-appmark{background:transparent;border:0;box-shadow:none;overflow:visible}
+.brand-appmark-icon{display:block;width:42px;height:42px;flex:0 0 42px;object-fit:contain;border-radius:10px}
+.tool-icon.approved-icon{display:block;width:20px;height:20px;flex:0 0 20px;margin:0;object-fit:contain;image-rendering:auto;vertical-align:middle}
+button:has(>.approved-icon){align-items:center;gap:8px}
+button:has(>.approved-icon) kbd{margin-left:auto}
+.mascot-welcome .workspace-mascot{display:block;object-fit:contain;min-height:0;width:auto;height:min(32dvh,285px);max-width:min(100%,325px);flex:0 1 auto}
+@media(max-width:780px){.brand-appmark-icon{width:36px;height:36px;flex-basis:36px}.mascot-welcome .workspace-mascot{height:min(26dvh,190px)}}
