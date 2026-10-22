@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {optimizeVectorPath,optimizePaths} from '../web/curve-optimizer.js';
+import {optimizeVectorPath,optimizePaths,selectedVectorIndices} from '../web/curve-optimizer.js';
 import {exportEps} from '../web/eps-export.js';
 
 const mid=(a,b)=>a.map((v,i)=>(v+b[i])/2);
@@ -59,4 +59,17 @@ test('optimization rejects invalid tolerance and refuses to alter raster',()=>{
  assert.throws(()=>optimizeVectorPath({points:[[0,0],[1,0]]},20),/Допуск/);
  assert.throws(()=>optimizeVectorPath({kind:'image',points:[[0,0],[1,1]]},.02),/Растров/);
  assert.throws(()=>optimizeVectorPath({commands:[['L',1,2]],artwork:'<path/>',offset:[0,0]},.02),/начальная точка/);
+});
+
+
+test('UI optimizer vector selection excludes raster and includes selected curves',()=>{
+ const doc={paths:[
+  {points:[[0,0],[1,0]],closed:false},
+  {kind:'image',points:[[1,1]],closed:false},
+  {kind:'vector',commands:[['M',0,0]],artwork:'<path/>',points:[[0,0]],closed:false}
+ ]};
+ assert.deepEqual(selectedVectorIndices(doc,new Set(),true),[0,2]);
+ assert.deepEqual(selectedVectorIndices(doc,new Set([2]),true),[2]);
+ assert.deepEqual(selectedVectorIndices(doc,new Set([1,2]),true),[2]);
+ assert.deepEqual(selectedVectorIndices(doc,new Set([2]),false),[0,2]);
 });
