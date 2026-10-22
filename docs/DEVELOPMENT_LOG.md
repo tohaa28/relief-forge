@@ -42,3 +42,11 @@
 Created feature/eps-import from f236c70. Added browser-local Ghostscript/MuPDF WASM interpretation, lossless SVG artwork/curve storage, binary EPS and physical dimensions, fonts, progress/cancel/timeout, original EPS retention, project/export integration and explicit polyline copies. 15 Rust + 12 JS + compiled Rust WASM checks pass. Browser and deployment pending. See EPS_IMPORT_CONTRACT.md and THIRD_PARTY_NOTICES.md. Windows collaborator reports ArtCAM window capture error 0x80004002; no visual parity established.
 
 Browser QA: imported 11 EPS objects at 101.6×50.8 mm; visual curves/text/clip/colors; Rust diagnosis; save/new/reopen with original-byte equality; binary EPS file picker; malformed EPS refusal and infinite-loop cancellation preserve prior 11 objects; explicit healing copy creates 65 sampled nodes while retaining original. Local-only preview copy used; no Sites publication. Build log: logs/eps-build.txt. MuPDF npm gitHead equals upstream 1.28.1 tag (20061bd4).
+
+## 2026-10-22 · 0.2.0-alpha.2 · Vector Doctor issue inspection
+
+- Ветка `feature/vector-doctor-issue-inspection` от `main` с EPS-интеграцией. Изменены только диагностический интерфейс и навигация viewport; Rust-ядро и кривые EPS не затронуты.
+- Выбор замечания в списке и клик по маркеру центрирует найденную геометрическую проблему с сохранением пропорций экрана. Добавлена команда «Скрыть/показать маркеры», не удаляющая результаты диагностики.
+- Добавлены четыре JS-регрессионных теста `issueViewBox`: координаты, пропорции, отсутствие масштабирования наружу и невалидные входы. Обновлена версия в Cargo.toml / Cargo.lock / package.json / UI и журнале сессии.
+- Публикация строго через проверки pull request и GitHub Actions на main. Runtime-проверка оригинального ArtCAM 2018 пока не подтверждена, сравнение поведения не заявляется.
+- На момент записи CI, браузер и публикация новой версии ещё требуют независимого подтверждения.
