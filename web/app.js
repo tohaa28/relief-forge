@@ -1,14 +1,15 @@
-import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.19';
+import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.20';
 import {issueViewBox} from './issue-focus.js';
 import {visibleHealthyAnchors,circlePath} from './vector-points.js';
-import {screenUnitsPerPixel,renderIssueMarkers} from './issue-markers.js?v=0.2.0-alpha.19';
-import {exportEps} from './eps-export.js?v=0.2.0-alpha.19';
+import {screenUnitsPerPixel,renderIssueMarkers} from './issue-markers.js?v=0.2.0-alpha.20';
+import {exportEps} from './eps-export.js?v=0.2.0-alpha.20';
 import {packedInput} from './auto-repair.js';
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
-import {selectedVectorIndices,smoothAndOptimizePaths} from './curve-optimizer.js?v=0.2.0-alpha.19';
-import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.19';
-import {curveNodes,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.19';
+import {selectedVectorIndices,smoothAndOptimizePaths} from './curve-optimizer.js?v=0.2.0-alpha.20';
+import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.20';
+import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.20';
+import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.20';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 const nodeCursor=symbol=>{const svg='<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26"><circle cx="13" cy="13" r="11" fill="white" stroke="#173946" stroke-width="1.7"/><text x="13" y="19" text-anchor="middle" fill="#007e79" font-family="Arial" font-weight="bold" font-size="19">'+symbol+'</text></svg>';return 'url("data:image/svg+xml,'+encodeURIComponent(svg)+'") 13 13, crosshair';};
 const plusCursor=nodeCursor('+'),minusCursor=nodeCursor('−');
@@ -67,9 +68,19 @@ function focusIssue(issue){
 }
 function el(tag,attrs,parent){const e=document.createElementNS(ns,tag);for(const [k,v]of Object.entries(attrs))e.setAttribute(k,v);parent.append(e);return e;}
 const pathData=worldData;
-function appendMarkup(parent,text){const parsed=new DOMParser().parseFromString(`<svg xmlns="${ns}" xmlns:xlink="http://www.w3.org/1999/xlink">${text}</svg>`,'image/svg+xml');for(const child of [...parsed.documentElement.children])parent.append(document.importNode(child,true));}
+const svgMarkupCache=new Map();
+function appendMarkup(parent,text){
+  // Reuse parsed XML on pan/zoom and pointer drags; keep the cache small to
+  // avoid retaining huge EPS/SVG trees after opening another document.
+  let parsed=svgMarkupCache.get(text);
+  if(!parsed){parsed=new DOMParser().parseFromString('<svg xmlns="'+ns+'" xmlns:xlink="http://www.w3.org/1999/xlink">'+text+'</svg>','image/svg+xml');
+    if(text.length<250000){if(svgMarkupCache.size>=24)svgMarkupCache.delete(svgMarkupCache.keys().next().value);svgMarkupCache.set(text,parsed);}
+  }
+  for(const child of parsed.documentElement.children)parent.append(document.importNode(child,true));
+}
 function render(){
   document.body.classList.toggle('curve-editing',curveEditing());
+  $('mascot-welcome').hidden=Boolean(doc.paths.length);
   $('curve-node-tools').hidden=!curveEditing();
   if(curveEditing())$('optimization-result').textContent='Автоматический предпросмотр появится после нажатия «Готово». Ручные изменения уже сохраняются в документе.';
   $('curve-edit').classList.toggle('active',curveEditing());
@@ -131,8 +142,8 @@ function render(){
             'data-path':i,'data-curve-node':activeCurveNode.index,'data-curve-handle':handle.side},$('geometry'));
         }
       }
-      curveNodes(p).forEach(node=>{
-        const [cx,cy]=node.point,kind=curveNodeType(p,node.index),chosen=activeCurveNode?.path===i&&activeCurveNode.index===node.index;
+      curveNodesTyped(p).forEach(node=>{
+        const [cx,cy]=node.point,kind=node.type,chosen=activeCurveNode?.path===i&&activeCurveNode.index===node.index;
         const common={'data-path':i,'data-curve-node':node.index,class:'curve-node'+(chosen?' chosen':'')};
         if(kind==='smooth')el('circle',{...common,cx,cy,r:markerUnit*4.5},$('geometry'));
         else if(kind==='symmetric')el('polygon',{...common,points:[[cx,cy-markerUnit*5.2],[cx+markerUnit*5.2,cy],[cx,cy+markerUnit*5.2],[cx-markerUnit*5.2,cy]].map(a=>a.join(',')).join(' ')},$('geometry'));
@@ -450,17 +461,20 @@ $('canvas').addEventListener('pointerdown',e=>{
     canvas.setPointerCapture(e.pointerId);
   }else selected.clear();render();
 });
+let dragRenderFrame=0;
+const scheduleDragRender=()=>{if(!dragRenderFrame)dragRenderFrame=requestAnimationFrame(()=>{dragRenderFrame=0;render();});};
+const flushDragRender=()=>{if(dragRenderFrame){cancelAnimationFrame(dragRenderFrame);dragRenderFrame=0;}};
 $('canvas').addEventListener('pointermove',e=>{
   const pos=at(e);$('coords').textContent=`X ${pos[0].toFixed(2)} · Y ${pos[1].toFixed(2)} мм`;
   if(pan){const b=$('canvas').viewBox.baseVal;const dx=pos[0]-pan.pos[0],dy=pos[1]-pan.pos[1];b.x-=dx;b.y-=dy;return;}
   if(!drag||busy)return;
   if(drag.curveHandle){
-    try{doc.paths[drag.path]=moveCurveHandle(drag.before.paths[drag.path],drag.curveNode,drag.curveHandle,pos);render();}
+    try{doc.paths[drag.path]=moveCurveHandle(drag.before.paths[drag.path],drag.curveNode,drag.curveHandle,pos);scheduleDragRender();}
     catch(error){status(error.message);}
   }else if(drag.curveNode!==undefined){
-    try{doc.paths[drag.path]=moveCurveNode(drag.before.paths[drag.path],drag.curveNode,pos);render();}
+    try{doc.paths[drag.path]=moveCurveNode(drag.before.paths[drag.path],drag.curveNode,pos);scheduleDragRender();}
     catch(error){status(error.message);}
-  }else if(drag.node!==undefined){doc.paths[drag.path].points[drag.node]=pos;render();}
+  }else if(drag.node!==undefined){doc.paths[drag.path].points[drag.node]=pos;scheduleDragRender();}
   else if(drag.move){const dx=pos[0]-drag.start[0],dy=pos[1]-drag.start[1];for(const i of drag.move){doc.paths[i].points=drag.before.paths[i].points.map(([x,y])=>[x+dx,y+dy]);if(doc.paths[i].artwork)doc.paths[i].offset=[drag.before.paths[i].offset[0]+dx,drag.before.paths[i].offset[1]+dy];}render();}
   else{drag.end=pos;$('draft').replaceChildren();el('path',{d:pathData(makeShape(drag)),class:'path selected'},$('draft'));}
 });
@@ -468,13 +482,23 @@ function makeShape(d){const [x,y]=d.start,[a,b]=d.end||d.start;
   return d.shape==='rect'?{closed:true,points:[[x,y],[a,y],[a,b],[x,b]]}:{closed:true,points:Array.from({length:96},(_,i)=>{const t=i*Math.PI*2/96,r=Math.hypot(a-x,b-y);return [x+r*Math.cos(t),y+r*Math.sin(t)];})};
 }
 $('canvas').addEventListener('pointerup',e=>{
+  flushDragRender();
   if(pan){pan=null;return;}if(!drag)return;
   if(drag.shape&&drag.end&&Math.hypot(drag.end[0]-drag.start[0],drag.end[1]-drag.start[1])>.001){doc.paths.push(makeShape(drag));selected=new Set([doc.paths.length-1]);}
   if(JSON.stringify(doc)!==JSON.stringify(drag.before)){checkpoint(drag.before);changed(drag.curveHandle?'curve-node-handle':drag.curveNode!==undefined?'curve-node-move':drag.shape?'draw-'+drag.shape:'move-nodes');}else render();drag=null;
 });
-$('canvas').addEventListener('pointercancel',()=>{if(drag)doc=drag.before;drag=null;pan=null;render();});
+$('canvas').addEventListener('pointercancel',()=>{flushDragRender();if(drag)doc=drag.before;drag=null;pan=null;render();});
 $('canvas').addEventListener('wheel',e=>{if(busy)return;e.preventDefault();zoom(e.deltaY>0?1.15:1/1.15,at(e));},{passive:false});
-document.addEventListener('keydown',e=>{if(busy||e.target.matches('input'))return;if(e.key==='Escape'){$('node-context').hidden=true;if(drag){doc=drag.before;drag=null;}pan=null;draft=[];activeCurveNode=null;render();}if(e.key==='Enter'&&draft.length>1){checkpoint();doc.paths.push({closed:false,points:draft});draft=[];changed('draw-polyline');}if(e.key==='Delete'){if(curveEditing()){e.preventDefault();removeActiveCurveNode();}else $('delete').click();}if(curveEditing()&&!e.ctrlKey&&!e.metaKey&&['c','C','s','S'].includes(e.key)&&activeCurveNode){e.preventDefault();const kind=curveNodeType(doc.paths[activeCurveNode.path],activeCurveNode.index);runNodeCommand(e.key.toLowerCase()==='c'?(kind==='cusp'?'smooth':'cusp'):(kind==='symmetric'?'smooth':'symmetric'));}if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();$('undo').click();}});
+document.addEventListener('keydown',e=>{
+  if(busy||e.target.matches('input,textarea,select')||e.target.isContentEditable)return;
+  if(e.key==='Escape'){$('node-context').hidden=true;flushDragRender();if(drag){doc=drag.before;drag=null;}pan=null;draft=[];activeCurveNode=null;render();}
+  if(e.key==='Enter'&&draft.length>1){checkpoint();doc.paths.push({closed:false,points:draft});draft=[];changed('draw-polyline');}
+  const action=keyboardAction(e,curveEditing());if(!action)return;
+  e.preventDefault();
+  if(action.button){$(action.button).click();return;}
+  if(action.tool){nodeTool=action.tool;render();return;}
+  if(action.operation)runNodeCommand(action.operation);
+});
 for(const m of ['select','line','rect','circle'])$(m).onclick=()=>setMode(m);
 $('fit').onclick=fit;
 $('zoom-in').onclick=()=>zoom(0.8);
@@ -492,12 +516,12 @@ $('redo').onclick=()=>{if(!future.length||busy)return;past.push(clone(doc));doc=
 $('delete').onclick=()=>{if(!selected.size)return;checkpoint();doc.paths=doc.paths.filter((_,i)=>!selected.has(i));selected.clear();changed('delete');};
 $('new').onclick=()=>{activeHistoryId=null;checkpoint();doc={format:'relief-forge',version:1,width:300,height:200,paths:[]};selected.clear();changed('new');fit();};
 for(const key of ['width','height'])$(key).onchange=()=>{const v=Number($(key).value);if(v>0&&v<1e6){checkpoint();doc[key]=v;changed('resize-sheet');fit();}else render();};
-$('save').onclick=()=>{record('save-project');download('relief-forge.rf.json',JSON.stringify({...doc,journal,history:{past,future}},null,2));};
+$('save').onclick=()=>{record('save-project');download('doktor-uzelkov.rf.json',JSON.stringify({...doc,journal,history:{past,future}},null,2));};
 function stopEps(){epsWorker?.terminate();epsWorker=null;clearTimeout(epsTimer);}
 function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта EPS…';record('eps-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsWorker=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.19',import.meta.url));
+  epsWorker=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.20',import.meta.url));
   const fail=message=>{stopEps();lock(false);status(message);$('import-report').textContent='Не удалось открыть EPS: '+message;record('eps-error',{name,message});updateFileHistory({status:'Ошибка открытия: '+String(message).slice(0,180)});};
   epsTimer=setTimeout(()=>fail('EPS превысил лимит 120 секунд. Импорт отменён, документ сохранён.'),120000);
   epsWorker.onerror=e=>fail('Ошибка EPS: '+e.message);
@@ -537,4 +561,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();
 });
-record('session-start',{version:'0.2.0-alpha.19'});renderFileHistory();spawnWorker();fit();
+record('session-start',{version:'0.2.0-alpha.20'});renderFileHistory();spawnWorker();fit();
