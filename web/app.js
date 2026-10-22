@@ -6,6 +6,7 @@ import {AUTO_STEPS,basicPaths,packedInput,isChanged,comparisonBox,proposedIssueL
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
 import {optimizePaths,selectedVectorIndices,smoothAndOptimizePaths} from './curve-optimizer.js?v=0.2.0-alpha.12';
+import {removedCurveAnchors,changedCurveIndices} from './curve-diff.js';
 const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
 let diagnosticComplete=true,markersVisible=true,pointsVisible=true,autoPreview=null,autoIndex=0,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null;
@@ -63,11 +64,13 @@ const pathData=worldData;
 function appendMarkup(parent,text){const parsed=new DOMParser().parseFromString(`<svg xmlns="${ns}" xmlns:xlink="http://www.w3.org/1999/xlink">${text}</svg>`,'image/svg+xml');for(const child of [...parsed.documentElement.children])parent.append(document.importNode(child,true));}
 function render(){
   const comparison=currentComparison();
+  const optimizedView=curvePreview||appliedComparison?.optimization;
   const frame=activeComparisonFrame(comparison,compareStage,doc,issues);
   const visibleDoc=frame.document,visibleIssues=frame.issues;
   displayedIssues=visibleIssues;
   const reviewing=frame.readOnly;
   $('canvas').classList.toggle('is-comparing',reviewing);
+  $('canvas').classList.toggle('show-optimized',Boolean(optimizedView&&compareStage==='after'));
   $('compare-exit').hidden=!comparison;
   $('compare-exit').disabled=busy;
   $('compare-before').disabled=busy||!comparison;
@@ -88,7 +91,7 @@ function render(){
     const sel=!reviewing&&selected.has(i);
     const attrs={d:pathData(p),'data-path':i};
     if(p.artwork){
-      const painted=el('g',{'data-path':i,class:visibleDoc.epsImport?.outlineRecovery?'outline-artwork':'svg-artwork'},$('geometry'));
+      const painted=el('g',{'data-path':i,class:(visibleDoc.epsImport?.outlineRecovery?'outline-artwork':'svg-artwork')+(optimizedView&&compareStage==='after'&&optimizedView.changedScope.includes(i)?' optimized-path':'')},$('geometry'));
       appendMarkup(painted,artworkMarkup(p));
       if(sel)el('path',{...attrs,class:'path selected rich-selection'},$('geometry'));
     }else el('path',{...attrs,class:'path '+(sel?'selected':'')},$('geometry'));
@@ -102,6 +105,18 @@ function render(){
   });
   // White-backed hollow rings always overlie the geometric stroke, at a
   // fixed screen-pixel radius. No diagnostic markup enters exported EPS.
+  if(optimizedView&&compareStage==='after'){
+    const ghost=el('g',{class:'optimized-before-ghost','pointer-events':'none'},$('geometry'));
+    for(const i of optimizedView.changedScope){
+      const original=optimizedView.source.paths[i];
+      if(original&&original.kind!=='image')el('path',{d:pathData(original),class:'optimized-before-path'},ghost);
+    }
+    $('geometry').prepend(ghost);
+    if(optimizedView.removedAnchors.length){
+      const nodes=el('g',{class:'optimized-removed-anchors','pointer-events':'none'},$('markers'));
+      for(const {point:[cx,cy]} of optimizedView.removedAnchors)el('circle',{cx,cy,r:radius*1.5},nodes);
+    }
+  }
   if(pointsVisible){
     const healthy=visibleHealthyAnchors(visibleDoc,visibleIssues,Number($('tolerance').value));
     if(healthy.length)el('path',{d:circlePath(healthy,radius),class:'healthy-anchors'},$('nodes'));
@@ -243,12 +258,15 @@ function previewCurveOptimization(){
   if(!scope.length){status('Выберите векторные кривые для оптимизации.');return;}
   try{
     const result=smoothAndOptimizePaths(doc,scope,smoothing,tolerance),st=result.stats;
+    const changedScope=changedCurveIndices(doc,result.document,scope);
+    const removedAnchors=removedCurveAnchors(doc,result.document,changedScope);
     record('curve-optimize-measure',{tolerance,scope,stats:st});
     const summary='Сглажено стыков: '+st.smoothed+'. Сегментов: '+st.original+' → '+st.result+' (−'+st.removed+').'+
+      '\nИзменённых кривых: '+changedScope.length+'; удалено опорных точек: '+removedAnchors.length+'.'+
       '\nОценка отклонения: до '+st.estimateCombinedError.toFixed(5)+' мм. Сглаживание '+smoothing+' мм, оптимизация '+tolerance+' мм.';
-    $('optimization-result').textContent=st.removed?summary+'\nСравните ДО/ПОСЛЕ в центральном окне, затем примените.':summary+'\nБезопасных сокращений при этом допуске нет. Увеличьте допуск для более сильной оптимизации.';
+    $('optimization-result').textContent=st.removed?summary+'\nПОСЛЕ: изменённые кривые зелёные, исходные — красный пунктир.':summary+'\nБезопасных сокращений при этом допуске нет. Увеличьте допуск для более сильной оптимизации.';
     if(!st.removed&&!st.smoothed){$('auto-apply').disabled=true;status('Изменений кривых в заданных допусках нет.');render();return;}
-    curvePreview={source:clone(doc),result:result.document,stats:st,afterDiagnosed:false,
+    curvePreview={source:clone(doc),result:result.document,scope,changedScope,removedAnchors,stats:st,afterDiagnosed:false,
       comparisonData:{beforeDoc:clone(doc),afterDoc:result.document,beforeIssues:clone(issues),afterIssues:[]}};
     compareStage='after';render();
     // Diagnose the candidate, preserving a sampled-contour-to-object map.
@@ -276,7 +294,7 @@ function applyCurveOptimization(){
   }
   checkpoint(clone(doc));
   doc=clone(pv.result);
-  const comparison=pv.comparisonData;
+  const comparison={...pv.comparisonData,optimization:{source:pv.source,changedScope:pv.changedScope,removedAnchors:pv.removedAnchors,stats:pv.stats}};
   changed('curve-optimize-apply');
   appliedComparison=comparison;compareStage='after';render();
   updateFileHistory({status:'Оптимизировано: '+pv.stats.original+' → '+pv.stats.result+' сегментов; требуется повторная диагностика',diagnosis:null,repair:null});
