@@ -135,6 +135,7 @@ function optimizeSegments(segs,tol){
 export function optimizeVectorPath(path,tolerance=.01){
   if(!Number.isFinite(tolerance)||tolerance<.00001||tolerance>2)throw Error('Допуск оптимизации должен быть от 0.00001 до 2 мм');
   if(path.kind==='image')throw Error('Растровый объект невозможно оптимизировать как кривую');
+  if(path.artwork&&/(?:clip-path|mask=|filter=|<image\b|fill="url\()/i.test(path.artwork))throw Error('Оптимизация: маски, обтравка и растровое оформление пока не поддерживаются без потери свойств');
   const cmds=path.artwork?path.commands:(path.points||[]).map((p,i)=>[i?'L':'M',...p]).concat(path.closed?[['Z']]:[]);
   if(!Array.isArray(cmds)||cmds.length>30000)throw Error('Слишком сложная кривая для оптимизации');
   const offset=path.offset||[0,0],paths=makeSegments(cmds,offset);
