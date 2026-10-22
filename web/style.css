@@ -198,3 +198,106 @@ header button{padding:8px 10px}
 .mascot-welcome small{display:block;font-size:11px;color:#3b6975;line-height:1.45;margin-top:6px}
 @media(max-width:1050px){.brand-mascot{width:48px;height:48px}.brand-copy strong{font-size:16px}.brand-copy small{font-size:8px}}
 @media(max-width:740px){.mascot-welcome{top:64px;left:5px}.brand-copy strong{font-size:18px}header .brand{min-width:0}}
+
+
+
+/* ── Doctor Uzelkov alpha.21: pixel-consistent professional UI shell ─── */
+:root{
+  --du-ink:#122b3a;--du-muted:#607687;--du-teal:#00aab2;
+  --du-accent:#00c9d5;--du-border:#d7e4eb;--du-surface:#fff;
+  --du-background:#edf4f7;--du-radius:10px;--du-gap:8px;
+  --du-control-height:40px;--du-icon-size:20px;
+}
+html,body{min-height:100%;background:var(--du-background)}
+body{display:flex;flex-direction:column;height:100dvh;min-height:400px;overflow:hidden;color:var(--du-ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;font-size:12px}
+header{flex:none;min-height:66px;height:auto;padding:10px 16px;gap:12px;background:#fff;border-bottom:1px solid var(--du-border);box-shadow:0 1px 2px #16374508;color:var(--du-ink)}
+.brand{min-width:0;gap:10px;line-height:1.15;margin-right:auto}
+.brand-appmark{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;background:linear-gradient(145deg,#12394a,#0b2230);border:1px solid #234a56;border-radius:11px;box-shadow:0 2px 5px #17303f1c}
+.brand-appmark-icon{width:32px;height:32px;display:block}
+.brand-copy strong{font-weight:800;letter-spacing:-.4px;font-size:19px;color:#152f3d}
+.brand-copy em{font-style:normal;color:#087d88}
+.brand-copy small{margin-top:4px;letter-spacing:.05px;color:#6c8292;font-size:10px;line-height:1.25}
+#engine{font-size:10.5px;color:#688391;margin:0 4px 0 0;white-space:nowrap}
+header button{height:var(--du-control-height);padding:0 12px;border-color:var(--du-border);font-size:11px}
+header #export-eps{background:#e7fbfa;border-color:#9bdedb;font-weight:650}
+header #export-eps:hover{background:#d8f8f5}
+nav{flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:var(--du-gap);padding:9px 12px;background:#f8fbfd;border-bottom:1px solid var(--du-border);white-space:normal;overflow:visible}
+nav button,nav .creation-tools>summary{min-height:var(--du-control-height);padding:7px 11px;line-height:1.25;border-radius:var(--du-radius);font-size:11px}
+nav .divider{height:24px;background:var(--du-border);margin:0 2px}
+button{border-color:var(--du-border);border-radius:var(--du-radius);font-weight:550;background:var(--du-surface);color:var(--du-ink);transition:background-color .13s,border-color .13s,box-shadow .13s}
+button:hover:not(:disabled){background:#edfaff;border-color:#7fcbd0;color:#0c3846}
+button.active,button.primary{background:#dff8fa;border-color:var(--du-accent);color:#065e69;box-shadow:inset 0 0 0 1px #3ed2db44}
+button.active:hover:not(:disabled),button.primary:hover:not(:disabled){background:#cef4f7;color:#075b67;border-color:#00b2be}
+button:focus-visible,.creation-tools>summary:focus-visible{outline:2px solid var(--du-accent);outline-offset:2px}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:has(>.tool-icon){display:inline-flex;justify-content:flex-start;align-items:center;gap:8px;text-align:left}
+.tool-icon,header .tool-icon,#curve-node-tools .tool-icon{display:block;width:var(--du-icon-size);height:var(--du-icon-size);flex:0 0 var(--du-icon-size);object-fit:contain;overflow:visible;margin:0}
+button kbd{display:inline-flex;justify-content:center;align-items:center;flex:none;min-width:24px;min-height:24px;margin:0 0 0 auto;padding:2px 6px;background:#f0f5f8;border:1px solid #e2e9ef;border-radius:6px;box-shadow:none;color:#506476;line-height:1.2;font-family:inherit;font-size:10px;font-weight:650;white-space:nowrap}
+button.active kbd,button.primary kbd{background:#e6f5f8;border-color:#a7dce2;color:#17626c}
+.creation-tools>summary{display:flex;align-items:center;justify-content:center}
+.creation-actions{min-width:270px;padding:10px;gap:6px;border-color:var(--du-border);border-radius:12px;box-shadow:0 14px 35px #17374625}
+.creation-actions button{min-height:40px;width:100%;padding:6px 10px;justify-content:flex-start}
+#toggle-info{font-weight:650;background:#fff;border-color:var(--du-border)}
+#toggle-info[aria-expanded="true"]{background:#e3f7f8;border-color:#6cccd2}
+#curve-node-tools{flex:none;min-height:0;padding:9px 12px;gap:8px;background:#edf9fa;border-bottom:1px solid #cee4e8;align-items:center;max-height:170px;overflow:auto}
+#curve-node-tools[hidden]{display:none}
+.curve-node-tools .node-buttons{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.curve-node-tools .node-geometry{padding-left:9px;border-left:1px solid #c1dce1}
+.curve-node-tools .node-buttons button{min-height:38px;height:auto;padding:6px 9px;border-radius:8px;gap:7px;line-height:1.2;font-size:11px}
+.curve-node-tools .node-buttons button kbd{font-size:10px;min-height:22px;padding:1px 5px}
+.curve-node-tools #node-hint{font-size:10.5px;color:#607987;line-height:1.4;min-width:170px}
+#node-done{min-height:38px;font-weight:700;border-color:#79cfd0}
+main,main.left-collapsed,.curve-editing main{flex:1 1 auto;min-height:0;height:auto;overflow:hidden}
+main{grid-template-columns:minmax(200px,230px) minmax(320px,1fr) minmax(275px,304px)}
+main.left-collapsed{grid-template-columns:minmax(320px,1fr) minmax(275px,304px)}
+aside{min-height:0;overflow:auto;background:#fafcfd;padding:16px}
+aside.left{border-right:1px solid var(--du-border)}
+aside.right{border-left:1px solid var(--du-border)}
+h2{color:var(--du-ink)}
+#paths button,.repairs button,.filters button{min-height:36px;border-radius:8px}
+.repairs{gap:7px}.repairs button{display:flex;justify-content:flex-start;gap:8px}
+.repairs button kbd{margin-left:auto}
+.workspace{position:relative;min-height:0;overflow:hidden;background:#f1f5f7}
+#canvas{display:block;height:100%;width:100%}
+.mascot-welcome{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(400px,calc(100% - 42px));max-width:400px;max-height:calc(100% - 70px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;text-align:center;background:#fffffff3;padding:20px 24px 22px;border:1px solid #daeaf0;border-radius:20px;box-shadow:0 15px 50px #0f2d3a18;pointer-events:none;overflow:auto}
+.mascot-welcome[hidden]{display:none}
+.mascot-welcome .workspace-mascot{width:auto;height:min(29dvh,235px);max-width:min(100%,280px);min-height:95px;object-fit:contain;display:block;flex:0 1 auto;margin:0 auto 6px}
+.mascot-welcome-copy{display:flex;align-items:center;flex-direction:column;gap:8px;max-width:325px}
+.mascot-welcome strong{font-size:18px;font-weight:800;letter-spacing:-.4px;color:var(--du-ink)}
+.mascot-welcome small{font-size:11.5px;line-height:1.55;color:#617787}
+.mascot-welcome-hint{display:inline-flex;margin-top:3px;padding:7px 12px;border:1px solid #c7e6ec;border-radius:8px;background:#eefbfc;color:#287480;font-size:11px;font-weight:650}
+.node-context{padding:6px;width:260px;background:#fff;border:1px solid var(--du-border);border-radius:12px;box-shadow:0 12px 40px #0f304a35}
+.node-context[hidden]{display:none}
+.node-context button{width:100%;min-height:36px;display:flex;align-items:center;gap:8px;padding:6px 10px;text-align:left;border:0;border-radius:7px;font-size:11px;line-height:1.25}
+.node-context .tool-icon{width:19px;height:19px;flex:0 0 19px}
+.node-context kbd{margin-left:auto}
+footer{flex:none;min-height:34px;height:auto;padding:7px 14px;background:#fff;border-top:1px solid var(--du-border);font-size:10.5px}
+@media(max-width:1100px){
+  .brand-copy strong{font-size:17px}
+  nav{gap:6px;padding:7px 9px}
+  nav button{padding:6px 9px}
+  main.left-collapsed{grid-template-columns:minmax(300px,1fr) minmax(260px,290px)}
+  aside{padding:12px}
+}
+@media(max-width:780px){
+  body{height:auto;min-height:100dvh;overflow:auto}
+  header{flex-wrap:wrap;padding:9px 11px}
+  .brand{min-width:0;flex:1 0 100%}
+  .brand-copy strong{font-size:18px}
+  nav{overflow:visible}
+  main,main.left-collapsed,.curve-editing main{display:flex;flex-wrap:wrap;height:auto;overflow:visible}
+  .workspace{width:100%;height:55dvh;min-height:340px;order:-1}
+  .mascot-welcome{width:min(360px,calc(100% - 20px));padding:12px}
+  .mascot-welcome .workspace-mascot{height:min(23dvh,180px)}
+  aside.left{width:40%;min-height:250px}
+  aside.right{width:60%;min-height:250px}
+  #curve-node-tools{max-height:none}
+}
+@media(max-width:480px){
+  .brand-appmark{width:36px;height:36px;flex-basis:36px}
+  .brand-copy small{font-size:9px}
+  header #engine{width:100%;order:2}
+  aside.left,aside.right{width:100%}
+  nav button{min-height:38px}
+  .mascot-welcome strong{font-size:15px}
+}
