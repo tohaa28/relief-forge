@@ -57,7 +57,7 @@ export function recoverOutlineOnlyEps(input){
   return {
     svg:recovered.svg,widthPt:metadata.widthPt,heightPt:metadata.heightPt,
     metadata,outlineRecovery,
-    warnings:[`Восстановлено ${recovered.count} непечатаемых векторных контуров CorelDRAW. Видимая тонкая обводка используется только для просмотра и анализа, а не для печати.`],
+    warnings:[`Обнаружено ${recovered.count} непечатаемых контуров CorelDRAW. Видимая тонкая обводка используется только для просмотра и анализа, а не для печати.`],
     logs:['CorelDRAW literal path-only EPS; original geometry recovered without rendering engines.']
   };
 }
