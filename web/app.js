@@ -75,7 +75,7 @@ function render(){
   $('compare-before').setAttribute('aria-pressed',String(!comparison||compareStage==='before'));
   $('compare-after').setAttribute('aria-pressed',String(Boolean(comparison&&compareStage==='after')));
   $('compare-status').textContent=comparison?
-    (compareStage==='after'?'ПОСЛЕ':'ДО')+' · '+visibleDoc.paths.length+' контуров · '+visibleIssues.length+' замечаний'+(curvePreview?' · оптимизация':autoPreview?' · предпросмотр':' · применено'):
+    (compareStage==='after'?'ПОСЛЕ':'ДО')+' · '+visibleDoc.paths.length+' контуров · '+(curvePreview?('сегменты '+(compareStage==='after'?curvePreview.stats.result:curvePreview.stats.original)+' · диагностика после не выполнялась'):visibleIssues.length+' замечаний')+(curvePreview?' · оптимизация':autoPreview?' · предпросмотр':' · применено'):
     'Сравнение после автоисправления';
   $('width').value=doc.width;$('height').value=doc.height;$('count').textContent=visibleDoc.paths.length;
   for(const id of ['sheet','grid-bg']){$(id).setAttribute('width',visibleDoc.width);$(id).setAttribute('height',visibleDoc.height);}
@@ -230,6 +230,49 @@ $('auto-apply').onclick=applyAutoHeal;
 $('auto-discard').onclick=()=>{autoPreview=null;appliedComparison=null;compareStage='before';render();status('Предложенные исправления отклонены. Исходный макет не изменён.');};
 $('auto-prev').onclick=()=>{if(autoPreview){autoIndex=(autoIndex-1+Math.max(1,autoPreview.sites.length))%Math.max(1,autoPreview.sites.length);renderAutoPreview();}};
 $('auto-next').onclick=()=>{if(autoPreview){autoIndex=(autoIndex+1)%Math.max(1,autoPreview.sites.length);renderAutoPreview();}};
+
+
+function previewCurveOptimization(){
+  if(busy||currentComparison())return;
+  const tolerance=Number($('optimization-tolerance').value);
+  const scope=doc.paths.map((p,i)=>i).filter(i=>p.kind!=='image'&&(!$('selection-only').checked||!selected.size||selected.has(i)));
+  if(!scope.length){status('Выберите векторные кривые для оптимизации.');return;}
+  try{
+    const result=optimizePaths(doc,scope,tolerance),st=result.stats;
+    record('curve-optimize-measure',{tolerance,scope,stats:st});
+    const summary='Сегментов: '+st.original+' → '+st.result+' (−'+st.removed+').'+
+      '\nИзмеренное отклонение: до '+st.maxError.toFixed(5)+' мм, допуск '+tolerance+' мм.';
+    $('optimization-result').textContent=st.removed?summary+'\nСравните ДО/ПОСЛЕ в центральном окне, затем примените.':summary+'\nБезопасных сокращений при этом допуске нет. Увеличьте допуск для более сильной оптимизации.';
+    if(!st.removed){status('Не удалось сократить число узлов в заданном допуске.');return;}
+    curvePreview={source:clone(doc),result:result.document,stats:st,
+      comparisonData:{beforeDoc:clone(doc),afterDoc:result.document,beforeIssues:clone(issues),afterIssues:[]}};
+    compareStage='before';render();
+    status('Построен предпросмотр оптимизации: '+st.original+' → '+st.result+' сегментов. Диагностика ПОСЛЕ ещё не проводилась.');
+  }catch(e){$('optimization-result').textContent=e.message;status('Оптимизация: '+e.message);}
+}
+function applyCurveOptimization(){
+  if(!curvePreview||busy)return;
+  const pv=curvePreview;
+  if(Number($('optimization-tolerance').value)!==pv.stats.tolerance){
+    status('Допуск изменён. Пересчитайте оптимизацию перед применением.');return;
+  }
+  checkpoint(clone(doc));
+  doc=clone(pv.result);
+  const comparison=pv.comparisonData;
+  changed('curve-optimize-apply');
+  appliedComparison=comparison;compareStage='after';render();
+  updateFileHistory({status:'Оптимизировано: '+pv.stats.original+' → '+pv.stats.result+' сегментов; требуется повторная диагностика',diagnosis:null,repair:null});
+  record('curve-optimize-apply',{stats:pv.stats});
+  status('Оптимизация применена. Сегменты: '+pv.stats.original+' → '+pv.stats.result+'. Undo восстанавливает оригинальные кривые.');
+}
+$('optimization-range').oninput=()=>{$('optimization-tolerance').value=$('optimization-range').value;};
+$('optimization-tolerance').oninput=()=>{
+  const t=Number($('optimization-tolerance').value);
+  if(Number.isFinite(t))$('optimization-range').value=String(Math.max(.001,Math.min(.25,t)));
+};
+$('optimize-preview').onclick=previewCurveOptimization;
+$('optimize-apply').onclick=applyCurveOptimization;
+$('optimize-cancel').onclick=()=>{curvePreview=null;compareStage='before';$('optimization-result').textContent='Предварительные изменения отклонены.';render();status('Исходные кривые не изменены.');};
 
 function spawnWorker(){
   worker=new Worker(new URL('worker.js',import.meta.url),{type:'module'});
