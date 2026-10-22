@@ -41,7 +41,7 @@ function render(){
     const b=document.createElement('button');b.textContent=`${i+1}. ${p.kind==='image'?'Изображение':p.artwork?'EPS / SVG':p.closed?'Замкнут':'Открыт'} · ${p.points.length} узлов`;b.classList.toggle('selected',selected.has(i));b.onclick=e=>{if(!e.shiftKey)selected.clear();selected.has(i)?selected.delete(i):selected.add(i);render();};$('paths').append(b);
   });
   if(pointsVisible){const healthy=visibleHealthyAnchors(doc,issues,Number($('tolerance').value));if(healthy.length)el('path',{d:circlePath(healthy,Math.max(radius*.55,.00001)),class:'healthy-anchors'},$('nodes'));}
-  if(markersVisible)issues.slice(0,1000).forEach((x,i)=>el('circle',{cx:x.point[0],cy:x.point[1],r:radius*1.6,class:'problem','data-issue':i,fill:issueColors[x.kind]||'#64748b'},$('markers')));
+  if(markersVisible)issues.slice(0,1000).forEach((x,i)=>el('circle',{cx:x.point[0],cy:x.point[1],r:radius*1.6,class:'problem','data-issue':i,style:'fill:'+(issueColors[x.kind]||'#64748b')},$('markers')));
   $('draft').replaceChildren();if(draft.length)el('path',{d:pathData({points:draft}),class:'path selected'},$('draft'));
   $('issues').replaceChildren();const counts={};issues.forEach(x=>counts[x.kind]=(counts[x.kind]||0)+1);
   if(!diagnosticComplete)$('summary').textContent='Показаны первые 10000 замечаний. Проверка неполная: уменьшите выборку.';
