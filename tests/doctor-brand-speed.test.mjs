@@ -9,7 +9,7 @@ const key=(value,options={})=>keyboardAction({key:value,code:options.code||'',ta
 test('Every editing and file operation has its unique SVG symbol and Russian branding',()=>{
   const html=read('index.html'),icons=read('doctor-icons.svg'),styles=read('style.css');
   assert.match(html,/Доктор\s*<em>Узелков<\/em>/);
-  assert.match(html,/doctor-mascot\.svg/);
+  assert.match(html,/approved\/mascot-approved\.png/);
   assert.match(styles,/\.mascot-welcome/);
   const present=new Set([...icons.matchAll(/<symbol id="([^"]+)"/g)].map(v=>v[1]));
   assert.ok(present.size>=32);
@@ -17,7 +17,7 @@ test('Every editing and file operation has its unique SVG symbol and Russian bra
     assert.ok(present.has(id),'Unresolved icon '+id);
   for(const name of ['node-move','node-add','node-remove','node-handles','node-cusp','node-smooth',
     'node-symmetric','node-line','node-curve','node-break','node-close','node-reverse']){
-    assert.match(html,new RegExp('id="'+name+'"[^>]*><svg[^>]*>'));
+    assert.match(html,new RegExp('id="'+name+'"[^>]*><img[^>]*approved-icon'));
   }
   for(let i=1;i<=8;i++)assert.match(html,new RegExp('data-action="'+i+'"[^>]*><svg'));
 });
