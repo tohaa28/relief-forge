@@ -113,3 +113,16 @@ main.left-collapsed{grid-template-columns:minmax(250px,1fr) 304px}
 #optimization-result{font-size:10px;line-height:1.4;color:#3e6474;margin:1px 0;white-space:pre-wrap}
 #optimization-actions{display:grid;gap:5px}
 #optimization-actions[hidden]{display:none}
+
+/* One auto-heal workflow: settings + issue list + one Apply action. */
+.heal-section{padding:0;border:1px solid #c8d9e1;border-radius:7px;overflow:hidden}
+.heal-section>h2{background:#e8f1f5;border-bottom:1px solid #c8d9e1;margin:0;padding:11px 12px;font-size:14px;color:#254a61}
+.heal-controls{padding:9px 8px;display:grid;gap:8px}
+.heal-controls>label{font-size:10.5px;font-weight:600;display:grid;gap:3px}
+.heal-controls>label.check{display:flex;font-weight:normal}
+.heal-controls>label output{float:right;font-variant-numeric:tabular-nums;color:#17796f}
+.heal-controls input[type=range]{width:100%;accent-color:#15877b}
+.heal-controls #auto-apply{width:100%;margin-top:4px;padding:10px;font-size:12px}
+.heal-controls #optimization-result{background:#f5f9fb;border-radius:5px;padding:7px;min-height:24px}
+#canvas.show-optimized #geometry g.optimized-path path{stroke:#168775!important;stroke-width:1.1px!important;vector-effect:non-scaling-stroke}
+#canvas.show-optimized #geometry .optimized-before-path{fill:none!important;stroke:#ce4c55!important;stroke-width:1.1px!important;stroke-dasharray:4 3;vector-effect:non-scaling-stroke;opacity:.78;pointer-events:none}
