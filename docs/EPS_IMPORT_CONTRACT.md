@@ -1,4 +1,4 @@
-# EPS import contract — 0.2.0-alpha.1
+# EPS import contract — 0.2.0-alpha.3
 
 Branch: `feature/eps-import`, based on `f236c70a2ac6a045e6dff4c8ab22562bd337a90d`.
 Owner: this Codex session. Windows collaborator owns ArtCAM UI investigation and vector-healing module. Do not overwrite their work; integrate by normal merge. Right-hand healing panel and `src/lib.rs` are unchanged by this feature. `web/app.js` has minimal model/render/diagnostic integration changes; coordinate merges there.
@@ -39,6 +39,12 @@ A vector may contain multiple M subpaths (glyph holes/compound paths). Preserve 
 - `sampledContours(path, toleranceMm)`: adaptive approximation for **analysis or explicitly requested copies only**. Returns separate `{points,closed}` contours. Does not mutate the original; images return `[]`. Max 20000 sampled nodes/object; Rust still limits each calculation to 2000 nodes. Maintain a kernel-index → document-index mapping, because one imported object can create several sampled contours.
 
 Existing polylines remain `{points,closed}` without `artwork`. Healing algorithms still accept only these. Current adapter blocks direct destructive healing of imported objects; “Копия для лечения” creates selected ordinary polylines with explicit tolerance and preserves originals in the document. Whole-object translation, selection, deletion, undo, project JSON and SVG export support imported objects. Direct Bezier node/control-handle editing is not implemented.
+
+## Unpainted CorelDRAW outlines — 0.2.0-alpha.3
+
+For a Ghostscript-rendered *blank EPS only*, a conservative Corel-specific recovery may reconstruct explicit `m`, `L`, `C`, `@c` and final `N` paths from a single page without applying arbitrary PostScript procedures. Any unsupported operator after the first path aborts the fallback. Raw curves/controls and PostScript pt coordinates are preserved, then mapped to the EPS %%BoundingBox and mm by `importRichSvg`. The generated 0.25pt SVG stroke is strictly a preview/selection convention; **the source artwork contains no real print stroke and must not be treated as stroked for production**. Saved JSON retains the exact original EPS bytes and `epsImport.outlineRecovery` provenance. Export SVG shows recovered previews and is not equivalent to the unpainted input. Normal Ghostscript/MuPDF interpretation remains authoritative for painted files. The UI automatically diagnoses the recovered curves in the Rust kernel; destructive healing still requires explicitly making a polyline copy.
+
+Local supplied-case validation: `7921701_02_09.eps`, CorelDRAW 2020, 55,962 bytes, 17 closed outlines, original Ghostscript PDF with blank 115×24pt page. Synthetic Corel fixture is committed for real Ghostscript/MuPDF regression tests; user-provided original EPS is NOT in Git.
 
 ## Verification / integration
 

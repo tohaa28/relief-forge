@@ -156,8 +156,13 @@ function importEps(bytes,name){
     if(data.type==='done')try{
       const next=importRichSvg(data.result.svg,{unitsPerInch:72});
       let binary='';for(let i=0;i<bytes.length;i+=32768)binary+=String.fromCharCode(...bytes.subarray(i,i+32768));
-      next.epsImport={name,originalBase64:btoa(binary),...data.result.metadata,warnings:data.result.warnings,logs:data.result.logs,engines:{ghostscript:'10.08.0',mupdf:'1.28.1'}};
-      stopEps();lock(false);openValue(next,name);status(`EPS импортирован: ${next.paths.length} объектов. ${data.result.warnings.length?'Есть предупреждения — см. панель EPS.':'Кривые и оформление сохранены.'}`);
+      next.epsImport={name,originalBase64:btoa(binary),...data.result.metadata,warnings:data.result.warnings,logs:data.result.logs,outlineRecovery:data.result.outlineRecovery||null,engines:{ghostscript:'10.08.0',mupdf:'1.28.1'}};
+      stopEps();lock(false);openValue(next,name);
+      if(data.result.outlineRecovery){
+        record('eps-outline-recovery',data.result.outlineRecovery);
+        status(`Восстановлено ${data.result.outlineRecovery.count} непечатаемых EPS-контуров. Обводки только для просмотра; начинается проверка векторов…`);
+        if(ready)calculate(0);
+      }else status(`EPS импортирован: ${next.paths.length} объектов. ${data.result.warnings.length?'Есть предупреждения — см. панель EPS.':'Кривые и оформление сохранены.'}`);
     }catch(e){fail(e.message);}
   };
   epsWorker.postMessage({bytes,fonts:importFonts});
@@ -181,4 +186,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();
 });
-record('session-start',{version:'0.2.0-alpha.2'});spawnWorker();fit();
+record('session-start',{version:'0.2.0-alpha.3'});spawnWorker();fit();

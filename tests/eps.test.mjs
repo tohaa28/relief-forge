@@ -6,6 +6,7 @@ import {createRequire} from 'node:module';
 import * as mupdf from 'mupdf';
 import {DOMParser} from '@xmldom/xmldom';
 import {epsProgram,epsMetadata,interpretEps} from '../web/eps-pipeline.js';
+import {recoverUnpaintedCorelOutlines} from '../web/corel-outline.js';
 import {importRichSvg,exportDocument,sampledContours,worldData,safeFragment} from '../web/rich-svg.js';
 const root=new URL('../',import.meta.url),fixture=new Uint8Array(readFileSync(new URL('tests/fixtures/eps/curves-text-clip.eps',root)));
 const context=vm.createContext({process,require:createRequire(import.meta.url),console,Buffer,WebAssembly,TextDecoder,TextEncoder,URL,setTimeout,clearTimeout,__dirname:new URL('web/vendor/ghostscript/',root).pathname});
@@ -52,4 +53,43 @@ test('SVG arcs, transforms, uses and compound curves preserve geometry and rejec
   const d=importRichSvg('<svg xmlns="http://www.w3.org/2000/svg" width="100mm" height="50mm" viewBox="0 0 100 50"><defs><path id="a" d="M0 0H10V10Z"/></defs><use href="#a" x="20" transform="translate(2 3)"/><g transform="scale(2)"><path d="M1 2q2 3 4 5t4 5a2 3 0 0 1 2 3Z" fill-rule="evenodd"/></g></svg>',{Parser:DOMParser});
   assert.deepEqual(d.paths[0].points,[[22,3],[32,3],[32,13]]);assert.ok(d.paths[1].commands.some(s=>s[0]==='C'));
   assert.throws(()=>safeFragment('<script>alert(1)</script>',DOMParser));assert.throws(()=>safeFragment('<image href="https://evil.test/image"/>',DOMParser));
+});
+
+
+test('unpainted CorelDRAW EPS restores exact cubic curves for display and Rust diagnosis',async()=>{
+  const input=new Uint8Array(readFileSync(new URL('tests/fixtures/eps/corel-unpainted.eps',root)));
+  const bytesBefore=Buffer.from(input);
+  const restored=recoverUnpaintedCorelOutlines(input,epsMetadata(input));
+  assert.equal(restored.count,2);
+  assert.match(restored.svg,/fill="none" stroke="#34465b"/);
+  assert.match(restored.svg,/C 60 45 90 45 105 20/);
+  const interpreted=await convert(input);
+  assert.equal(interpreted.outlineRecovery?.count,2);
+  assert.ok(interpreted.warnings.some(s=>s.includes('непечатаемых контуров')));
+  const doc=importRichSvg(interpreted.svg,{unitsPerInch:72,Parser:DOMParser});
+  assert.equal(doc.paths.length,2);
+  assert.ok(Math.abs(doc.width-100*25.4/72)<1e-8);
+  assert.ok(Math.abs(doc.height-40*25.4/72)<1e-8);
+  assert.ok(doc.paths.some(p=>p.commands.some(c=>c[0]==='C')));
+  assert.ok(doc.paths.every(p=>p.closed&&p.kind==='vector'));
+  const originalCommands=doc.paths.map(p=>JSON.stringify(p.commands));
+  const flattened=doc.paths.flatMap(p=>sampledContours(p,0.01));
+  assert.equal(flattened.length,2);
+  assert.ok(flattened.reduce((n,p)=>n+p.points.length,0)>8);
+  assert.deepEqual(doc.paths.map(p=>JSON.stringify(p.commands)),originalCommands);
+  assert.deepEqual(Buffer.from(input),bytesBefore);
+  const reopened=importRichSvg(exportDocument(doc),{Parser:DOMParser});
+  assert.equal(reopened.paths.length,2);
+});
+
+test('Corel outline fallback is limited to certified, simple, unpainted single-page source',()=>{
+  const input=new Uint8Array(readFileSync(new URL('tests/fixtures/eps/corel-unpainted.eps',root)));
+  const text=new TextDecoder('latin1').decode(input),metadata=epsMetadata(input);
+  const run=t=>recoverUnpaintedCorelOutlines(new TextEncoder().encode(t),metadata);
+  assert.equal(run(text.replace('CorelDRAW','NotCorel')),null);
+  assert.equal(run(text.replace('N\n%%PageTrailer','S\n%%PageTrailer')),null);
+  assert.equal(run(text.replace('30 20 L','30 20 L\nsomeUnsafeProcedure')),null);
+  assert.equal(run(text.replace('30 20 L','30000000 20 L')),null);
+  assert.equal(run(text.replace('%%PageTrailer','%%Page: 2 2\n%%PageTrailer')),null);
+  assert.equal(run(text.replace('30 20 L','30 20 L\n10 10 10 10 10 10 C\nstroke')),null);
 });

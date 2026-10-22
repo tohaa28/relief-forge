@@ -1,3 +1,4 @@
+import {recoverUnpaintedCorelOutlines} from './corel-outline.js';
 export const EPS_MAX_BYTES=64*1024*1024;
 export function epsProgram(input){
   const bytes=input instanceof Uint8Array?input:new Uint8Array(input);
@@ -54,9 +55,15 @@ export async function interpretEps(input,{runGhostscript,mupdf,fonts=[],progress
     if(rendered){
       const warnings=logs.filter(s=>/substitut|not found|cannot find|can.t find|warning|recover/i.test(s));
       // A valid EPS without showpage may leave a white fallback page in pdfwrite.
-      if(attempt===0&&!/<(?:path|image|use)\b/.test(rendered.svg)&&!/\bshowpage\b/.test(new TextDecoder('latin1').decode(program)))continue;
+      const hasVisibleGeometry=/<(?:path|image|use)\b/.test(rendered.svg);
       if(Math.abs(rendered.widthPt-metadata.widthPt)>.05||Math.abs(rendered.heightPt-metadata.heightPt)>.05)throw Error('Интерпретатор изменил физический размер EPS; импорт отменён.');
-      return {...rendered,metadata,warnings:[...new Set(warnings)],logs};
+      // Recover empty Corel path-only EPS before trying to append a second
+      // showpage. Some producers already emitted one blank PDF page and
+      // appending showpage then creates an invalid two-page EPS result.
+      const recovery=hasVisibleGeometry?null:recoverUnpaintedCorelOutlines(program,metadata);
+      if(attempt===0&&!hasVisibleGeometry&&!recovery&&!/\bshowpage\b/.test(new TextDecoder('latin1').decode(program)))continue;
+      if(recovery)warnings.push(`Обнаружено ${recovery.count} непечатаемых контуров CorelDRAW. Добавлена только видимая обводка для анализа; в исходном EPS заливки и толщины не изменены.`);
+      return {...rendered,svg:recovery?.svg||rendered.svg,outlineRecovery:recovery?{source:recovery.source,count:recovery.count,previewStrokePt:recovery.previewStrokePt}:null,metadata,warnings:[...new Set(warnings)],logs};
     }
   }
   throw Error('EPS не создал изображение страницы.');
