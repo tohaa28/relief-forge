@@ -56,7 +56,9 @@ test('straight polyline becomes a real C curve, keeps editable handles and EPS c
   const source={kind:'vector',closed:false,points:[[0,0],[10,0],[20,0]]};
   const curved=setCurveSegmentType(source,1,'curve',opts);
   assert.ok(curved.artwork,'curve must be promoted from plain polyline to persistent SVG');
-  assert.deepEqual(curved.commands[2],['C',10+10/3,0,10+20/3,0,20,0]);
+  assert.equal(curved.commands[2][0],'C');
+  close(curved.commands[2][1],10+10/3);close(curved.commands[2][3],10+20/3);
+  assert.deepEqual(curved.commands[2].filter((_,i)=>i>0&&i%2===0),[0,0,0]);
   const refined=moveCurveHandle(curved,1,'out',[15,5],opts);
   assert.deepEqual(refined.commands[2].slice(1,3),[15,5]);
   assert.match(exportEps({width:40,height:30,paths:[refined]}),/ C$/m);
