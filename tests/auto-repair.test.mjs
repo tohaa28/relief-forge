@@ -27,4 +27,7 @@ test('preview compares original issues and marks remaining ones as unresolved',(
   const after=[{kind:'open',point:[7,8]}];
   assert.deepEqual(proposedIssueLocations(before,after,.01).map(i=>i.resolved),[true,false]);
   assert.deepEqual(issueTotals(before),{short:1,open:1});
+  const sorted=proposedIssueLocations([before[1],before[0]],after,.01);
+  assert.deepEqual(sorted.map(i=>i.kind),['short','open']);
+
 });
