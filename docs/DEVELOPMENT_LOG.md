@@ -160,3 +160,9 @@ Browser QA: imported 11 EPS objects at 101.6×50.8 mm; visual curves/text/clip/c
 - Алгоритм реального сглаживания касательных P2/P1 кубических кривых, оптимизация числа сегментов, автоматическая диагностика Rust/WASM, единая панель Автоисправление и одна команда Применить изменения сохранены из последнего `main`.
 - Регрессии проверки реального изменения управляющих точек, сравнения до/после, экспорт только подтверждённой версии, Node/Rust/WASM и браузерная проверка — финальные критерии выпуска. Допуск численный, не гарантирует нулевого изменения топологии.
 
+### 2026-10-22 · alpha.14 · Regression protection for confirmed EPS and actual Bézier smoothing
+
+- Verified the official alpha.14 CI bundle independently using native Node ESM: smoothing tolerance 0.15 mm modifies real cubic C handles while preserving 2/2 segments, estimated deviation 0.0067365 mm, untouched source document, paintless EPS snapshots before/after are distinct.
+- Added `tests/eps-preview-committed.test.mjs`: automatic Before/After preview cannot affect the committed EPS download; only `Применить изменения` creates a checkpoint and applies smoothed geometry. Covers smoothing that changes handles without deleting nodes, a case easily missed by checking segment counts alone.
+- The existing main release already contains the export button fix merged in PR #17. This follow-up only adds regression tests/documentation; it does not replace the concurrent smoothing kernel or bump runtime versions.
+- Chromium direct navigation in this execution environment is blocked by browser administration (`ERR_BLOCKED_BY_ADMINISTRATOR`), so no live-site browser verification is claimed; the independent algorithm/EPS checks and GitHub Actions remain available.
