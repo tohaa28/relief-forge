@@ -123,6 +123,7 @@ function finishAutoStage(task,data){
 }
 function applyAutoHeal(){
   if(busy||!autoPreview||!isChanged(autoPreview.beforeSample,autoPreview.after))return;
+  if(Number($('tolerance').value)!==autoPreview.tolerance){status('Допуск изменился после расчёта. Запустите автоисправление заново.');return;}
   const v=autoPreview,before=clone(doc),scope=new Set(v.scope),newPaths=[],selectedPaths=[];
   let inserted=false;
   for(let i=0;i<doc.paths.length;i++){
