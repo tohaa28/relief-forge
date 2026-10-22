@@ -66,16 +66,23 @@ test('file history presents date / original filename / result in a closed sectio
   assert.match(css,/\.file-history-table/);
 });
 
-test('Bezier optimization exposes a bounded adjustable tolerance and central comparison',()=>{
- const start=html.indexOf('id="curve-optimization"');
+test('autoheal is the heading and only one geometry Apply button is visible',()=>{
+ const start=html.indexOf('id="heal-section"');
  assert.ok(start>0);
- const area=html.slice(start,html.indexOf('</details>',start));
- for(const id of ['optimization-range','optimization-tolerance','optimize-preview','optimize-apply','optimize-cancel','optimization-result','optimization-actions'])assert.ok(area.includes('id="'+id+'"'),id);
- assert.match(area,/type="range" min="0.001" max="0.25"/);
- assert.match(area,/type="number" min="0.00001" max="2"/);
- assert.match(app,/function previewCurveOptimization\(\)/);
- assert.match(app,/function applyCurveOptimization\(\)/);
- assert.match(app,/curvePreview\?\.comparisonData/);
- assert.match(app,/checkpoint\(clone\(doc\)\)/);
+ const area=html.slice(start,html.indexOf('</section>',start));
+ assert.match(area,/<h2 id="auto-heal">Автоисправление<\/h2>/);
+ for(const id of ['optimization-range','smoothing-tolerance','optimization-tolerance','tolerance','issues','summary','auto-apply'])assert.ok(area.includes('id="'+id+'"'),id);
+ assert.match(area,/id="optimization-range" type="range" min="2" max="20"/);
+ assert.match(area,/id="smoothing-tolerance" type="number" min="0" max="2"/);
+ assert.match(area,/id="optimization-tolerance" type="number" min="0.00001" max="2"/);
+ const buttons=[...area.matchAll(/<button\s+id="([^"]+)"/g)].map(m=>m[1]);
+ assert.deepEqual(buttons,['toggle-points','toggle-markers','auto-apply']);
+ assert.doesNotMatch(app,/\$\('auto-heal'\)\.onclick=/);
+ assert.match(app,/\$\('auto-apply'\)\.onclick=applyCurveOptimization/);
+ assert.match(app,/smoothAndOptimizePaths\(doc,scope,smoothing,tolerance,Number\(\$\('optimization-range'\)\.value\)\)/);
+ assert.match(app,/curvePreview=\{source:clone\(doc\),result:result\.document,scope,changedScope,removedAnchors,stats:st/);
+ assert.match(app,/st\.removed\|\|st\.smoothed/);
  assert.match(app,/appliedComparison=comparison;compareStage='after'/);
+ assert.match(app,/\$\('geometry'\)\.prepend\(ghost\)/);
+ assert.match(app,/class:'optimized-removed-anchors'/);
 });
