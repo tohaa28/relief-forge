@@ -49,3 +49,33 @@ test('central comparison includes toggles, exit and distinct node overlay',()=>{
   assert.match(app,/activeComparisonFrame\(comparison,compareStage,doc,issues\)/);
   assert.match(app,/compareStage='after'/);
 });
+
+test('file history presents date / original filename / result in a closed section',()=>{
+  const start=html.indexOf('id="file-history-panel"');
+  assert.ok(start>0);
+  const area=html.slice(start,html.indexOf('</details>',start));
+  assert.match(area,/>Дата<\/th>/);
+  assert.match(area,/>Имя файла<\/th>/);
+  assert.match(area,/>Результат<\/th>/);
+  for(const id of ['file-history-count','file-history-rows','file-history-note'])assert.ok(area.includes('id="'+id+'"'),id);
+  assert.doesNotMatch(html,/<details id="file-history-panel"[^>]*\bopen\b/);
+  assert.match(app,/function renderFileHistory\(\)/);
+  assert.match(app,/updateFileHistory\(\{diagnosis:/);
+  assert.match(app,/epsResultFilename\(doc\.sourceFileName/);
+  assert.match(app,/sourceFileName:basename\(value\.sourceFileName\)/);
+  assert.match(css,/\.file-history-table/);
+});
+
+test('Bezier optimization exposes a bounded adjustable tolerance and central comparison',()=>{
+ const start=html.indexOf('id="curve-optimization"');
+ assert.ok(start>0);
+ const area=html.slice(start,html.indexOf('</details>',start));
+ for(const id of ['optimization-range','optimization-tolerance','optimize-preview','optimize-apply','optimize-cancel','optimization-result','optimization-actions'])assert.ok(area.includes('id="'+id+'"'),id);
+ assert.match(area,/type="range" min="0.001" max="0.25"/);
+ assert.match(area,/type="number" min="0.00001" max="2"/);
+ assert.match(app,/function previewCurveOptimization\(\)/);
+ assert.match(app,/function applyCurveOptimization\(\)/);
+ assert.match(app,/curvePreview\?\.comparisonData/);
+ assert.match(app,/checkpoint\(clone\(doc\)\)/);
+ assert.match(app,/appliedComparison=comparison;compareStage='after'/);
+});
