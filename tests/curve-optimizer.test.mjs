@@ -101,3 +101,30 @@ test('zero smoothing preserves all source curves and original colors',()=>{
  assert.equal(result.changed,0);
  assert.deepEqual(result.path,source);
 });
+
+test('large optimization tolerance preserves intentional small corners',()=>{
+ const source={closed:false,points:[[0,0],[.1,0],[.1,.1],[.2,.1]]};
+ const result=optimizeVectorPath(source,2);
+ assert.equal(result.removed,0,'a generous tolerance must not round right angles');
+ assert.deepEqual(result.path,source);
+});
+
+test('closed cubic seam is smoothed while open and implicit closing edges stay intact',()=>{
+ const source={kind:'vector',artwork:'<path/>',offset:[0,0],closed:true,
+  points:[[0,0],[3,3],[0,0]],commands:[
+   ['M',0,0],['C',1,.1,3,2,3,3],['C',-3,3,-1,0,0,0],['Z']
+  ]};
+ const snapshot=structuredClone(source);
+ const result=smoothVectorPath(source,.15);
+ assert.equal(result.changed,1,'the explicit closing cubic joins the first cubic');
+ assert.notDeepEqual(result.path.commands[1],source.commands[1]);
+ assert.notDeepEqual(result.path.commands[2],source.commands[2]);
+ assert.equal(result.path.commands.at(-1)[0],'Z');
+ assert.equal(result.path.closed,true);
+ assert.deepEqual(source,snapshot);
+ const open={...source,closed:false,commands:source.commands.slice(0,-1)};
+ assert.equal(smoothVectorPath(open,.15).changed,0,'open endpoints must not be joined');
+ const implicit={...source,commands:[source.commands[0],source.commands[1],
+  ['C',-3,3,-1,1,0,1],['Z']]};
+ assert.equal(smoothVectorPath(implicit,.15).changed,0,'Z may represent a real straight edge');
+});
