@@ -188,7 +188,9 @@ test('real Ghostscript WASM confirms legacy ArtCAM EPS has zero printable artwor
   const fixture=new Uint8Array(readFileSync(new URL('tests/fixtures/eps/corel-unpainted.eps',root)));
   const doc=importRichSvg(recoverOutlineOnlyEps(fixture).svg,{unitsPerInch:72,Parser:DOMParser});
   const bytes=new TextEncoder().encode(exportEps(doc));
-  const result=await runGhostscript(bytes,ghostscriptArgs(true));
+  // The producer may already write a blank EPS page at finalization.
+  // Appending showpage would add a second blank page, so interpret it as-is.
+  const result=await runGhostscript(bytes,ghostscriptArgs(false));
   const rendered=pdfToSvg(result.pdf,mupdf);
   assert.ok(!rendered||!/<(?:path|image|use)\b/.test(rendered.svg),
     'A PostScript interpreter must not print any of these curves');
