@@ -63,7 +63,14 @@ export function pdfToSvg(bytes,mupdf){
 // it is otherwise possible to time out before the existing blank-page fallback.
 // Never interpret general PostScript here; the conservative reader returns null.
 export function recoverOutlineOnlyEps(input){
-  const program=epsProgram(input),metadata=epsMetadata(program);
+  const program=epsProgram(input);
+  // Most EPS are not literal path-only CorelDRAW files. Check the DSC creator
+  // in the small header before decoding/scanning the entire EPS. If a rare EPS
+  // has a creator field outside that window, full Ghostscript fallback still
+  // recovers valid unpainted artwork after blank-page detection.
+  const prefix=new TextDecoder('latin1').decode(program.subarray(0,Math.min(16384,program.length)));
+  if(!/^%%Creator:\\s*(?:CorelDRAW|Relief Forge)\\b/mi.test(prefix))return null;
+  const metadata=epsMetadata(program);
   const recovered=recoverUnpaintedCorelOutlines(program,metadata);
   if(!recovered)return null;
   const outlineRecovery={source:recovered.source,count:recovered.count,previewStrokePt:recovered.previewStrokePt};
