@@ -264,7 +264,7 @@ function previewCurveOptimization(){
     const summary='Сглажено стыков: '+st.smoothed+'. Сегментов: '+st.original+' → '+st.result+' (−'+st.removed+').'+
       '\nИзменённых кривых: '+changedScope.length+'; удалено опорных точек: '+removedAnchors.length+'.'+
       '\nОценка отклонения: до '+st.estimateCombinedError.toFixed(5)+' мм. Сглаживание '+smoothing+' мм, оптимизация '+tolerance+' мм.';
-    $('optimization-result').textContent=st.removed?summary+'\nПОСЛЕ: изменённые кривые зелёные, исходные — красный пунктир.':summary+'\nБезопасных сокращений при этом допуске нет. Увеличьте допуск для более сильной оптимизации.';
+    $('optimization-result').textContent=(st.removed||st.smoothed)?summary+'\nПОСЛЕ: изменённые кривые зелёные, исходные — красный пунктир.':summary+'\nБезопасных сокращений при этом допуске нет. Увеличьте допуск для более сильной оптимизации.';
     if(!st.removed&&!st.smoothed){$('auto-apply').disabled=true;status('Изменений кривых в заданных допусках нет.');render();return;}
     curvePreview={source:clone(doc),result:result.document,scope,changedScope,removedAnchors,stats:st,afterDiagnosed:false,
       comparisonData:{beforeDoc:clone(doc),afterDoc:result.document,beforeIssues:clone(issues),afterIssues:[]}};
