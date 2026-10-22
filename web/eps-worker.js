@@ -3,6 +3,10 @@ const send=(percent,message)=>self.postMessage({type:'progress',percent,message}
 self.onmessage=async({data})=>{
   try{
     const pipeline=await import('./eps-pipeline.js');
+    // Unpainted CorelDRAW paths are pure vector data. Recover them before
+    // downloading/initializing hundreds of MB of unrelated raster/PS engines.
+    const direct=pipeline.recoverOutlineOnlyEps(new Uint8Array(data.bytes));
+    if(direct){send(85,'Восстановление контуров EPS завершено…');self.postMessage({type:'done',result:direct});return;}
     send(3,'Загрузка движка EPS…');
     const response=await fetch(new URL('vendor/ghostscript/gs-core.wasm',self.location.href));if(!response.ok)throw Error('Не удалось загрузить Ghostscript WASM: '+response.status);
     const wasmBinary=new Uint8Array(await response.arrayBuffer());
