@@ -159,7 +159,7 @@ test('real EPS round trip preserves Bezier curves and exported painted outlines'
   assert.doesNotMatch(eps,/(?:diagnostic|problem|marker|circle node)/i);
   assert.ok(Math.abs(epsMetadata(new TextEncoder().encode(eps)).widthPt-100)<1e-5);
   const rendered=await convert(new TextEncoder().encode(eps));
-  assert.equal(rendered.widthPt,Math.ceil(100*25.4/72/25.4*72)); // exported bbox 100 pt
+  assert.ok(Math.abs(rendered.widthPt-100)<0.01,'EPS physical size must round-trip in points');
   const imported=importRichSvg(rendered.svg,{unitsPerInch:72,Parser:DOMParser});
   assert.ok(imported.paths.some(p=>p.commands.some(s=>s[0]==='C')));
   assert.equal(JSON.stringify(doc),snapshot,'EPS export must not mutate source curves');
