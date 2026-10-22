@@ -75,7 +75,7 @@ function render(){
   $('compare-before').setAttribute('aria-pressed',String(!comparison||compareStage==='before'));
   $('compare-after').setAttribute('aria-pressed',String(Boolean(comparison&&compareStage==='after')));
   $('compare-status').textContent=comparison?
-    (compareStage==='after'?'ПОСЛЕ':'ДО')+' · '+visibleDoc.paths.length+' контуров · '+(curvePreview?('сегменты '+(compareStage==='after'?curvePreview.stats.result:curvePreview.stats.original)+' · диагностика после не выполнялась'):visibleIssues.length+' замечаний')+(curvePreview?' · оптимизация':autoPreview?' · предпросмотр':' · применено'):
+    (compareStage==='after'?'ПОСЛЕ':'ДО')+' · '+visibleDoc.paths.length+' контуров · '+(curvePreview?('сегменты '+(compareStage==='after'?curvePreview.stats.result:curvePreview.stats.original)+(compareStage==='after'?(curvePreview.afterDiagnosed?' · замечаний '+visibleIssues.length:' · диагностика не выполнена'):' · исходные')):visibleIssues.length+' замечаний')+(curvePreview?' · оптимизация':autoPreview?' · предпросмотр':' · применено'):
     'Сравнение после автоисправления';
   $('width').value=doc.width;$('height').value=doc.height;$('count').textContent=visibleDoc.paths.length;
   for(const id of ['sheet','grid-bg']){$(id).setAttribute('width',visibleDoc.width);$(id).setAttribute('height',visibleDoc.height);}
@@ -116,7 +116,7 @@ function render(){
   const counts={};visibleIssues.forEach(x=>counts[x.kind]=(counts[x.kind]||0)+1);
   if(!diagnosticComplete&&!comparison)$('summary').textContent='Проверка неполная: достигнут лимит замечаний.';
   else if(visibleIssues.length)$('summary').textContent='Замечаний: '+visibleIssues.length+' · '+Object.entries(counts).slice(0,2).map(([k,n])=>(names[k]||k)+': '+n).join(' · ');
-  else $('summary').textContent=comparison?'Для этой стадии замечаний не найдено.':metrics.length?'Проверка завершена: замечаний не найдено.':'Откройте SVG или нарисуйте векторы.';
+  else $('summary').textContent=curvePreview&&compareStage==='after'&&!curvePreview.afterDiagnosed?'Диагностика оптимизированного результата пока недоступна.':comparison?'Для этой стадии замечаний не найдено.':metrics.length?'Проверка завершена: замечаний не найдено.':'Откройте SVG или нарисуйте векторы.';
   $('summary').title=Object.entries(counts).map(([k,n])=>(names[k]||k)+': '+n).join(' · ');
   $('issue-count').textContent=visibleIssues.length;
   visibleIssues.slice(0,100).forEach(x=>{
@@ -244,10 +244,24 @@ function previewCurveOptimization(){
       '\nИзмеренное отклонение: до '+st.maxError.toFixed(5)+' мм, допуск '+tolerance+' мм.';
     $('optimization-result').textContent=st.removed?summary+'\nСравните ДО/ПОСЛЕ в центральном окне, затем примените.':summary+'\nБезопасных сокращений при этом допуске нет. Увеличьте допуск для более сильной оптимизации.';
     if(!st.removed){status('Не удалось сократить число узлов в заданном допуске.');return;}
-    curvePreview={source:clone(doc),result:result.document,stats:st,
+    curvePreview={source:clone(doc),result:result.document,stats:st,afterDiagnosed:false,
       comparisonData:{beforeDoc:clone(doc),afterDoc:result.document,beforeIssues:clone(issues),afterIssues:[]}};
     compareStage='before';render();
-    status('Построен предпросмотр оптимизации: '+st.original+' → '+st.result+' сегментов. Диагностика ПОСЛЕ ещё не проводилась.');
+    // Diagnose the candidate, preserving a sampled-contour-to-object map.
+    // If the Rust limit is reached, show the candidate but never claim it is clean.
+    try{
+      if(!ready)throw Error('Rust/WASM пока не готов');
+      const diagnosticTolerance=Number($('tolerance').value),samples=[],mapping=[];
+      for(const i of scope)for(const part of sampledContours(result.document.paths[i],diagnosticTolerance)){
+        samples.push(part);mapping.push(i);
+      }
+      const input=packedInput(samples,diagnosticTolerance,0),id=++sequence;
+      pending={id,optimizeDiagnostic:true,scope:mapping};
+      lock(true,{coverCanvas:false});
+      worker.postMessage({id,input});
+    }catch(err){
+      status('Предпросмотр готов. Диагностика ПОСЛЕ недоступна: '+err.message);
+    }
   }catch(e){$('optimization-result').textContent=e.message;status('Оптимизация: '+e.message);}
 }
 function applyCurveOptimization(){
@@ -281,6 +295,19 @@ function spawnWorker(){
     if(!pending||data.id!==pending.id)return;
     const task=pending;pending=null;
     if(data.error){lock(false);record('engine-error',{error:data.error});status(data.error);return;}
+    if(task.optimizeDiagnostic){
+      if(curvePreview){
+        curvePreview.comparisonData.afterIssues=data.output.issues.map(x=>({
+          ...x,path:task.scope[x.path]??-1,other:task.scope[x.other]??-1
+        }));
+        curvePreview.afterDiagnosed=true;
+        curvePreview.afterDiagnosticComplete=data.output.diagnosticComplete;
+        record('curve-optimization-diagnose',{issues:data.output.issues.length,complete:data.output.diagnosticComplete});
+      }
+      lock(false);render();
+      status('Оптимизация: '+(curvePreview?.stats.original||0)+' → '+(curvePreview?.stats.result||0)+' сегментов; после: '+data.output.issues.length+' замечаний'+(data.output.diagnosticComplete?'':' (неполная проверка)'));
+      return;
+    }
     if(task.autoStage!==undefined){finishAutoStage(task,data);return;}
     lock(false);
     if(task.action){
