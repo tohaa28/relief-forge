@@ -1,0 +1,64 @@
+name: Preserve history, test Rust and publish WASM
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Preserve original development commits
+        if: github.event_name != 'pull_request'
+        run: bash scripts/import-history.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Select verified Rust toolchain
+        run: |
+          rustup toolchain install 1.85.1 --profile minimal --target wasm32-unknown-unknown
+          rustup override set 1.85.1
+      - name: Verify native core
+        run: cargo test --locked
+      - name: Verify importer and JS syntax
+        run: |
+          npm test
+          node --check web/app.js
+          node --check web/worker.js
+      - name: Compile and test actual WASM
+        run: |
+          cargo build --locked --release --target wasm32-unknown-unknown
+          cp target/wasm32-unknown-unknown/release/relief_forge.wasm web/engine.wasm
+          node scripts/check-wasm.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: relief-forge-wasm-web
+          path: web/
+      - uses: actions/upload-pages-artifact@v4
+        if: github.event_name != 'pull_request'
+        with:
+          path: web/
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

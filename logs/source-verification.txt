@@ -1,0 +1,51 @@
+$ npm test
+
+> relief-forge-web@0.1.0-alpha.1 test
+> node --test tests/*.test.mjs
+
+✔ relative lines and close (2.041084ms)
+✔ implicit line after M (0.191069ms)
+✔ multiple subpaths remain separate (0.160263ms)
+✔ unsupported curves fail explicitly (0.568349ms)
+✔ truncated commands fail (0.241464ms)
+✔ scientific coordinates accepted (0.200763ms)
+✔ malformed bytes fail (0.283779ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 102.371025
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+exit=0
+
+$ node --check web/app.js
+
+exit=0
+
+$ node --check web/worker.js
+
+exit=0
+
+$ node --check web/svg-import.js
+
+exit=0
+
+$ node --check scripts/check-wasm.mjs
+
+exit=0
+
+$ node --check scripts/serve.mjs
+
+exit=0
+
+$ bash -n scripts/build.sh
+
+exit=0
+
+$ git diff --check
+
+exit=0

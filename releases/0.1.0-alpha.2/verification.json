@@ -1,0 +1,14 @@
+{
+  "version": "0.1.0-alpha.2",
+  "wasm_bytes": 94844,
+  "wasm_sha256": "015a74bf5b3c4f17a0929449d5919d4594271309abc3165abf9142beba42685f",
+  "native_tests": {
+    "passed": 15
+  },
+  "js_tests": {
+    "passed": 7
+  },
+  "wasm_integration": "pass",
+  "browser_smoke": "pass",
+  "artcam_binary_analysis": "not_performed"
+}

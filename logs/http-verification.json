@@ -1,0 +1,18 @@
+[
+  {
+    "route": "/",
+    "status": 200
+  },
+  {
+    "route": "/app.js",
+    "status": 200
+  },
+  {
+    "route": "/worker.js",
+    "status": 200
+  },
+  {
+    "route": "/engine.wasm",
+    "status": 404
+  }
+]
