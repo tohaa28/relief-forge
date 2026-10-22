@@ -156,8 +156,13 @@ function importEps(bytes,name){
     if(data.type==='done')try{
       const next=importRichSvg(data.result.svg,{unitsPerInch:72});
       let binary='';for(let i=0;i<bytes.length;i+=32768)binary+=String.fromCharCode(...bytes.subarray(i,i+32768));
-      next.epsImport={name,originalBase64:btoa(binary),...data.result.metadata,warnings:data.result.warnings,logs:data.result.logs,engines:{ghostscript:'10.08.0',mupdf:'1.28.1'}};
-      stopEps();lock(false);openValue(next,name);status(`EPS импортирован: ${next.paths.length} объектов. ${data.result.warnings.length?'Есть предупреждения — см. панель EPS.':'Кривые и оформление сохранены.'}`);
+      next.epsImport={name,originalBase64:btoa(binary),...data.result.metadata,warnings:data.result.warnings,logs:data.result.logs,outlineRecovery:data.result.outlineRecovery||null,engines:{ghostscript:'10.08.0',mupdf:'1.28.1'}};
+      stopEps();lock(false);openValue(next,name);
+      if(data.result.outlineRecovery){
+        record('eps-outline-recovery',data.result.outlineRecovery);
+        status(`Восстановлено ${data.result.outlineRecovery.count} непечатаемых EPS-контуров. Обводки только для просмотра; начинается проверка векторов…`);
+        if(ready)calculate(0);
+      }else status(`EPS импортирован: ${next.paths.length} объектов. ${data.result.warnings.length?'Есть предупреждения — см. панель EPS.':'Кривые и оформление сохранены.'}`);
     }catch(e){fail(e.message);}
   };
   epsWorker.postMessage({bytes,fonts:importFonts});
