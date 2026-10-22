@@ -1,0 +1,19 @@
+{
+  "repository": "https://github.com/tohaa28/relief-forge",
+  "pages_url": "https://tohaa28.github.io/relief-forge/",
+  "version": "0.1.0-alpha.2",
+  "workflow_run_id": 39753007526,
+  "workflow_url": "https://github.com/tohaa28/relief-forge/actions/runs/39753007526",
+  "build_job_id": 119737945116,
+  "deploy_job_id": 119738126111,
+  "build": "success",
+  "deploy": "success",
+  "import_commit": "276970977082f8dc69d37742676e5bafb87b4838",
+  "preserved_history_head": "2e499537d175f1360a9a3dd05613492917ad3348",
+  "verified_remote_main": "06322bc3248d53b66ee4a42ec7829c953547d2d2",
+  "native_tests_passed": 15,
+  "javascript_tests_passed": 7,
+  "wasm_integration": "pass",
+  "live_browser": "WASM ready; demo: 5 paths, 23 issues",
+  "checked_at": "2026-10-22T09:10:45.413462+00:00"
+}

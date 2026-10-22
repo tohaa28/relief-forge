@@ -53,7 +53,7 @@ Rust: поиск открытых контуров, совпадающих уз�
 
 Репозиторий: https://github.com/tohaa28/relief-forge
 
-GitHub Actions собирает Rust/WASM, выполняет 15 Rust-тестов, 7 JS-тестов и проверки модуля, затем публикует `web/` в GitHub Pages. Pages Source должен быть GitHub Actions. Рабочий адрес после успешного deploy: https://tohaa28.github.io/relief-forge/
+GitHub Actions собирает Rust/WASM, выполняет 15 Rust-тестов, 7 JS-тестов и проверки модуля, затем публикует `web/` в GitHub Pages. Pages Source должен быть GitHub Actions. Опубликованная и проверенная версия: https://tohaa28.github.io/relief-forge/
 
 Полная исходная история сохранена в `history/pre-github.bundle`; первый workflow включает её точные коммиты в граф основной ветки. Готовый проверенный WASM и протокол проверок сохранены также в `releases/0.1.0-alpha.2/`.
 

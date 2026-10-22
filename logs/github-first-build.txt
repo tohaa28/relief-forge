@@ -1,0 +1,363 @@
+﻿2026-10-22T09:07:46.7791665Z Current runner version: '2.338.0'
+2026-10-22T09:07:46.7817387Z ##[group]Runner Image Provisioner
+2026-10-22T09:07:46.7818391Z Hosted Compute Agent
+2026-10-22T09:07:46.7819013Z Version: 20261015.610
+2026-10-22T09:07:46.7819937Z Commit: 267fdb4e8bbec4ab5ea31367f3a00d5c480c7656
+2026-10-22T09:07:46.7820817Z Build Date: 2026-10-14T17:06:54Z
+2026-10-22T09:07:46.7821558Z Worker ID: {29c4338f-2c8b-46bc-830f-f46b4a91dc78}
+2026-10-22T09:07:46.7822317Z Region: westus
+2026-10-22T09:07:46.7822876Z Cloud: Azure
+2026-10-22T09:07:46.7823408Z ##[endgroup]
+2026-10-22T09:07:46.7824991Z ##[group]Operating System
+2026-10-22T09:07:46.7825687Z Ubuntu
+2026-10-22T09:07:46.7826273Z 24.04.5
+2026-10-22T09:07:46.7826817Z LTS
+2026-10-22T09:07:46.7827334Z ##[endgroup]
+2026-10-22T09:07:46.7827981Z ##[group]Runner Image
+2026-10-22T09:07:46.7828623Z Image: ubuntu-24.04
+2026-10-22T09:07:46.7829392Z Version: 20261018.339.1
+2026-10-22T09:07:46.7830781Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261018.339/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-22T09:07:46.7832401Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261018.339
+2026-10-22T09:07:46.7833417Z ##[endgroup]
+2026-10-22T09:07:46.7834977Z ##[group]GITHUB_TOKEN Permissions
+2026-10-22T09:07:46.7837207Z Contents: write
+2026-10-22T09:07:46.7837878Z Metadata: read
+2026-10-22T09:07:46.7838592Z ##[endgroup]
+2026-10-22T09:07:46.7841089Z Secret source: Actions
+2026-10-22T09:07:46.7842128Z Cache mode: write
+2026-10-22T09:07:46.7842834Z Prepare workflow directory
+2026-10-22T09:07:46.8186591Z Prepare all required actions
+2026-10-22T09:07:46.8236869Z Getting action download info
+2026-10-22T09:07:47.2132207Z Download action repository 'actions/checkout@v6' (SHA:d23441a48e516b6c34aea4fa41551a30e30af803)
+2026-10-22T09:07:47.3645413Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2026-10-22T09:07:47.4896187Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-10-22T09:07:47.5941851Z Download action repository 'actions/upload-pages-artifact@v4' (SHA:7b1f4a764d45c48632c6b24a0339c27f5614fb0b)
+2026-10-22T09:07:47.9074464Z Getting action download info
+2026-10-22T09:07:48.0474588Z Download action repository 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-10-22T09:07:48.1951647Z Complete job name: build
+2026-10-22T09:07:48.2973865Z ##[group]Run actions/checkout@v6
+2026-10-22T09:07:48.2975276Z with:
+2026-10-22T09:07:48.2976094Z   fetch-depth: 0
+2026-10-22T09:07:48.2976998Z   repository: tohaa28/relief-forge
+2026-10-22T09:07:48.2986131Z   token: ***
+2026-10-22T09:07:48.2986987Z   ssh-strict: true
+2026-10-22T09:07:48.2987848Z   ssh-user: git
+2026-10-22T09:07:48.2988722Z   persist-credentials: true
+2026-10-22T09:07:48.2989838Z   clean: true
+2026-10-22T09:07:48.2990715Z   sparse-checkout-cone-mode: true
+2026-10-22T09:07:48.2991761Z   fetch-tags: false
+2026-10-22T09:07:48.2992634Z   show-progress: true
+2026-10-22T09:07:48.2993616Z   lfs: false
+2026-10-22T09:07:48.2994439Z   submodules: false
+2026-10-22T09:07:48.2995341Z   set-safe-directory: true
+2026-10-22T09:07:48.2996350Z   allow-unsafe-pr-checkout: false
+2026-10-22T09:07:48.2997714Z ##[endgroup]
+2026-10-22T09:07:48.4092173Z Syncing repository: tohaa28/relief-forge
+2026-10-22T09:07:48.4096426Z ##[group]Getting Git version info
+2026-10-22T09:07:48.4098531Z Working directory is '/home/runner/work/relief-forge/relief-forge'
+2026-10-22T09:07:48.4102429Z [command]/usr/bin/git version
+2026-10-22T09:07:48.4200812Z git version 2.55.0
+2026-10-22T09:07:48.4241945Z ##[endgroup]
+2026-10-22T09:07:48.4250756Z Temporarily overriding HOME='/home/runner/work/_temp/a8a6719e-a28b-4061-acd3-1a36c10337ef' before making global git config changes
+2026-10-22T09:07:48.4254313Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-22T09:07:48.4257702Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/relief-forge/relief-forge
+2026-10-22T09:07:48.4317057Z Deleting the contents of '/home/runner/work/relief-forge/relief-forge'
+2026-10-22T09:07:48.4323626Z ##[group]Determining repository object format
+2026-10-22T09:07:48.4325770Z ##[endgroup]
+2026-10-22T09:07:48.4327231Z ##[group]Initializing the repository
+2026-10-22T09:07:48.4331239Z [command]/usr/bin/git init /home/runner/work/relief-forge/relief-forge
+2026-10-22T09:07:48.4461445Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-22T09:07:48.4463991Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-22T09:07:48.4465894Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-22T09:07:48.4467372Z hint: call:
+2026-10-22T09:07:48.4468137Z hint:
+2026-10-22T09:07:48.4469445Z hint: 	git config --global init.defaultBranch <name>
+2026-10-22T09:07:48.4470773Z hint:
+2026-10-22T09:07:48.4471912Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-22T09:07:48.4473851Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-22T09:07:48.4475342Z hint:
+2026-10-22T09:07:48.4476129Z hint: 	git branch -m <name>
+2026-10-22T09:07:48.4477026Z hint:
+2026-10-22T09:07:48.4478251Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-22T09:07:48.4485621Z Initialized empty Git repository in /home/runner/work/relief-forge/relief-forge/.git/
+2026-10-22T09:07:48.4496163Z [command]/usr/bin/git remote add origin https://github.com/tohaa28/relief-forge
+2026-10-22T09:07:48.4586135Z ##[endgroup]
+2026-10-22T09:07:48.4587627Z ##[group]Disabling automatic garbage collection
+2026-10-22T09:07:48.4590651Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-22T09:07:48.4660892Z ##[endgroup]
+2026-10-22T09:07:48.4764576Z ##[group]Setting up auth
+2026-10-22T09:07:48.4766489Z Removing SSH command configuration
+2026-10-22T09:07:48.4769014Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-22T09:07:48.4774742Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-22T09:07:48.5146117Z Removing HTTP extra header
+2026-10-22T09:07:48.5154501Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-22T09:07:48.5204617Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-22T09:07:48.5453313Z Removing includeIf entries pointing to credentials config files
+2026-10-22T09:07:48.5455436Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-22T09:07:48.5498727Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-22T09:07:48.5751446Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-f1e0e7c7-74a3-46c6-93fe-aab6514dc622.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-22T09:07:48.5806481Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/relief-forge/relief-forge/.git.path /home/runner/work/_temp/git-credentials-f1e0e7c7-74a3-46c6-93fe-aab6514dc622.config
+2026-10-22T09:07:48.5851325Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/relief-forge/relief-forge/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-f1e0e7c7-74a3-46c6-93fe-aab6514dc622.config
+2026-10-22T09:07:48.5899904Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-f1e0e7c7-74a3-46c6-93fe-aab6514dc622.config
+2026-10-22T09:07:48.5945315Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-f1e0e7c7-74a3-46c6-93fe-aab6514dc622.config
+2026-10-22T09:07:48.5993220Z ##[endgroup]
+2026-10-22T09:07:48.5994991Z ##[group]Fetching the repository
+2026-10-22T09:07:48.6001549Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+2026-10-22T09:07:49.1328198Z From https://github.com/tohaa28/relief-forge
+2026-10-22T09:07:49.1330001Z  * [new branch]      main       -> origin/main
+2026-10-22T09:07:49.1340648Z [command]/usr/bin/git branch --list --remote origin/main
+2026-10-22T09:07:49.1374972Z   origin/main
+2026-10-22T09:07:49.1383885Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+2026-10-22T09:07:49.1415621Z 276970977082f8dc69d37742676e5bafb87b4838
+2026-10-22T09:07:49.1419980Z ##[endgroup]
+2026-10-22T09:07:49.1420523Z ##[group]Determining the checkout info
+2026-10-22T09:07:49.1421347Z ##[endgroup]
+2026-10-22T09:07:49.1425839Z [command]/usr/bin/git sparse-checkout disable
+2026-10-22T09:07:49.1489660Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-22T09:07:49.1529700Z ##[group]Checking out the ref
+2026-10-22T09:07:49.1533797Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-10-22T09:07:49.1637994Z Switched to a new branch 'main'
+2026-10-22T09:07:49.1644344Z branch 'main' set up to track 'origin/main'.
+2026-10-22T09:07:49.1650040Z ##[endgroup]
+2026-10-22T09:07:49.1708045Z [command]/usr/bin/git log -1 --format=%H
+2026-10-22T09:07:49.1751415Z 276970977082f8dc69d37742676e5bafb87b4838
+2026-10-22T09:07:49.2019823Z ##[group]Run bash scripts/import-history.sh
+2026-10-22T09:07:49.2020368Z [36;1mbash scripts/import-history.sh[0m
+2026-10-22T09:07:49.2210488Z shell: /usr/bin/bash -e {0}
+2026-10-22T09:07:49.2210844Z ##[endgroup]
+2026-10-22T09:07:49.2342345Z history/pre-github.bundle: OK
+2026-10-22T09:07:49.2362324Z history/pre-github.bundle is okay
+2026-10-22T09:07:49.2362732Z The bundle contains these 4 refs:
+2026-10-22T09:07:49.2363127Z 2e499537d175f1360a9a3dd05613492917ad3348 refs/heads/main
+2026-10-22T09:07:49.2363712Z 9e8d9273208f6835b3b638edefb163eee9d9fe1a refs/remotes/origin/HEAD
+2026-10-22T09:07:49.2364704Z 9e8d9273208f6835b3b638edefb163eee9d9fe1a refs/remotes/origin/main
+2026-10-22T09:07:49.2365658Z 2e499537d175f1360a9a3dd05613492917ad3348 HEAD
+2026-10-22T09:07:49.2366423Z The bundle records a complete history.
+2026-10-22T09:07:49.2366792Z The bundle uses this hash algorithm: sha1
+2026-10-22T09:07:49.2517632Z From history/pre-github.bundle
+2026-10-22T09:07:49.2518353Z  * branch            main       -> FETCH_HEAD
+2026-10-22T09:07:50.4422520Z To https://github.com/tohaa28/relief-forge
+2026-10-22T09:07:50.4423078Z    2769709..06322bc  06322bc3248d53b66ee4a42ec7829c953547d2d2 -> main
+2026-10-22T09:07:50.4509616Z Preserved original commit 2e499537d175f1360a9a3dd05613492917ad3348 and all its ancestors.
+2026-10-22T09:07:50.4623166Z ##[group]Run actions/setup-node@v4
+2026-10-22T09:07:50.4623496Z with:
+2026-10-22T09:07:50.4623700Z   node-version: 24
+2026-10-22T09:07:50.4623942Z   always-auth: false
+2026-10-22T09:07:50.4624173Z   check-latest: false
+2026-10-22T09:07:50.4626594Z   token: ***
+2026-10-22T09:07:50.4626799Z ##[endgroup]
+2026-10-22T09:07:50.6079545Z Found in cache @ /opt/hostedtoolcache/node/24.22.0/x64
+2026-10-22T09:07:50.6083001Z (node:2360) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-22T09:07:50.6083765Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-22T09:07:50.6086493Z ##[group]Environment details
+2026-10-22T09:07:51.0752506Z node: v24.22.0
+2026-10-22T09:07:51.0753263Z npm: 11.19.1
+2026-10-22T09:07:51.0753813Z yarn: 1.22.22
+2026-10-22T09:07:51.0754679Z ##[endgroup]
+2026-10-22T09:07:51.0885725Z ##[group]Run rustup toolchain install 1.85.1 --profile minimal --target wasm32-unknown-unknown
+2026-10-22T09:07:51.0886511Z [36;1mrustup toolchain install 1.85.1 --profile minimal --target wasm32-unknown-unknown[0m
+2026-10-22T09:07:51.0887233Z [36;1mrustup override set 1.85.1[0m
+2026-10-22T09:07:51.0949894Z shell: /usr/bin/bash -e {0}
+2026-10-22T09:07:51.0950327Z ##[endgroup]
+2026-10-22T09:07:51.2075110Z info: syncing channel updates for 1.85.1-x86_64-unknown-linux-gnu
+2026-10-22T09:07:51.4406460Z info: latest update on 2025-03-18 for version 1.85.1 (4eb161250 2025-03-15)
+2026-10-22T09:07:51.4407298Z info: downloading 4 components
+2026-10-22T09:07:59.9418086Z
+2026-10-22T09:07:59.9496282Z   1.85.1-x86_64-unknown-linux-gnu installed - rustc 1.85.1 (4eb161250 2025-03-15)
+2026-10-22T09:07:59.9497004Z
+2026-10-22T09:07:59.9815146Z info: override toolchain for /home/runner/work/relief-forge/relief-forge set to 1.85.1-x86_64-unknown-linux-gnu
+2026-10-22T09:07:59.9863494Z ##[group]Run cargo test --locked
+2026-10-22T09:07:59.9863848Z [36;1mcargo test --locked[0m
+2026-10-22T09:07:59.9914498Z shell: /usr/bin/bash -e {0}
+2026-10-22T09:07:59.9914762Z ##[endgroup]
+2026-10-22T09:08:00.0396344Z    Compiling relief-forge v0.1.0-alpha.2 (/home/runner/work/relief-forge/relief-forge)
+2026-10-22T09:08:01.0107957Z     Finished `test` profile [unoptimized + debuginfo] target(s) in 1.00s
+2026-10-22T09:08:01.0115380Z      Running unittests src/lib.rs (target/debug/deps/relief_forge-af9aaeaa332da368)
+2026-10-22T09:08:01.0124550Z
+2026-10-22T09:08:01.0124895Z running 0 tests
+2026-10-22T09:08:01.0125422Z
+2026-10-22T09:08:01.0126206Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-22T09:08:01.0126947Z
+2026-10-22T09:08:01.0128038Z      Running tests/geometry.rs (target/debug/deps/geometry-2f4f72221e2deda9)
+2026-10-22T09:08:01.0138124Z
+2026-10-22T09:08:01.0138522Z running 15 tests
+2026-10-22T09:08:01.0144633Z test adjacent_backtracking_is_overlap ... ok
+2026-10-22T09:08:01.0145661Z test abi_result_is_json ... ok
+2026-10-22T09:08:01.0146327Z test adjacent_corner_is_not_crossing ... ok
+2026-10-22T09:08:01.0147039Z test ambiguous_junction_is_untouched ... ok
+2026-10-22T09:08:01.0147731Z test bow_tie_has_one_crossing ... ok
+2026-10-22T09:08:01.0148514Z test clean_nodes_keeps_nonconsecutive_repeats ... ok
+2026-10-22T09:08:01.0152362Z test duplicate_closed_reversed_rotated ... ok
+2026-10-22T09:08:01.0155065Z test figure_eight_retains_both_loops ... ok
+2026-10-22T09:08:01.0155752Z test close_only_within_tolerance ... ok
+2026-10-22T09:08:01.0156408Z test area_direction_is_cartesian ... ok
+2026-10-22T09:08:01.0157114Z test parser_rejects_truncated_or_nan ... ok
+2026-10-22T09:08:01.0157799Z test simplify_with_error_budget ... ok
+2026-10-22T09:08:01.0158434Z test split_crossing_yields_four_spans ... ok
+2026-10-22T09:08:01.0159398Z test joins_reversed_endpoints ... ok
+2026-10-22T09:08:01.0160105Z test open_path_is_not_closed_duplicate ... ok
+2026-10-22T09:08:01.0160500Z
+2026-10-22T09:08:01.0161172Z test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-22T09:08:01.0161816Z
+2026-10-22T09:08:01.0162056Z    Doc-tests relief_forge
+2026-10-22T09:08:01.0363232Z
+2026-10-22T09:08:01.0364980Z running 0 tests
+2026-10-22T09:08:01.0365699Z
+2026-10-22T09:08:01.0366580Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-22T09:08:01.0367381Z
+2026-10-22T09:08:01.0422352Z ##[group]Run npm test
+2026-10-22T09:08:01.0422671Z [36;1mnpm test[0m
+2026-10-22T09:08:01.0422923Z [36;1mnode --check web/app.js[0m
+2026-10-22T09:08:01.0423220Z [36;1mnode --check web/worker.js[0m
+2026-10-22T09:08:01.0476333Z shell: /usr/bin/bash -e {0}
+2026-10-22T09:08:01.0476623Z ##[endgroup]
+2026-10-22T09:08:01.1929086Z
+2026-10-22T09:08:01.1929614Z > relief-forge-web@0.1.0-alpha.2 test
+2026-10-22T09:08:01.1930611Z > node --test tests/*.test.mjs
+2026-10-22T09:08:01.1930915Z
+2026-10-22T09:08:01.2924378Z ✔ relative lines and close (1.904677ms)
+2026-10-22T09:08:01.2925332Z ✔ implicit line after M (0.238493ms)
+2026-10-22T09:08:01.2926199Z ✔ multiple subpaths remain separate (0.250365ms)
+2026-10-22T09:08:01.2928360Z ✔ unsupported curves fail explicitly (0.433975ms)
+2026-10-22T09:08:01.2934121Z ✔ truncated commands fail (0.205251ms)
+2026-10-22T09:08:01.2934592Z ✔ scientific coordinates accepted (0.204119ms)
+2026-10-22T09:08:01.2935013Z ✔ malformed bytes fail (0.169866ms)
+2026-10-22T09:08:01.3044426Z ℹ tests 7
+2026-10-22T09:08:01.3046431Z ℹ suites 0
+2026-10-22T09:08:01.3046860Z ℹ pass 7
+2026-10-22T09:08:01.3047253Z ℹ fail 0
+2026-10-22T09:08:01.3047610Z ℹ cancelled 0
+2026-10-22T09:08:01.3048009Z ℹ skipped 0
+2026-10-22T09:08:01.3048260Z ℹ todo 0
+2026-10-22T09:08:01.3048534Z ℹ duration_ms 73.526787
+2026-10-22T09:08:01.3745069Z ##[group]Run cargo build --locked --release --target wasm32-unknown-unknown
+2026-10-22T09:08:01.3745666Z [36;1mcargo build --locked --release --target wasm32-unknown-unknown[0m
+2026-10-22T09:08:01.3746198Z [36;1mcp target/wasm32-unknown-unknown/release/relief_forge.wasm web/engine.wasm[0m
+2026-10-22T09:08:01.3746650Z [36;1mnode scripts/check-wasm.mjs[0m
+2026-10-22T09:08:01.3798065Z shell: /usr/bin/bash -e {0}
+2026-10-22T09:08:01.3798333Z ##[endgroup]
+2026-10-22T09:08:01.4151092Z    Compiling relief-forge v0.1.0-alpha.2 (/home/runner/work/relief-forge/relief-forge)
+2026-10-22T09:08:02.0890133Z     Finished `release` profile [optimized] target(s) in 0.69s
+2026-10-22T09:08:02.1323198Z PASS: compiled WASM ABI, crossings, split, loops, validation, repeated ownership (94844 bytes).
+2026-10-22T09:08:02.1484938Z ##[group]Run actions/upload-artifact@v4
+2026-10-22T09:08:02.1485475Z with:
+2026-10-22T09:08:02.1485802Z   name: relief-forge-wasm-web
+2026-10-22T09:08:02.1486207Z   path: web/
+2026-10-22T09:08:02.1486535Z   if-no-files-found: warn
+2026-10-22T09:08:02.1486913Z   compression-level: 6
+2026-10-22T09:08:02.1487269Z   overwrite: false
+2026-10-22T09:08:02.1487618Z   include-hidden-files: false
+2026-10-22T09:08:02.1488036Z ##[endgroup]
+2026-10-22T09:08:02.3297103Z (node:2757) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-22T09:08:02.3298641Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-22T09:08:02.3408537Z With the provided path, there will be 6 files uploaded
+2026-10-22T09:08:02.3411438Z Artifact name is valid!
+2026-10-22T09:08:02.3412398Z Root directory input is valid!
+2026-10-22T09:08:02.7085763Z Beginning upload of artifact content to blob storage
+2026-10-22T09:08:02.7402555Z (node:2757) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-22T09:08:03.1350190Z Uploaded bytes 50590
+2026-10-22T09:08:03.2123206Z Finished uploading artifact content to blob storage!
+2026-10-22T09:08:03.2124705Z SHA256 digest of uploaded artifact zip is b56daac566a94d6ad85774d6578370d48c942d79c700b7274f164e51769c8252
+2026-10-22T09:08:03.2126087Z Finalizing artifact upload
+2026-10-22T09:08:03.7344792Z Artifact relief-forge-wasm-web.zip successfully finalized. Artifact ID 12414003800
+2026-10-22T09:08:03.7346879Z Artifact relief-forge-wasm-web has been successfully uploaded! Final size is 50590 bytes. Artifact ID is 12414003800
+2026-10-22T09:08:03.7353889Z Artifact download URL: https://github.com/tohaa28/relief-forge/actions/runs/39753007526/artifacts/12414003800
+2026-10-22T09:08:03.7559553Z ##[group]Run actions/upload-pages-artifact@v4
+2026-10-22T09:08:03.7559927Z with:
+2026-10-22T09:08:03.7560151Z   path: web/
+2026-10-22T09:08:03.7560372Z   name: github-pages
+2026-10-22T09:08:03.7560615Z   retention-days: 1
+2026-10-22T09:08:03.7560842Z ##[endgroup]
+2026-10-22T09:08:03.7624782Z ##[start-action display=Archive artifact;id=__actions_upload-pages-artifact.__run]
+2026-10-22T09:08:03.7652211Z ##[group]Run echo ::group::Archive artifact
+2026-10-22T09:08:03.7652580Z [36;1mecho ::group::Archive artifact[0m
+2026-10-22T09:08:03.7652873Z [36;1mtar \[0m
+2026-10-22T09:08:03.7653135Z [36;1m  --dereference --hard-dereference \[0m
+2026-10-22T09:08:03.7653474Z [36;1m  --directory "$INPUT_PATH" \[0m
+2026-10-22T09:08:03.7653803Z [36;1m  -cvf "$RUNNER_TEMP/artifact.tar" \[0m
+2026-10-22T09:08:03.7654303Z [36;1m  --exclude=.git \[0m
+2026-10-22T09:08:03.7654575Z [36;1m  --exclude=.github \[0m
+2026-10-22T09:08:03.7654840Z [36;1m  --exclude=".[^/]*" \[0m
+2026-10-22T09:08:03.7655124Z [36;1m  .[0m
+2026-10-22T09:08:03.7655352Z [36;1mecho ::endgroup::[0m
+2026-10-22T09:08:03.7741326Z shell: /usr/bin/sh -e {0}
+2026-10-22T09:08:03.7741600Z env:
+2026-10-22T09:08:03.7741812Z   INPUT_PATH: web/
+2026-10-22T09:08:03.7742055Z ##[endgroup]
+2026-10-22T09:08:03.7812090Z ##[group]Archive artifact
+2026-10-22T09:08:03.7825282Z ./
+2026-10-22T09:08:03.7825666Z ./index.html
+2026-10-22T09:08:03.7826031Z ./svg-import.js
+2026-10-22T09:08:03.7826395Z ./style.css
+2026-10-22T09:08:03.7826738Z ./engine.wasm
+2026-10-22T09:08:03.7827104Z ./worker.js
+2026-10-22T09:08:03.7827429Z ./app.js
+2026-10-22T09:08:03.7830207Z ##[endgroup]
+2026-10-22T09:08:03.7841805Z ##[end-action id=__actions_upload-pages-artifact.__run;outcome=success;conclusion=success;duration_ms=21]
+2026-10-22T09:08:03.7844767Z ##[start-action display=Archive artifact;id=__actions_upload-pages-artifact.__run_2]
+2026-10-22T09:08:03.7850196Z ##[end-action id=__actions_upload-pages-artifact.__run_2;outcome=skipped;conclusion=skipped;duration_ms=0]
+2026-10-22T09:08:03.7852859Z ##[start-action display=Archive artifact;id=__actions_upload-pages-artifact.__run_3]
+2026-10-22T09:08:03.7856462Z ##[end-action id=__actions_upload-pages-artifact.__run_3;outcome=skipped;conclusion=skipped;duration_ms=0]
+2026-10-22T09:08:03.7858357Z ##[start-action display=Upload artifact;id=__actions_upload-pages-artifact.upload-artifact]
+2026-10-22T09:08:03.7909569Z ##[group]Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+2026-10-22T09:08:03.7909961Z with:
+2026-10-22T09:08:03.7910158Z   name: github-pages
+2026-10-22T09:08:03.7910405Z   path: /home/runner/work/_temp/artifact.tar
+2026-10-22T09:08:03.7910699Z   retention-days: 1
+2026-10-22T09:08:03.7910920Z   if-no-files-found: error
+2026-10-22T09:08:03.7911158Z   compression-level: 6
+2026-10-22T09:08:03.7911385Z   overwrite: false
+2026-10-22T09:08:03.7911599Z   include-hidden-files: false
+2026-10-22T09:08:03.7911846Z ##[endgroup]
+2026-10-22T09:08:03.9624452Z (node:2772) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-22T09:08:03.9626375Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-22T09:08:03.9707805Z With the provided path, there will be 1 file uploaded
+2026-10-22T09:08:03.9708747Z Artifact name is valid!
+2026-10-22T09:08:03.9709508Z Root directory input is valid!
+2026-10-22T09:08:04.3793758Z Beginning upload of artifact content to blob storage
+2026-10-22T09:08:04.4042217Z (node:2772) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-22T09:08:04.8002605Z Uploaded bytes 51129
+2026-10-22T09:08:04.8758100Z Finished uploading artifact content to blob storage!
+2026-10-22T09:08:04.8760229Z SHA256 digest of uploaded artifact zip is 3bab5c2414000aa177f915771079370c8569d58b0fc81da6b005ef61fae4f850
+2026-10-22T09:08:04.8762168Z Finalizing artifact upload
+2026-10-22T09:08:05.4155192Z Artifact github-pages.zip successfully finalized. Artifact ID 12414018745
+2026-10-22T09:08:05.4156996Z Artifact github-pages has been successfully uploaded! Final size is 51129 bytes. Artifact ID is 12414018745
+2026-10-22T09:08:05.4163986Z Artifact download URL: https://github.com/tohaa28/relief-forge/actions/runs/39753007526/artifacts/12414018745
+2026-10-22T09:08:05.4302100Z ##[end-action id=__actions_upload-pages-artifact.upload-artifact;outcome=success;conclusion=success;duration_ms=1644]
+2026-10-22T09:08:05.4421627Z Post job cleanup.
+2026-10-22T09:08:05.5667628Z (node:2784) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-22T09:08:05.5668506Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-22T09:08:05.5860232Z Post job cleanup.
+2026-10-22T09:08:05.6744882Z [command]/usr/bin/git version
+2026-10-22T09:08:05.6791958Z git version 2.55.0
+2026-10-22T09:08:05.6836506Z Temporarily overriding HOME='/home/runner/work/_temp/8d06fb65-7a0f-4e86-9eb8-fb0f2317d198' before making global git config changes
+2026-10-22T09:08:05.6838130Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-22T09:08:05.6843502Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/relief-forge/relief-forge
+2026-10-22T09:08:05.6882906Z Removing SSH command configuration
+2026-10-22T09:08:05.6892159Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-22T09:08:05.6938490Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-22T09:08:05.7211135Z Removing HTTP extra header
+2026-10-22T09:08:05.7218912Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-22T09:08:05.7262666Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-22T09:08:05.7610573Z Removing includeIf entries pointing to credentials config files
+2026-10-22T09:08:05.7624588Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-22T09:08:05.7705495Z includeif.gitdir:/home/runner/work/relief-forge/relief-forge/.git.path
+2026-10-22T09:08:05.7719636Z includeif.gitdir:/home/runner/work/relief-forge/relief-forge/.git/worktrees/*.path
+2026-10-22T09:08:05.7721044Z includeif.gitdir:/github/workspace/.git.path
+2026-10-22T09:08:05.7722308Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-22T09:08:05.7725758Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/relief-forge/relief-forge/.git.path
+2026-10-22T09:08:05.7773655Z /home/runner/work/_temp/git-credentials-f1e0e7c7-74a3-46c6-93fe-aab6514dc622.config
+2026-10-22T09:08:05.7789939Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/relief-forge/relief-forge/.git.path /home/runner/work/_temp/git-credentials-f1e0e7c7-74a3-46c6-93fe-aab6514dc622.config
+2026-10-22T09:08:05.7871697Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/relief-forge/relief-forge/.git/worktrees/*.path
+2026-10-22T09:08:05.7917585Z /home/runner/work/_temp/git-credentials-f1e0e7c7-74a3-46c6-93fe-aab6514dc622.config
+2026-10-22T09:08:05.7936894Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/relief-forge/relief-forge/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-f1e0e7c7-74a3-46c6-93fe-aab6514dc622.config
+2026-10-22T09:08:05.8050846Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-10-22T09:08:05.8070303Z /github/runner_temp/git-credentials-f1e0e7c7-74a3-46c6-93fe-aab6514dc622.config
+2026-10-22T09:08:05.8073726Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-f1e0e7c7-74a3-46c6-93fe-aab6514dc622.config
+2026-10-22T09:08:05.8125370Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-22T09:08:05.8161719Z /github/runner_temp/git-credentials-f1e0e7c7-74a3-46c6-93fe-aab6514dc622.config
+2026-10-22T09:08:05.8172152Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-f1e0e7c7-74a3-46c6-93fe-aab6514dc622.config
+2026-10-22T09:08:05.8224137Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-22T09:08:05.8492123Z Removing credentials config '/home/runner/work/_temp/git-credentials-f1e0e7c7-74a3-46c6-93fe-aab6514dc622.config'
+2026-10-22T09:08:05.8670757Z Cleaning up orphan processes
+2026-10-22T09:08:05.8976172Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/setup-node@v4, actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

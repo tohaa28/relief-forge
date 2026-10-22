@@ -9,6 +9,8 @@
 ## GitHub — основной маршрут
 https://github.com/tohaa28/relief-forge — создан пользователем через разрешённую браузерную сессию агента; новый репозиторий добавлен к уже установленному ChatGPT Codex Connector. Запись через GitHub API проверена. Работу вести здесь, основной источник и публикация — GitHub.
 
+Перенос завершён и проверен. GitHub Pages: https://tohaa28.github.io/relief-forge/ . Первый run 39753007526: build/deploy success; 15 Rust + 7 JS + WASM checks pass. Live browser: WASM ready, 5 объектов / 23 замечания. Оригинальный HEAD 2e499537d175f1360a9a3dd05613492917ad3348 входит в историю main через merge 06322bc3248d53b66ee4a42ec7829c953547d2d2. Протокол: logs/github-publication.json.
+
 GitHub Pages собирается workflow `.github/workflows/pages.yml`. Rust закреплён на проверенной версии 1.85.1. Workflow сначала импортирует точные четыре исходных коммита из checksum-verified `history/pre-github.bundle`, затем проверяет и собирает приложение, затем deploy. Импорт делает обычный fast-forward push merge-коммита и не переписывает историю. Проверить Actions и состояние Pages перед сообщением о завершённой публикации.
 
 Старый Sites ID архивирован в docs/legacy-sites-hosting.json; `.openai/hosting.json` из активного корня убран, чтобы дальнейшая работа не переключалась обратно в Sites. Старый Site не удалялся.

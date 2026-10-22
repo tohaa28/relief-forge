@@ -31,3 +31,4 @@
 {"action": "github-repository-created", "status": "ok", "repository": "tohaa28/relief-forge", "repository_id": 1429489273, "at": "2026-10-22T09:05:00.833138+00:00"}
 {"action": "codex-connector-repository-access", "status": "ok", "detail": "Added only the new relief-forge public project to the existing selected repository set; GitHub API create_file succeeded.", "at": "2026-10-22T09:05:00.833169+00:00"}
 {"action": "github-migration", "status": "prepared", "detail": "Full source, tests, logs, verified WASM, exact original Git bundle, and Pages build. Sites manifest archived; GitHub becomes canonical.", "at": "2026-10-22T09:05:00.833300+00:00"}
+{"at": "2026-10-22T09:10:45.413462+00:00", "action": "github-migration-complete", "status": "verified", "receipt": "logs/github-publication.json", "detail": "Native build/deploy jobs successful. All four original commit SHAs preserved as ancestors of remote main. Live GitHub Pages WASM diagnosis confirmed."}
