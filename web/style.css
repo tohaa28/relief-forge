@@ -126,3 +126,9 @@ main.left-collapsed{grid-template-columns:minmax(250px,1fr) 304px}
 .heal-controls #optimization-result{background:#f5f9fb;border-radius:5px;padding:7px;min-height:24px}
 #canvas.show-optimized #geometry g.optimized-path path{stroke:#168775!important;stroke-width:1.1px!important;vector-effect:non-scaling-stroke}
 #canvas.show-optimized #geometry .optimized-before-path{fill:none!important;stroke:#ce4c55!important;stroke-width:1.1px!important;stroke-dasharray:4 3;vector-effect:non-scaling-stroke;opacity:.78;pointer-events:none}
+
+/* Visual proof of actual spline reduction: deleted Bézier anchors in red, new
+   geometric path in green. Original dotted geometry stays UNDER new curves. */
+#canvas.show-optimized #geometry .optimized-before-path{stroke:#b94450!important;stroke-width:1.05px!important;stroke-dasharray:5 4;opacity:.62}
+#canvas.show-optimized #geometry g.optimized-path path{stroke:#168775!important;stroke-width:1.35px!important;opacity:1;vector-effect:non-scaling-stroke}
+.optimized-removed-anchors circle{fill:#fff5f4;stroke:#d24a54;stroke-width:1.2px;vector-effect:non-scaling-stroke;opacity:1}
