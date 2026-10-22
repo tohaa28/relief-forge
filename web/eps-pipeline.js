@@ -45,7 +45,25 @@ export function pdfToSvg(bytes,mupdf){
     return {svg:buffer.asString(),widthPt:bounds[2]-bounds[0],heightPt:bounds[3]-bounds[1]};
   }finally{device?.destroy();writer?.destroy();buffer?.destroy();page?.destroy();document.destroy();}
 }
+// Fast, literal-geometry path for CorelDRAW EPS that does not paint its paths.
+// Deliberately avoid loading the large Ghostscript / MuPDF engines for this case:
+// it is otherwise possible to time out before the existing blank-page fallback.
+// Never interpret general PostScript here; the conservative reader returns null.
+export function recoverOutlineOnlyEps(input){
+  const program=epsProgram(input),metadata=epsMetadata(program);
+  const recovered=recoverUnpaintedCorelOutlines(program,metadata);
+  if(!recovered)return null;
+  const outlineRecovery={source:recovered.source,count:recovered.count,previewStrokePt:recovered.previewStrokePt};
+  return {
+    svg:recovered.svg,widthPt:metadata.widthPt,heightPt:metadata.heightPt,
+    metadata,outlineRecovery,
+    warnings:[`Восстановлено ${recovered.count} непечатаемых векторных контуров CorelDRAW. Видимая тонкая обводка используется только для просмотра и анализа, а не для печати.`],
+    logs:['CorelDRAW literal path-only EPS; original geometry recovered without rendering engines.']
+  };
+}
 export async function interpretEps(input,{runGhostscript,mupdf,fonts=[],progress=()=>{}}){
+  const direct=recoverOutlineOnlyEps(input);
+  if(direct){progress(85,'Восстановлены исходные EPS-кривые без заливки…');return direct;}
   const program=epsProgram(input),metadata=epsMetadata(program);let logs=[];
   for(let attempt=0;attempt<2;attempt++){
     progress(25+attempt*15,attempt?'Завершение EPS без showpage…':'Интерпретация PostScript…');
