@@ -18,7 +18,7 @@ test('the actual unified preview and Apply commit point repairs even when smooth
     'optimization-tolerance':{value:'0.00001'},tolerance:{value:'0.01'},'optimization-result':{}};
   const changes=[],past=[],history=[];
   const context={doc:structuredClone(source),selected:new Set(),issues:[{kind:'short'}],
-    diagnosticComplete:true,busy:false,ready:false,curvePreview:null,
+    diagnosticComplete:true,busy:false,ready:false,curvePreview:null,curveEditing:()=>false,
     $:id=>elements[id],clone:structuredClone,repairVectorPoints,selectedVectorIndices,
     smoothAndOptimizePaths,worldData,render:()=>{},record:()=>{},status:()=>{},
     checkpoint:before=>past.push(structuredClone(before)),updateFileHistory:patch=>history.push(patch)};
