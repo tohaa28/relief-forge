@@ -6,7 +6,7 @@ import {AUTO_STEPS,basicPaths,packedInput,isChanged,comparisonBox,proposedIssueL
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
 import {optimizePaths,selectedVectorIndices,smoothAndOptimizePaths} from './curve-optimizer.js?v=0.2.0-alpha.13';
-import {removedCurveAnchors,changedCurveIndices} from './curve-diff.js';
+import {removedCurveAnchors,changedCurveIndices,changedBezierSites} from './curve-diff.js';
 const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
 let diagnosticComplete=true,markersVisible=true,pointsVisible=true,autoPreview=null,autoIndex=0,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null;
@@ -115,6 +115,10 @@ function render(){
     if(optimizedView.removedAnchors.length){
       const nodes=el('g',{class:'optimized-removed-anchors','pointer-events':'none'},$('markers'));
       for(const {point:[cx,cy]} of optimizedView.removedAnchors)el('circle',{cx,cy,r:radius*1.5},nodes);
+    }
+    if(optimizedView.smoothedSites?.length){
+      const focus=el('g',{class:'optimized-smoothed-sites','pointer-events':'none'},$('markers'));
+      for(const {point:[cx,cy]} of optimizedView.smoothedSites)el('circle',{cx,cy,r:radius*2.4},focus);
     }
   }
   if(pointsVisible){
@@ -260,13 +264,14 @@ function previewCurveOptimization(){
     const result=smoothAndOptimizePaths(doc,scope,smoothing,tolerance),st=result.stats;
     const changedScope=changedCurveIndices(doc,result.document,scope);
     const removedAnchors=removedCurveAnchors(doc,result.document,changedScope);
+    const smoothedSites=changedBezierSites(doc,result.document,changedScope);
     record('curve-optimize-measure',{tolerance,scope,stats:st});
     const summary='Сглажено стыков: '+st.smoothed+'. Сегментов: '+st.original+' → '+st.result+' (−'+st.removed+').'+
-      '\nИзменённых кривых: '+changedScope.length+'; удалено опорных точек: '+removedAnchors.length+'.'+
+      '\nИзменённых кривых: '+changedScope.length+'; удалено опорных точек: '+removedAnchors.length+'; сглаженных узлов: '+smoothedSites.length+'.'+
       '\nОценка отклонения: до '+st.estimateCombinedError.toFixed(5)+' мм. Сглаживание '+smoothing+' мм, оптимизация '+tolerance+' мм.';
     $('optimization-result').textContent=(st.removed||st.smoothed)?summary+'\nПОСЛЕ: изменённые кривые зелёные, исходные — красный пунктир.':summary+'\nБезопасных сокращений при этом допуске нет. Увеличьте допуск для более сильной оптимизации.';
     if(!st.removed&&!st.smoothed){$('auto-apply').disabled=true;status('Изменений кривых в заданных допусках нет.');render();return;}
-    curvePreview={source:clone(doc),result:result.document,scope,changedScope,removedAnchors,stats:st,afterDiagnosed:false,
+    curvePreview={source:clone(doc),result:result.document,scope,changedScope,removedAnchors,smoothedSites,stats:st,afterDiagnosed:false,
       comparisonData:{beforeDoc:clone(doc),afterDoc:result.document,beforeIssues:clone(issues),afterIssues:[]}};
     compareStage='after';render();
     // Diagnose the candidate, preserving a sampled-contour-to-object map.
@@ -294,7 +299,7 @@ function applyCurveOptimization(){
   }
   checkpoint(clone(doc));
   doc=clone(pv.result);
-  const comparison={...pv.comparisonData,optimization:{source:pv.source,changedScope:pv.changedScope,removedAnchors:pv.removedAnchors,stats:pv.stats}};
+  const comparison={...pv.comparisonData,optimization:{source:pv.source,changedScope:pv.changedScope,removedAnchors:pv.removedAnchors,smoothedSites:pv.smoothedSites,stats:pv.stats}};
   changed('curve-optimize-apply');
   appliedComparison=comparison;compareStage='after';render();
   updateFileHistory({status:'Оптимизировано: '+pv.stats.original+' → '+pv.stats.result+' сегментов; требуется повторная диагностика',diagnosis:null,repair:null});
