@@ -341,18 +341,62 @@ function startCurveEditor(){
   if(!selected.size){const i=doc.paths.findIndex(p=>p.kind!=='image');if(i>=0)selected=new Set([i]);}
   render();status('Узлы: перетащите точку. Добавить — клик по кривой; удалить — клик по узлу. Редактируется сохранённая геометрия.');
 }
-function changeCurveNode(path,index,operation){
-  try{const next=operation(doc.paths[path]);checkpoint();doc.paths[path]=next;
-    selected=new Set([path]);activeCurveNode=null;changed('curve-node-'+index);
+function changeCurveNode(path,index,operation,keep=false){
+  if(busy||!doc.paths[path])return;
+  try{
+    const before=doc.paths[path],atNode=keep&&activeCurveNode?curveNodes(before).find(n=>n.index===activeCurveNode.index):null;
+    const next=operation(before);
+    if(JSON.stringify(next)===JSON.stringify(before)){status('Геометрия не изменилась.');return;}
+    checkpoint();doc.paths[path]=next;selected=new Set([path]);activeCurveNode=null;
+    if(atNode){
+      const candidate=curveNodes(next).find(n=>n.part===atNode.part&&Math.hypot(n.point[0]-atNode.point[0],n.point[1]-atNode.point[1])<1e-8);
+      if(candidate)activeCurveNode={path,index:candidate.index};
+    }
+    changed('curve-node-'+index);
   }catch(error){status(error.message);}
 }
 function removeActiveCurveNode(){
   if(!activeCurveNode){status('Выберите узел для удаления.');return;}
   const {path,index}=activeCurveNode;changeCurveNode(path,'delete',p=>deleteCurveNode(p,index));
 }
+function runNodeCommand(name){
+  if(busy||!curveEditing())return;
+  if(name==='add'){nodeTool='add';render();status('Курсор +: нажмите между узлами на кривой.');return;}
+  if(name==='remove'){removeActiveCurveNode();return;}
+  if(!activeCurveNode){status('Сначала выберите узел.');return;}
+  const {path,index}=activeCurveNode;
+  const op=({cusp:p=>setCurveNodeType(p,index,'cusp'),smooth:p=>setCurveNodeType(p,index,'smooth'),
+    symmetric:p=>setCurveNodeType(p,index,'symmetric'),line:p=>setCurveSegmentType(p,index,'line'),
+    curve:p=>setCurveSegmentType(p,index,'curve'),break:p=>breakCurveAtNode(p,index),
+    close:p=>closeCurveAtNode(p,index),reverse:p=>reverseCurveDirection(p)})[name];
+  if(op)changeCurveNode(path,name,op,true);
+}
 $('curve-edit').onclick=startCurveEditor;
-for(const tool of ['move','add','remove'])$('node-'+tool).onclick=()=>{nodeTool=tool;render();};
-$('node-done').onclick=startCurveEditor;
+for(const tool of ['move','add','remove','handles'])$('node-'+tool).onclick=()=>{if(busy)return;nodeTool=tool;$('node-context').hidden=true;render();};
+for(const name of ['cusp','smooth','symmetric','line','curve','break','close','reverse'])
+  $('node-'+name).onclick=()=>runNodeCommand(name);
+$('node-done').onclick=()=>{$('node-context').hidden=true;startCurveEditor();};
+$('node-context').querySelectorAll('[data-node-menu]').forEach(button=>button.onclick=()=>{
+  const name=button.dataset.nodeMenu;$('node-context').hidden=true;
+  if(name==='add'&&contextHit?.nearest&&contextHit.node===null&&contextHit.nearest.t>1e-6&&contextHit.nearest.t<1-1e-6)
+    changeCurveNode(contextHit.path,'add',p=>addCurveNode(p,contextHit.nearest.index,contextHit.nearest.t));
+  else runNodeCommand(name);
+});
+$('canvas').addEventListener('contextmenu',e=>{
+  if(!curveEditing()||busy)return;
+  const target=e.target.closest('[data-path]');if(!target)return;
+  const path=Number(target.dataset.path);if(!doc.paths[path]||doc.paths[path].kind==='image')return;
+  e.preventDefault();const node=target.dataset.curveNode===undefined?null:Number(target.dataset.curveNode);
+  selected=new Set([path]);activeCurveNode=node===null?null:{path,index:node};
+  const pos=at(e);contextHit={path,node,nearest:nearestCurveSegment(doc.paths[path],pos)};
+  render();const menu=$('node-context');
+  for(const button of menu.querySelectorAll('[data-node-menu]'))
+    button.disabled=(node===null&&button.dataset.nodeMenu!=='add')||(node!==null&&button.dataset.nodeMenu==='add');
+  menu.hidden=false;
+  menu.style.left=Math.max(4,Math.min(e.clientX,window.innerWidth-240))+'px';
+  menu.style.top=Math.max(4,Math.min(e.clientY,window.innerHeight-330))+'px';
+});
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('#node-context'))$('node-context').hidden=true;});
 function download(name,content,type='application/json'){const a=document.createElement('a');const url=URL.createObjectURL(new Blob([content],{type}));a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function validate(value){
   if(value?.format!=='relief-forge'||value.version!==1||!Number.isFinite(value.width)||!Number.isFinite(value.height)||value.width<=0||value.height<=0||!Array.isArray(value.paths))throw Error('Неверный формат проекта');
