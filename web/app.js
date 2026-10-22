@@ -5,7 +5,7 @@ import {exportEps} from './eps-export.js?v=0.2.0-alpha.10';
 import {AUTO_STEPS,basicPaths,packedInput,isChanged,comparisonBox,proposedIssueLocations} from './auto-repair.js';
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
-import {optimizePaths} from './curve-optimizer.js';
+import {optimizePaths,selectedVectorIndices} from './curve-optimizer.js';
 const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
 let diagnosticComplete=true,markersVisible=true,pointsVisible=true,autoPreview=null,autoIndex=0,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null;
@@ -235,7 +235,7 @@ $('auto-next').onclick=()=>{if(autoPreview){autoIndex=(autoIndex+1)%Math.max(1,a
 function previewCurveOptimization(){
   if(busy||currentComparison())return;
   const tolerance=Number($('optimization-tolerance').value);
-  const scope=doc.paths.map((p,i)=>i).filter(i=>doc.paths[i].kind!=='image'&&(!$('selection-only').checked||!selected.size||selected.has(i)));
+  const scope=selectedVectorIndices(doc,selected,$('selection-only').checked);
   if(!scope.length){status('Выберите векторные кривые для оптимизации.');return;}
   try{
     const result=optimizePaths(doc,scope,tolerance),st=result.stats;
