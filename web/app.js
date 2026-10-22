@@ -102,6 +102,15 @@ function render(){
   });
   // White-backed hollow rings always overlie the geometric stroke, at a
   // fixed screen-pixel radius. No diagnostic markup enters exported EPS.
+  if(curvePreview&&compareStage==='after'){
+    // Show the removed/relocated original curve overlay separately from the
+    // optimized Bezier, so real changes can be inspected at any zoom.
+    const ghost=el('g',{class:'optimized-before-ghost','pointer-events':'none'},$('geometry'));
+    for(const i of curvePreview.scope||[]){
+      const path=curvePreview.source.paths[i];
+      if(path?.kind!=='image'&&path)el('path',{d:pathData(path),class:'optimized-before-path'},ghost);
+    }
+  }
   if(pointsVisible){
     const healthy=visibleHealthyAnchors(visibleDoc,visibleIssues,Number($('tolerance').value));
     if(healthy.length)el('path',{d:circlePath(healthy,radius),class:'healthy-anchors'},$('nodes'));
@@ -241,9 +250,9 @@ function previewCurveOptimization(){
     record('curve-optimize-measure',{tolerance,scope,stats:st});
     const summary='Сегментов: '+st.original+' → '+st.result+' (−'+st.removed+').'+
       '\nИзмеренное отклонение: до '+st.maxError.toFixed(5)+' мм, допуск '+tolerance+' мм.';
-    $('optimization-result').textContent=st.removed?summary+'\nСравните ДО/ПОСЛЕ в центральном окне, затем примените.':summary+'\nБезопасных сокращений при этом допуске нет. Увеличьте допуск для более сильной оптимизации.';
+    $('optimization-result').textContent=st.removed?summary+'\nПОСЛЕ: зелёные кривые, пунктиром — прежние; точки показывают реальное сокращение.':summary+'\nБезопасных сокращений не найдено. Увеличьте допуск или степень оптимизации.';
     if(!st.removed){curvePreview=null;appliedComparison=null;render();status('Не удалось сократить число узлов в заданном допуске.');return;}
-    curvePreview={source:clone(doc),result:result.document,stats:st,afterDiagnosed:false,
+    curvePreview={source:clone(doc),result:result.document,scope,stats:st,afterDiagnosed:false,
       comparisonData:{beforeDoc:clone(doc),afterDoc:result.document,beforeIssues:clone(issues),afterIssues:[]}};
     compareStage='after';render();
     // Diagnose the candidate, preserving a sampled-contour-to-object map.
@@ -405,7 +414,7 @@ $('new').onclick=()=>{activeHistoryId=null;checkpoint();doc={format:'relief-forg
 for(const key of ['width','height'])$(key).onchange=()=>{const v=Number($(key).value);if(v>0&&v<1e6){checkpoint();doc[key]=v;changed('resize-sheet');fit();}else render();};
 $('save').onclick=()=>{record('save-project');download('relief-forge.rf.json',JSON.stringify({...doc,journal,history:{past,future}},null,2));};
 function stopEps(){epsWorker?.terminate();epsWorker=null;clearTimeout(epsTimer);}
-function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});}
+function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();scheduleHealing();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта EPS…';record('eps-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
   epsWorker=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.11',import.meta.url));
