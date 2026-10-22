@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import {createRequire} from 'node:module';
 import * as mupdf from 'mupdf';
 import {DOMParser} from '@xmldom/xmldom';
-import {epsProgram,epsMetadata,interpretEps,recoverOutlineOnlyEps} from '../web/eps-pipeline.js';
+import {epsProgram,epsMetadata,interpretEps,recoverOutlineOnlyEps,ghostscriptArgs,pdfToSvg} from '../web/eps-pipeline.js';
 import {recoverUnpaintedCorelOutlines} from '../web/corel-outline.js';
 import {exportEps} from '../web/eps-export.js';
 import {importRichSvg,exportDocument,sampledContours,worldData,safeFragment} from '../web/rich-svg.js';
@@ -182,4 +182,14 @@ test('EPS export preserves quadratic curvature using cubic conversion, never lin
 test('EPS exporter rejects raster and clipped documents explicitly',()=>{
   assert.throws(()=>exportEps({width:10,height:10,paths:[{kind:'image',points:[[1,1]]}]}),/растровые/i);
   assert.throws(()=>exportEps({width:10,height:10,paths:[{artwork:'<path clip-path="url(#a)"/>',commands:[['M',1,1]]}]}),/обтравка/i);
+});
+
+test('real Ghostscript WASM confirms legacy ArtCAM EPS has zero printable artwork',async()=>{
+  const fixture=new Uint8Array(readFileSync(new URL('tests/fixtures/eps/corel-unpainted.eps',root)));
+  const doc=importRichSvg(recoverOutlineOnlyEps(fixture).svg,{unitsPerInch:72,Parser:DOMParser});
+  const bytes=new TextEncoder().encode(exportEps(doc));
+  const result=await runGhostscript(bytes,ghostscriptArgs(true));
+  const rendered=pdfToSvg(result.pdf,mupdf);
+  assert.ok(!rendered||!/<(?:path|image|use)\b/.test(rendered.svg),
+    'A PostScript interpreter must not print any of these curves');
 });
