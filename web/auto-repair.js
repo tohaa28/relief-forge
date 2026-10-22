@@ -42,5 +42,5 @@ export function proposedIssueLocations(beforeIssues,afterIssues,tolerance=0.01){
     const unresolved=afterIssues.some(x=>x.kind===issue.kind&&Math.hypot(x.point[0]-issue.point[0],x.point[1]-issue.point[1])<=Math.max(tolerance,1e-5));
     matched.push({...issue,resolved:!unresolved});
   }
-  return matched;
+  return matched.sort((a,b)=>Number(b.resolved)-Number(a.resolved));
 }
