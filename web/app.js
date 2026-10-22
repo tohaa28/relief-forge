@@ -1,15 +1,17 @@
-import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.18';
+import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.19';
 import {issueViewBox} from './issue-focus.js';
 import {visibleHealthyAnchors,circlePath} from './vector-points.js';
-import {screenUnitsPerPixel,renderIssueMarkers} from './issue-markers.js?v=0.2.0-alpha.18';
-import {exportEps} from './eps-export.js?v=0.2.0-alpha.18';
+import {screenUnitsPerPixel,renderIssueMarkers} from './issue-markers.js?v=0.2.0-alpha.19';
+import {exportEps} from './eps-export.js?v=0.2.0-alpha.19';
 import {packedInput} from './auto-repair.js';
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
-import {selectedVectorIndices,smoothAndOptimizePaths} from './curve-optimizer.js?v=0.2.0-alpha.18';
-import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.18';
-import {curveNodes,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode} from './curve-edit.js?v=0.2.0-alpha.18';
-let nodeTool='move',activeCurveNode=null;
+import {selectedVectorIndices,smoothAndOptimizePaths} from './curve-optimizer.js?v=0.2.0-alpha.19';
+import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.19';
+import {curveNodes,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.19';
+let nodeTool='move',activeCurveNode=null,contextHit=null;
+const nodeCursor=symbol=>{const svg='<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26"><circle cx="13" cy="13" r="11" fill="white" stroke="#173946" stroke-width="1.7"/><text x="13" y="19" text-anchor="middle" fill="#007e79" font-family="Arial" font-weight="bold" font-size="19">'+symbol+'</text></svg>';return 'url("data:image/svg+xml,'+encodeURIComponent(svg)+'") 13 13, crosshair';};
+const plusCursor=nodeCursor('+'),minusCursor=nodeCursor('−');
 const curveEditing=()=>mode==='nodes';
 const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
@@ -72,7 +74,13 @@ function render(){
   if(curveEditing())$('optimization-result').textContent='Автоматический предпросмотр появится после нажатия «Готово». Ручные изменения уже сохраняются в документе.';
   $('curve-edit').classList.toggle('active',curveEditing());
   $('curve-edit').setAttribute('aria-pressed',String(curveEditing()));
-  for(const tool of ['move','add','remove'])$('node-'+tool).classList.toggle('active',nodeTool===tool);
+  for(const tool of ['move','add','remove','handles'])$('node-'+tool).classList.toggle('active',nodeTool===tool);
+  $('canvas').dataset.nodeTool=curveEditing()?nodeTool:'';
+  $('canvas').style.cursor=curveEditing()?(nodeTool==='add'?plusCursor:nodeTool==='remove'?minusCursor:nodeTool==='handles'?'crosshair':''):'';
+  const chosenNode=curveEditing()&&activeCurveNode&&doc.paths[activeCurveNode.path];
+  for(const name of ['cusp','smooth','symmetric','line','curve','break','close','reverse'])$('node-'+name).disabled=busy||!chosenNode;
+  for(const name of ['cusp','smooth','symmetric'])$('node-'+name).classList.toggle('active',!!chosenNode&&curveNodeType(chosenNode,activeCurveNode.index)===name);
+  $('node-hint').textContent=chosenNode?'Выбран узел: '+({cusp:'Перегиб',smooth:'Сглаженное',symmetric:'Симметрическая'}[curveNodeType(chosenNode,activeCurveNode.index)])+' · перетаскивайте ручки.':'Выберите узел; «Ручки углов» — управление касательными. Правый клик — контекстное меню.';
   const comparison=currentComparison();
   const frame=activeComparisonFrame(comparison,compareStage,doc,issues);
   const visibleDoc=frame.document,visibleIssues=frame.issues;
@@ -113,11 +121,24 @@ function render(){
       if(sel)el('path',{...attrs,class:'path selected rich-selection'},$('geometry'));
     }else el('path',{...attrs,class:'path '+(sel?'selected':'')},$('geometry'));
     if(!reviewing)el('path',{...attrs,class:'hit'},$('geometry'));
-    if(sel&&curveEditing()&&p.kind!=='image')curveNodes(p).forEach(node=>{
-      const [cx,cy]=node.point;
-      el('circle',{cx,cy,r:markerUnit*4.5,class:'curve-node'+(activeCurveNode?.path===i&&activeCurveNode.index===node.index?' chosen':''),
-        'data-path':i,'data-curve-node':node.index},$('geometry'));
-    });
+    if(sel&&curveEditing()&&p.kind!=='image'){
+      if(activeCurveNode?.path===i){
+        const info=curveHandles(p,activeCurveNode.index);
+        for(const handle of info.handles){
+          const [hx,hy]=handle.point,[ax,ay]=info.anchor;
+          el('path',{d:'M'+ax+' '+ay+'L'+hx+' '+hy,class:'curve-tangent-guide'},$('geometry'));
+          el('circle',{cx:hx,cy:hy,r:markerUnit*4.5,class:'curve-control-handle',
+            'data-path':i,'data-curve-node':activeCurveNode.index,'data-curve-handle':handle.side},$('geometry'));
+        }
+      }
+      curveNodes(p).forEach(node=>{
+        const [cx,cy]=node.point,kind=curveNodeType(p,node.index),chosen=activeCurveNode?.path===i&&activeCurveNode.index===node.index;
+        const common={'data-path':i,'data-curve-node':node.index,class:'curve-node'+(chosen?' chosen':'')};
+        if(kind==='smooth')el('circle',{...common,cx,cy,r:markerUnit*4.5},$('geometry'));
+        else if(kind==='symmetric')el('polygon',{...common,points:[[cx,cy-markerUnit*5.2],[cx+markerUnit*5.2,cy],[cx,cy+markerUnit*5.2],[cx-markerUnit*5.2,cy]].map(a=>a.join(',')).join(' ')},$('geometry'));
+        else el('rect',{...common,x:cx-markerUnit*4.2,y:cy-markerUnit*4.2,width:markerUnit*8.4,height:markerUnit*8.4},$('geometry'));
+      });
+    }
     else if(sel&&!p.artwork)p.points.forEach(([cx,cy],node)=>el('circle',{cx,cy,r:radius,class:'node','data-path':i,'data-node':node},$('geometry')));
     const b=document.createElement('button');
     b.textContent=(i+1)+'. '+(p.kind==='image'?'Изображение':p.artwork?'EPS / SVG':p.closed?'Замкнут':'Открыт')+' · '+p.points.length+' узлов';
@@ -427,7 +448,7 @@ function stopEps(){epsWorker?.terminate();epsWorker=null;clearTimeout(epsTimer);
 function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта EPS…';record('eps-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsWorker=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.18',import.meta.url));
+  epsWorker=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.19',import.meta.url));
   const fail=message=>{stopEps();lock(false);status(message);$('import-report').textContent='Не удалось открыть EPS: '+message;record('eps-error',{name,message});updateFileHistory({status:'Ошибка открытия: '+String(message).slice(0,180)});};
   epsTimer=setTimeout(()=>fail('EPS превысил лимит 120 секунд. Импорт отменён, документ сохранён.'),120000);
   epsWorker.onerror=e=>fail('Ошибка EPS: '+e.message);
@@ -467,4 +488,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();
 });
-record('session-start',{version:'0.2.0-alpha.18'});renderFileHistory();spawnWorker();fit();
+record('session-start',{version:'0.2.0-alpha.19'});renderFileHistory();spawnWorker();fit();
