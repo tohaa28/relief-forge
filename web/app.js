@@ -32,32 +32,75 @@ function el(tag,attrs,parent){const e=document.createElementNS(ns,tag);for(const
 const pathData=worldData;
 function appendMarkup(parent,text){const parsed=new DOMParser().parseFromString(`<svg xmlns="${ns}" xmlns:xlink="http://www.w3.org/1999/xlink">${text}</svg>`,'image/svg+xml');for(const child of [...parsed.documentElement.children])parent.append(document.importNode(child,true));}
 function render(){
-  $('width').value=doc.width;$('height').value=doc.height;$('count').textContent=doc.paths.length;
-  for(const id of ['sheet','grid-bg']){ $(id).setAttribute('width',doc.width);$(id).setAttribute('height',doc.height); }
+  const comparison=currentComparison();
+  const frame=activeComparisonFrame(comparison,compareStage,doc,issues);
+  const visibleDoc=frame.document,visibleIssues=frame.issues;
+  displayedIssues=visibleIssues;
+  const reviewing=frame.readOnly;
+  $('canvas').classList.toggle('is-comparing',reviewing);
+  $('compare-before').disabled=busy||!comparison;
+  $('compare-after').disabled=busy||!comparison;
+  $('compare-before').setAttribute('aria-pressed',String(!comparison||compareStage==='before'));
+  $('compare-after').setAttribute('aria-pressed',String(Boolean(comparison&&compareStage==='after')));
+  $('compare-status').textContent=comparison?
+    (compareStage==='after'?'ПОСЛЕ':'ДО')+' · '+visibleDoc.paths.length+' контуров · '+visibleIssues.length+' замечаний'+(autoPreview?' · предпросмотр':' · применено'):
+    'Сравнение после автоисправления';
+  $('width').value=doc.width;$('height').value=doc.height;$('count').textContent=visibleDoc.paths.length;
+  for(const id of ['sheet','grid-bg']){$(id).setAttribute('width',visibleDoc.width);$(id).setAttribute('height',visibleDoc.height);}
   $('geometry').replaceChildren();$('nodes').replaceChildren();$('markers').replaceChildren();$('paths').replaceChildren();
-  if(doc.svgDefs)appendMarkup($('geometry'),doc.svgDefs);
-  $('import-report').textContent=doc.epsImport?`EPS · ${doc.width.toFixed(3)} × ${doc.height.toFixed(3)} мм · ${doc.paths.filter(p=>p.kind!=='image').length} векторов · ${doc.paths.filter(p=>p.kind==='image').length} изображений. ${doc.epsImport.warnings.length?'Предупреждения: '+doc.epsImport.warnings.join(' · '):'Импорт завершён.'}`:'';
-  const radius=$('canvas').viewBox.baseVal.width/450;
-  doc.paths.forEach((p,i)=>{
-    const attrs={d:pathData(p),'data-path':i};if(p.artwork){const painted=el('g',{'data-path':i},$('geometry'));appendMarkup(painted,artworkMarkup(p));if(selected.has(i))el('path',{...attrs,class:'path selected rich-selection'},$('geometry'));}else el('path',{...attrs,class:`path ${selected.has(i)?'selected':''}`},$('geometry'));el('path',{...attrs,class:'hit'},$('geometry'));
-    if(selected.has(i)&&!p.artwork)p.points.forEach(([cx,cy],node)=>el('circle',{cx,cy,r:radius,class:'node','data-path':i,'data-node':node},$('geometry')));
-    const b=document.createElement('button');b.textContent=`${i+1}. ${p.kind==='image'?'Изображение':p.artwork?'EPS / SVG':p.closed?'Замкнут':'Открыт'} · ${p.points.length} узлов`;b.classList.toggle('selected',selected.has(i));b.onclick=e=>{if(!e.shiftKey)selected.clear();selected.has(i)?selected.delete(i):selected.add(i);render();};$('paths').append(b);
+  if(visibleDoc.svgDefs)appendMarkup($('geometry'),visibleDoc.svgDefs);
+  $('import-report').textContent=doc.epsImport?'EPS · '+doc.width.toFixed(3)+' × '+doc.height.toFixed(3)+' мм · '+doc.paths.filter(p=>p.kind!=='image').length+' векторов · '+doc.paths.filter(p=>p.kind==='image').length+' изображений. '+(doc.epsImport.warnings.length?'Предупреждения: '+doc.epsImport.warnings.join(' · '):'Импорт завершён.'):'';
+  const view=$('canvas').viewBox.baseVal;
+  const radius=Math.max(.00001,view.width/Math.max($('canvas').clientWidth||450,100)*3.1);
+  visibleDoc.paths.forEach((p,i)=>{
+    const sel=!reviewing&&selected.has(i);
+    const attrs={d:pathData(p),'data-path':i};
+    if(p.artwork){
+      const painted=el('g',{'data-path':i,class:visibleDoc.epsImport?.outlineRecovery?'outline-artwork':'svg-artwork'},$('geometry'));
+      appendMarkup(painted,artworkMarkup(p));
+      if(sel)el('path',{...attrs,class:'path selected rich-selection'},$('geometry'));
+    }else el('path',{...attrs,class:'path '+(sel?'selected':'')},$('geometry'));
+    if(!reviewing)el('path',{...attrs,class:'hit'},$('geometry'));
+    if(sel&&!p.artwork)p.points.forEach(([cx,cy],node)=>el('circle',{cx,cy,r:radius,class:'node','data-path':i,'data-node':node},$('geometry')));
+    const b=document.createElement('button');
+    b.textContent=(i+1)+'. '+(p.kind==='image'?'Изображение':p.artwork?'EPS / SVG':p.closed?'Замкнут':'Открыт')+' · '+p.points.length+' узлов';
+    b.classList.toggle('selected',sel);b.disabled=reviewing;
+    b.onclick=e=>{if(!e.shiftKey)selected.clear();selected.has(i)?selected.delete(i):selected.add(i);render();};
+    $('paths').append(b);
   });
-  if(pointsVisible){const healthy=visibleHealthyAnchors(doc,issues,Number($('tolerance').value));if(healthy.length)el('path',{d:circlePath(healthy,Math.max(radius*.55,.00001)),class:'healthy-anchors'},$('nodes'));}
-  if(markersVisible)issues.slice(0,1000).forEach((x,i)=>el('circle',{cx:x.point[0],cy:x.point[1],r:radius*1.6,class:'problem','data-issue':i,style:'fill:'+(issueColors[x.kind]||'#64748b')},$('markers')));
-  $('draft').replaceChildren();if(draft.length)el('path',{d:pathData({points:draft}),class:'path selected'},$('draft'));
-  $('issues').replaceChildren();const counts={};issues.forEach(x=>counts[x.kind]=(counts[x.kind]||0)+1);
-  if(!diagnosticComplete)$('summary').textContent='Показаны первые 10000 замечаний. Проверка неполная: уменьшите выборку.';
-  else if(issues.length)$('summary').textContent=Object.entries(counts).map(([k,n])=>`${names[k]}: ${n}`).join(' · ');
-  else $('summary').textContent=metrics.length?'Проверка завершена: замечаний не найдено.':'Откройте SVG или нарисуйте векторы.';
-  issues.slice(0,100).forEach(x=>{const b=document.createElement('button');b.className='issue';b.textContent=`${names[x.kind]} · ${x.path+1}${x.other!==x.path?' ↔ '+(x.other+1):''}`;b.title=`Перейти к X ${x.point[0].toFixed(3)} · Y ${x.point[1].toFixed(3)} мм`;b.onclick=()=>focusIssue(x);$('issues').append(b);});
+  // White-backed hollow rings always overlie the geometric stroke, at a
+  // fixed screen-pixel radius. No diagnostic markup enters exported EPS.
+  if(pointsVisible){
+    const healthy=visibleHealthyAnchors(visibleDoc,visibleIssues,Number($('tolerance').value));
+    if(healthy.length)el('path',{d:circlePath(healthy,radius),class:'healthy-anchors'},$('nodes'));
+  }
+  if(markersVisible)visibleIssues.slice(0,1000).forEach((x,i)=>el('circle',{
+    cx:x.point[0],cy:x.point[1],r:radius*1.35,class:'problem','data-issue':i,
+    style:'fill:'+(issueColors[x.kind]||'#64748b')
+  },$('markers')));
+  $('draft').replaceChildren();
+  if(!reviewing&&draft.length)el('path',{d:pathData({points:draft}),class:'path selected'},$('draft'));
+  $('issues').replaceChildren();
+  const counts={};visibleIssues.forEach(x=>counts[x.kind]=(counts[x.kind]||0)+1);
+  if(!diagnosticComplete&&!comparison)$('summary').textContent='Проверка неполная: достигнут лимит замечаний.';
+  else if(visibleIssues.length)$('summary').textContent='Замечаний: '+visibleIssues.length+' · '+Object.entries(counts).slice(0,2).map(([k,n])=>(names[k]||k)+': '+n).join(' · ');
+  else $('summary').textContent=comparison?'Для этой стадии замечаний не найдено.':metrics.length?'Проверка завершена: замечаний не найдено.':'Откройте SVG или нарисуйте векторы.';
+  $('summary').title=Object.entries(counts).map(([k,n])=>(names[k]||k)+': '+n).join(' · ');
+  $('issue-count').textContent=visibleIssues.length;
+  visibleIssues.slice(0,100).forEach(x=>{
+    const b=document.createElement('button');b.className='issue';
+    b.textContent=(names[x.kind]||x.kind)+' · '+(x.path+1)+(x.other!==x.path?' ↔ '+(x.other+1):'');
+    b.title='Перейти к X '+x.point[0].toFixed(3)+' · Y '+x.point[1].toFixed(3)+' мм';
+    b.onclick=()=>focusIssue(x);$('issues').append(b);
+  });
   $('toggle-points').textContent=pointsVisible?'Скрыть здоровые точки':'Показать здоровые точки';
   $('toggle-markers').textContent=markersVisible?'Скрыть маркеры':'Показать маркеры';
   $('auto-heal').disabled=busy||!ready||!doc.paths.some(p=>p.kind!=='image');
   renderAutoPreview();
-  $('toggle-markers').disabled=busy||!issues.length;
+  $('toggle-markers').disabled=busy||!visibleIssues.length;
   $('undo').disabled=busy||!past.length;$('redo').disabled=busy||!future.length;
-  $('diagnose').disabled=busy||!ready;document.querySelectorAll('[data-action]').forEach(b=>b.disabled=busy||!ready);
+  $('diagnose').disabled=busy||!ready;
+  document.querySelectorAll('[data-action]').forEach(b=>b.disabled=busy||!ready);
 }
 function lock(value,{coverCanvas=true}={}){busy=value;if(value){$('busy-label').textContent='Расчёт в Rust…';$('import-progress').value=0;}$('busy').hidden=!value;$('busy').classList.toggle('compact',value&&!coverCanvas);document.querySelectorAll('button,input').forEach(e=>{if(e.id!=='cancel'&&e.id!=='log')e.disabled=value;});if(!value)render();}
 
