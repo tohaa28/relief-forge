@@ -49,7 +49,7 @@ function render(){
   $('undo').disabled=busy||!past.length;$('redo').disabled=busy||!future.length;
   $('diagnose').disabled=busy||!ready;document.querySelectorAll('[data-action]').forEach(b=>b.disabled=busy||!ready);
 }
-function lock(value){busy=value;if(value){$('busy-label').textContent='Расчёт в Rust…';$('import-progress').value=0;}$('busy').hidden=!value;document.querySelectorAll('button,input').forEach(e=>{if(e.id!=='cancel'&&e.id!=='log')e.disabled=value;});if(!value)render();}
+function lock(value,{coverCanvas=true}={}){busy=value;if(value){$('busy-label').textContent='Расчёт в Rust…';$('import-progress').value=0;}$('busy').hidden=!value;$('busy').classList.toggle('compact',value&&!coverCanvas);document.querySelectorAll('button,input').forEach(e=>{if(e.id!=='cancel'&&e.id!=='log')e.disabled=value;});if(!value)render();}
 function spawnWorker(){
   worker=new Worker(new URL('worker.js',import.meta.url),{type:'module'});
   worker.onmessage=({data})=>{
@@ -83,7 +83,7 @@ function calculate(action){
     for(const i of selectedScope)for(const p of sampledContours(doc.paths[i],tol)){scope.push(i);paths.push(p);}
     if(paths.reduce((n,p)=>n+p.points.length,0)>2000)throw Error('Для диагностики доступно 2000 узлов за раз. Выделите меньше объектов или увеличьте допуск. Оригиналы не изменены.');
     const input=[tol,action,parameter,paths.length];for(const p of paths)input.push(+p.closed,p.points.length,...p.points.flat());
-    const id=++sequence;pending={id,action,scope,before:clone(doc)};record('engine-start',{action,scope,tolerance:tol,curveSampling:!action});lock(true);worker.postMessage({id,input});
+    const id=++sequence;pending={id,action,scope,before:clone(doc)};record('engine-start',{action,scope,tolerance:tol,curveSampling:!action});lock(true,{coverCanvas:false});worker.postMessage({id,input});
   }catch(e){status(e.message);}
 }
 function at(e){const p=new DOMPoint(e.clientX,e.clientY).matrixTransform($('canvas').getScreenCTM().inverse());return [p.x,p.y];}
@@ -147,7 +147,7 @@ function openValue(value,name){const next=validate(value),old=clone(doc);const r
 function importEps(bytes,name){
   if(busy)return;lock(true);$('busy-label').textContent='Подготовка импорта EPS…';record('eps-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
   epsWorker=new Worker(new URL('eps-worker.js',import.meta.url));
-  const fail=message=>{stopEps();lock(false);status(message);record('eps-error',{name,message});};
+  const fail=message=>{stopEps();lock(false);status(message);$('import-report').textContent='Не удалось открыть EPS: '+message;record('eps-error',{name,message});};
   epsTimer=setTimeout(()=>fail('EPS превысил лимит 120 секунд. Импорт отменён, документ сохранён.'),120000);
   epsWorker.onerror=e=>fail('Ошибка EPS: '+e.message);
   epsWorker.onmessage=({data})=>{
