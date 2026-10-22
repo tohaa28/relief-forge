@@ -13,3 +13,27 @@ footer #status{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-wid
 #busy.compact #import-progress{display:none}
 #busy.compact p{margin:0;font-size:11px}
 #busy.compact #cancel{margin-top:5px}
+
+/* Real Bezier anchor view: quiet open rings. Issue glyphs always appear above. */
+.healthy-anchors{fill:none;stroke:#53768a;stroke-width:1;vector-effect:non-scaling-stroke;opacity:.73;pointer-events:none}
+.problem{stroke:#fff;stroke-width:1.3;vector-effect:non-scaling-stroke;cursor:pointer}
+.problem.external{stroke:#fff}
+#toggle-points,#auto-heal{width:100%;margin:5px 0;font-size:11px}
+.issue-legend{display:grid;grid-template-columns:1fr 1fr;gap:5px 7px;margin:8px 0 12px;font-size:10px;color:#536173}
+.issue-legend span{display:flex;align-items:center;gap:5px}
+.issue-legend span::before{content:"";width:9px;height:9px;flex:none;border-radius:50%;background:var(--issue-color)}
+.issue-legend .l-open{--issue-color:#1976d2}.issue-legend .l-short{--issue-color:#d73b4d}
+.issue-legend .l-coincident{--issue-color:#dd8b16}.issue-legend .l-duplicate{--issue-color:#8053cb}
+.issue-legend .l-self{--issue-color:#cb2679}.issue-legend .l-cross{--issue-color:#cb5924}
+#auto-preview{margin:10px 0;padding:10px 7px;border:1px solid #bfd4df;background:#f3f9fc;border-radius:7px}
+#auto-preview[hidden]{display:none}
+#auto-summary{margin:3px 0 10px;font-size:11px;line-height:1.5;white-space:pre-wrap}
+.auto-panes{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.auto-panes figure{margin:0;min-width:0;border:1px solid #d7e0e9;background:#fff;border-radius:5px;overflow:hidden}
+.auto-panes figcaption{padding:5px;text-align:center;font-size:11px;font-weight:600}
+.auto-panes svg{display:block;width:100%;height:120px;background:#fff}
+.auto-panes path{stroke-width:1.7;vector-effect:non-scaling-stroke;fill:none}
+#auto-before path{stroke:#e06f58}#auto-after path{stroke:#138e7a}
+.auto-navigation,.auto-controls{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-top:8px}
+.auto-navigation #auto-index{flex:1;text-align:center;font-size:10px;overflow:hidden;text-overflow:ellipsis}
+.auto-navigation button{padding:4px 10px}.auto-controls button{font-size:10px;flex:1;padding:6px 5px}

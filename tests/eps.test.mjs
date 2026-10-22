@@ -7,6 +7,7 @@ import * as mupdf from 'mupdf';
 import {DOMParser} from '@xmldom/xmldom';
 import {epsProgram,epsMetadata,interpretEps,recoverOutlineOnlyEps} from '../web/eps-pipeline.js';
 import {recoverUnpaintedCorelOutlines} from '../web/corel-outline.js';
+import {exportEps} from '../web/eps-export.js';
 import {importRichSvg,exportDocument,sampledContours,worldData,safeFragment} from '../web/rich-svg.js';
 const root=new URL('../',import.meta.url),fixture=new Uint8Array(readFileSync(new URL('tests/fixtures/eps/curves-text-clip.eps',root)));
 const context=vm.createContext({process,require:createRequire(import.meta.url),console,Buffer,WebAssembly,TextDecoder,TextEncoder,URL,setTimeout,clearTimeout,__dirname:new URL('web/vendor/ghostscript/',root).pathname});
@@ -143,4 +144,35 @@ test('EPS metadata supports trailer BoundingBox and rejects nested/page override
   const content=['%!PS-Adobe-3.0 EPSF-3.0','%%BoundingBox: (atend)','%%Page: 1 1','%%BoundingBox: 0 0 595 841','%%PageTrailer','%%Trailer','%%BoundingBox: 592 407 707 431','%%EOF'].join('\n');
   const data=new TextEncoder().encode(content);
   assert.deepEqual(epsMetadata(data).boundingBox,[592,407,707,431]);
+});
+
+
+test('real EPS round trip preserves Bezier curves and exported painted outlines',async()=>{
+  const source=new Uint8Array(readFileSync(new URL('tests/fixtures/eps/corel-unpainted.eps',root)));
+  const raw=recoverOutlineOnlyEps(source);
+  const doc=importRichSvg(raw.svg,{unitsPerInch:72,Parser:DOMParser});
+  const snapshot=JSON.stringify(doc),eps=exportEps(doc);
+  assert.match(eps,/^%!PS-Adobe-3\.0 EPSF-3\.0/);
+  assert.match(eps,/curveto/);
+  assert.match(eps,/closepath/);
+  assert.ok((eps.match(/\bstroke\b/g)||[]).length>=2);
+  assert.doesNotMatch(eps,/(?:diagnostic|problem|marker|circle node)/i);
+  assert.ok(Math.abs(epsMetadata(new TextEncoder().encode(eps)).widthPt-100)<1e-5);
+  const rendered=await convert(new TextEncoder().encode(eps));
+  assert.ok(Math.abs(rendered.widthPt-100)<0.01,'EPS physical size must round-trip in points');
+  const imported=importRichSvg(rendered.svg,{unitsPerInch:72,Parser:DOMParser});
+  assert.ok(imported.paths.some(p=>p.commands.some(s=>s[0]==='C')));
+  assert.equal(JSON.stringify(doc),snapshot,'EPS export must not mutate source curves');
+});
+test('EPS export preserves quadratic curvature using cubic conversion, never lines',()=>{
+  const doc={width:100,height:50,paths:[{kind:'vector',artwork:'<path/>',offset:[0,0],
+    commands:[['M',10,10],['Q',15,0,20,10],['Z']],points:[[10,10],[20,10]],closed:true}]};
+  const ps=exportEps(doc);
+  assert.match(ps,/curveto/);
+  assert.equal((ps.match(/\blineto\b/g)||[]).length,0);
+  assert.equal((ps.match(/\bclosepath\b/g)||[]).length,1);
+});
+test('EPS exporter rejects raster and clipped documents explicitly',()=>{
+  assert.throws(()=>exportEps({width:10,height:10,paths:[{kind:'image',points:[[1,1]]}]}),/растровые/i);
+  assert.throws(()=>exportEps({width:10,height:10,paths:[{artwork:'<path clip-path="url(#a)"/>',commands:[['M',1,1]]}]}),/обтравка/i);
 });

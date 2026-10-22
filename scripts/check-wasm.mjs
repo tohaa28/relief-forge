@@ -12,4 +12,19 @@ const split=run([.01,7,0,2,0,2,0,0,10,10,0,2,0,10,10,0]);assert.equal(split.path
 const loops=run([.01,8,1,1,1,4,0,0,10,10,0,10,10,0]);assert.equal(loops.paths.length,2);
 const bad=run([NaN,0,0,0]);assert.equal(bad.code,1);assert(bad.error);
 for(let i=0;i<100;i++)assert.equal(run([.01,0,0,0]).code,0);
-console.log(`PASS: compiled WASM ABI, crossings, split, loops, validation, repeated ownership (${bytes.length} bytes).`);
+// Same deterministic four-stage auto-repair pipeline used by the browser UI.
+const initPaths=[
+ {closed:true,points:[[0,0],[10,0],[10,10],[0,10]]},
+ {closed:true,points:[[0,0],[10,0],[10,10],[0,10]]},
+ {closed:false,points:[[20,0],[20,10],[20.004,0]]},
+ {closed:false,points:[[30,0],[30.001,0],[40,0]]}
+];
+const pack=(paths,action)=>[.01,action,1,paths.length,...paths.flatMap(p=>[+p.closed,p.points.length,...p.points.flat()])];
+const before=run(pack(initPaths,0));assert.equal(before.code,0);
+let state=initPaths;
+for(const action of [2,1,3,4]){const changed=run(pack(state,action));assert.equal(changed.code,0);state=changed.paths;}
+const after=run(pack(state,0));assert.equal(after.code,0);
+assert(after.issues.length<before.issues.length,'Autofix should reduce issue count on known geometry');
+assert(state.some(p=>p.closed&&p.points.some(v=>v[0]>19)),'Near-closed path must become closed');
+assert.equal(state.filter(p=>p.points.length===4&&p.closed).length,1,'Duplicate closed path must be removed');
+console.log(`PASS: compiled WASM ABI, autoheal before/after, crossings, split, loops, validation, repeated ownership (${bytes.length} bytes).`);
