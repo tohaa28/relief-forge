@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import {createRequire} from 'node:module';
 import * as mupdf from 'mupdf';
 import {DOMParser} from '@xmldom/xmldom';
-import {epsProgram,epsMetadata,interpretEps} from '../web/eps-pipeline.js';
+import {epsProgram,epsMetadata,interpretEps,recoverOutlineOnlyEps} from '../web/eps-pipeline.js';
 import {recoverUnpaintedCorelOutlines} from '../web/corel-outline.js';
 import {importRichSvg,exportDocument,sampledContours,worldData,safeFragment} from '../web/rich-svg.js';
 const root=new URL('../',import.meta.url),fixture=new Uint8Array(readFileSync(new URL('tests/fixtures/eps/curves-text-clip.eps',root)));
@@ -92,4 +92,31 @@ test('Corel outline fallback is limited to certified, simple, unpainted single-p
   assert.equal(run(text.replace('30 20 L','30000000 20 L')),null);
   assert.equal(run(text.replace('%%PageTrailer','%%Page: 2 2\n%%PageTrailer')),null);
   assert.equal(run(text.replace('30 20 L','30 20 L\n10 10 10 10 10 10 C\nstroke')),null);
+});
+
+test('CorelDRAW path-only EPS is returned immediately without loading Ghostscript or MuPDF',async()=>{
+  const bytes=new Uint8Array(readFileSync(new URL('tests/fixtures/eps/corel-unpainted.eps',root)));
+  const original=Buffer.from(bytes);
+  let ghostscriptCalls=0;
+  const fallback=()=>{ghostscriptCalls++;throw Error('Heavy interpreter should NOT be launched');};
+  const fast=recoverOutlineOnlyEps(bytes);
+  assert.equal(fast.outlineRecovery.count,2);
+  assert.ok(fast.warnings[0].includes('только для просмотра'));
+  const result=await interpretEps(bytes,{runGhostscript:fallback,mupdf:null});
+  assert.equal(ghostscriptCalls,0);
+  assert.equal(result.svg,fast.svg);
+  assert.equal(result.metadata.widthPt,100);
+  assert.equal(result.metadata.heightPt,40);
+  assert.deepEqual(Buffer.from(bytes),original);
+  const doc=importRichSvg(result.svg,{unitsPerInch:72,Parser:DOMParser});
+  assert.equal(doc.paths.length,2);
+  assert.ok(doc.paths.some(p=>p.commands.some(c=>c[0]==='C')));
+});
+
+test('unrecognized/painted EPS cannot bypass normal Ghostscript importer',()=>{
+  const base=readFileSync(new URL('tests/fixtures/eps/corel-unpainted.eps',root),'utf8');
+  const encoded=t=>new TextEncoder().encode(t);
+  assert.equal(recoverOutlineOnlyEps(encoded(base.replace('CorelDRAW','Unknown'))),null);
+  assert.equal(recoverOutlineOnlyEps(encoded(base.replace('30 20 L','30 20 L\nstroke'))),null);
+  assert.equal(recoverOutlineOnlyEps(encoded(base.replace('N\n%%PageTrailer','fill\n%%PageTrailer'))),null);
 });
