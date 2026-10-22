@@ -1,5 +1,5 @@
-// Recover a narrowly defined CorelDRAW EPS export that contains only literal
-// path-building commands and a final N (newpath), with no paint operator.
+// Recover narrowly defined CorelDRAW and Relief Forge EPS outlines containing
+// literal path-building commands and a final N (newpath), with no paint operator.
 // Regular Ghostscript/MuPDF interpretation ALWAYS takes priority.
 // This is not a general-purpose PostScript parser.
 const NUM='[+-]?(?:\\d+\\.?\\d*|\\.\\d+)(?:[eE][+-]?\\d+)?';
@@ -10,7 +10,9 @@ const valid=values=>values.every(v=>Number.isFinite(v)&&Math.abs(v)<=1e7);
 
 export function recoverUnpaintedCorelOutlines(program,metadata){
   const source=new TextDecoder('latin1').decode(program);
-  if(!/^%%Creator:\s*CorelDRAW[^\r\n]*/mi.test(source)||!source.includes('/N/newpath ld'))return null;
+  const corel=/^%%Creator:\s*CorelDRAW[^\r\n]*/mi.test(source);
+  const own=/^%%Creator:\s*Relief Forge\s*$/mi.test(source)&&/^%%RF-OutlinePaths:\s*1\s*$/mi.test(source);
+  if((!corel&&!own)||!source.includes('/N/newpath ld'))return null;
   const pages=[...source.matchAll(/^%%Page:\s+/gm)];
   if(pages.length!==1)return null;
   const setup=source.indexOf('%%EndPageSetup',pages[0].index);
@@ -27,7 +29,10 @@ export function recoverUnpaintedCorelOutlines(program,metadata){
     const m=move.exec(token),l=line.exec(token),c=curve.exec(token);
     if(m){
       const xy=m.slice(1).map(Number);
-      if(!valid(xy)||current)return null;
+      if(!valid(xy))return null;
+      // EPS supports multiple open subpaths without painting; retain them
+      // independently instead of conflating or dropping their endpoints.
+      if(current)paths.push(current);
       current='M '+xy.join(' ');
     }else if(l||c){
       const values=(l||c).slice(1).map(Number);
@@ -51,5 +56,5 @@ export function recoverUnpaintedCorelOutlines(program,metadata){
   const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'pt" height="'+height+
     'pt" viewBox="0 0 '+width+' '+height+'"><g transform="translate('+
     (-x0)+' '+y1+') scale(1 -1)">'+svgPaths+'</g></svg>';
-  return {svg,count:paths.length,source:'coreldraw-unpainted-paths',previewStrokePt:0.25};
+  return {svg,count:paths.length,source:own?'relief-forge-outline-paths':'coreldraw-unpainted-paths',previewStrokePt:0.25};
 }
