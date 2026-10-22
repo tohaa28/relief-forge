@@ -211,4 +211,3 @@ pub unsafe extern "C" fn run(ptr:*mut f64,len:usize)->i32 {
 pub extern "C" fn result_ptr()->*const u8 {OUTPUT.with(|o|o.borrow().as_ptr())}
 #[no_mangle]
 pub extern "C" fn result_len()->usize {OUTPUT.with(|o|o.borrow().len())}
-

@@ -16,3 +16,4 @@
 {"action": "ci-yaml-parse", "status": "pass", "at": "2026-10-22T08:33:03.024471+00:00"}
 {"action": "REA-local-probe", "status": "blocked", "detail": "rea-agents offline invocation returned ENOTCACHED; no analysis performed.", "at": "2026-10-22T08:33:03.024475+00:00"}
 {"action": "release-limitations", "status": "recorded", "detail": "No Rust compilation, WASM binary, Windows runtime verification, browser visual QA or publication.", "at": "2026-10-22T08:33:03.024481+00:00"}
+{"at": "2026-10-22T08:33:30.940871+00:00", "action": "staged-whitespace-check", "status": "fixed", "detail": "Staged check identified trailing empty lines in three new files; removed them. Initial unstaged check did not cover untracked files."}
