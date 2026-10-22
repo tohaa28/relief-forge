@@ -151,3 +151,27 @@ main.left-collapsed{grid-template-columns:minmax(250px,1fr) 304px}
 .curve-node{fill:#fff;stroke:#007e79;stroke-width:1.8px;vector-effect:non-scaling-stroke;cursor:move;pointer-events:all}
 .curve-node.chosen{fill:#ffd45e;stroke:#8a6100}
 @media(max-width:740px){.curve-node-tools{flex-wrap:wrap}.curve-node-tools span{flex-basis:100%;order:1}.curve-editing main{height:auto}}
+
+
+/* alpha.19: Corel-style node editing. Cusp/smooth/symmetric markers are
+   square/circle/diamond; tangent handles remain screen-sized at any zoom. */
+.curve-node-tools{flex-wrap:wrap;gap:5px 9px;padding:6px 12px;min-height:46px}
+.curve-node-tools .node-buttons{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.curve-node-tools .node-buttons button{padding:5px 7px;white-space:nowrap;font-size:11px}
+.curve-node-tools .node-geometry{padding-left:7px;border-left:1px solid #c3d7d6}
+.curve-node-tools #node-hint{min-width:180px;font-size:10px}
+.curve-node-tools #node-done{margin-left:auto}
+.curve-editing main{height:calc(100vh - 248px)}
+.curve-node{stroke:#007e79;stroke-width:1.5px;vector-effect:non-scaling-stroke;cursor:move;pointer-events:all}
+.curve-node.chosen{fill:#f9d97c;stroke:#6a5118}
+.curve-tangent-guide{fill:none;stroke:#2589ca;stroke-width:1.3px;stroke-dasharray:3 3;vector-effect:non-scaling-stroke;pointer-events:none}
+.curve-control-handle{fill:#fff;stroke:#126cad;stroke-width:2;vector-effect:non-scaling-stroke;cursor:crosshair;pointer-events:all}
+.curve-control-handle:hover{fill:#cae8ff}
+#canvas[data-node-tool="add"] [data-path],#canvas[data-node-tool="remove"] [data-path]{cursor:inherit}
+.node-context{position:fixed;z-index:1000;width:218px;max-height:min(85vh,480px);overflow:auto;background:#fff;border:1px solid #b6c6d2;border-radius:5px;box-shadow:0 7px 25px #24334544;padding:5px}
+.node-context[hidden]{display:none}
+.node-context button{display:block;width:100%;border:none;text-align:left;border-radius:2px;padding:6px 9px;font-size:12px}
+.node-context button:hover:not(:disabled){background:#dbeefa}
+.node-context button:disabled{color:#9ca8b5}
+.node-context hr{border:0;border-top:1px solid #e6ebf0;margin:4px 1px}
+@media(max-width:740px){.curve-node-tools{gap:5px}.curve-node-tools #node-hint{flex-basis:100%;order:1}.curve-editing main{height:auto}}
