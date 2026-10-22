@@ -37,7 +37,17 @@ export function updateHistoryEntry(entries,id,patch){
   return entries.map(item=>item.id===id?{...item,...safe}:item);
 }
 export function formatHistoryStatus(row){
-  return String(row?.status||'Неизвестно');
+  if(!row)return 'Неизвестно';
+  let result=String(row.status||'Открыт');
+  if(row.diagnosis&&Number.isInteger(row.diagnosis.count)){
+    result=(row.diagnosis.complete===false?'Частичная проверка: ':'')+
+      (row.diagnosis.count===0?'Без замечаний':'Замечаний: '+row.diagnosis.count)+
+      (row.diagnosis.selected?' (выделенные)':'');
+  }
+  if(row.repair&&Number.isInteger(row.repair.before)&&Number.isInteger(row.repair.after))
+    result='Исправлено: '+row.repair.before+' → '+row.repair.after+' замечаний';
+  if(row.exportName)result+=' · EPS: '+basename(row.exportName);
+  return result;
 }
 export function formatHistoryDate(iso,locale='ru-RU'){
   const d=new Date(iso);
