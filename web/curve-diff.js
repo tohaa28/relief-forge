@@ -22,3 +22,23 @@ export function changedCurveIndices(before,after,indices){
     return JSON.stringify(oldGeom)!==JSON.stringify(newGeom);
   });
 }
+
+// Cubic control handles can change while every anchor remains identical.
+// Mark the affected Bézier end anchors in AFTER as smoothing evidence.
+export function changedBezierSites(before,after,indices,epsilon=1e-7){
+  const result=[];
+  for(const i of indices){
+    const original=before.paths[i],candidate=after.paths[i];
+    const a=original?.commands,b=candidate?.commands;
+    if(!a||!b||a.length!==b.length)continue; // Knot reduction is annotated separately.
+    const off=candidate.offset||[0,0];
+    for(let j=0;j<a.length;j++){
+      if(a[j][0]!=='C'||b[j][0]!=='C')continue;
+      const endpointA=a[j].slice(-2),endpointB=b[j].slice(-2);
+      if(Math.hypot(endpointA[0]-endpointB[0],endpointA[1]-endpointB[1])>epsilon)continue;
+      const altered=[1,2,3,4].some(k=>Math.abs(a[j][k]-b[j][k])>epsilon);
+      if(altered)result.push({path:i,point:[endpointB[0]+off[0],endpointB[1]+off[1]]});
+    }
+  }
+  return result;
+}
