@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 const base=new URL('../web/',import.meta.url);
 const html=readFileSync(new URL('index.html',base),'utf8');
 const css=readFileSync(new URL('style.css',base),'utf8');
-const mascot=readFileSync(new URL('doctor-mascot.svg',base),'utf8');
+const mascot=readFileSync(new URL('approved/mascot-approved.png',base));
 const sprite=readFileSync(new URL('doctor-icons.svg',base),'utf8');
 
 test('mascot occurs only in the workspace welcome state, never header/logo',()=>{
@@ -13,9 +13,9 @@ test('mascot occurs only in the workspace welcome state, never header/logo',()=>
   assert.ok(header.includes('class="brand-appmark"'));
   assert.ok(!header.includes('brand-mascot'));
   assert.ok(!header.includes('doctor-mascot.svg'),'mascot must not be in header');
-  assert.equal((html.match(/doctor-mascot\.svg/g)||[]).length,1);
+  assert.equal((html.match(/approved\/mascot-approved\.png/g)||[]).length,1);
   assert.match(welcome,/class="workspace-mascot"/);
-  assert.match(mascot,/<svg\b/);
+  assert.deepEqual([...mascot.subarray(0,8)],[137,80,78,71,13,10,26,10]);
   assert.match(css,/\.mascot-welcome\s*\{[^}]*top:50%;left:50%;transform:translate\(-50%,-50%\)/);
   assert.match(css,/\.mascot-welcome\[hidden\]\{display:none\}/);
 });
@@ -37,6 +37,6 @@ test('CSS does not flatten or modify workspace artwork geometry',()=>{
   assert.ok(html.includes('<svg id="canvas"'));
   assert.match(css,/#canvas\{display:block;height:100%;width:100%\}/);
   assert.match(css,/\.workspace\{position:relative/);
-  assert.match(css,/\.mascot-welcome \.workspace-mascot\{width:auto;/);
+  assert.match(css,/\.mascot-welcome \.workspace-mascot\{[^}]*object-fit:contain/);
   assert.doesNotMatch(css,/(?:filter|clip-path):[^;]*\.workspace-mascot/);
 });
