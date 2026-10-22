@@ -77,13 +77,18 @@ test('autoheal is only section heading and only Apply changes is actionable',()=
  assert.match(app,/\$\('auto-apply'\)\.onclick=applyCurveOptimization/);
  assert.doesNotMatch(app,/\$\('auto-heal'\)\.onclick=/);
  assert.match(app,/function scheduleHealing\(\)/);
+ assert.match(app,/recalcPending/);
+ assert.match(app,/\$\('auto-apply'\)\.disabled=busy\|\|!curvePreview/);
  assert.match(app,/previewCurveOptimization\(\)/);
 });
 test('after preview visibly overlays original and highlighted optimized Bézier curves',()=>{
  assert.match(app,/class:'optimized-before-ghost'/);
  assert.match(app,/class:'optimized-before-path'/);
- assert.match(app,/curvePreview\.scope\.includes\(i\)/);
+ assert.match(app,/optimizedView\.changedScope\.includes\(i\)/);
  assert.match(css,/#canvas\.show-optimized #geometry .optimized-before-path/);
  assert.match(css,/#canvas\.show-optimized #geometry g\.optimized-path path/);
  assert.match(app,/curvePreview=\{source:clone\(doc\),result:result\.document,scope,changedScope,removedAnchors,stats:st/);
+ assert.match(app,/\$\('geometry'\)\.prepend\(ghost\)/);
+ assert.match(app,/class:'optimized-removed-anchors'/);
+ assert.match(app,/appliedComparison=comparison;compareStage='after'/);
 });
