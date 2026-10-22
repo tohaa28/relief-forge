@@ -1,15 +1,27 @@
 import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js';
+import {issueViewBox} from './issue-focus.js';
 const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
-let diagnosticComplete=true;
+let diagnosticComplete=true,markersVisible=true;
 let doc={format:'relief-forge',version:1,width:300,height:200,paths:[]},selected=new Set(),issues=[],metrics=[],past=[],future=[],mode='select',draft=[],drag=null,pan=null,worker,ready=false,pending=null,sequence=0,busy=false;
 let epsWorker=null,epsTimer=null;let importFonts=[];
 const journal=[];const clone=v=>structuredClone(v);
 function record(action,detail={}){journal.push({at:new Date().toISOString(),action,detail});}
 function status(s){$('status').textContent=String(s).split('\n')[0];$('status').title=s;}
 function checkpoint(before=doc){past.push(clone(before));if(past.length>100)past.shift();future=[];}
-function changed(action){issues=[];metrics=[];diagnosticComplete=true;record(action,{paths:doc.paths.length,nodes:doc.paths.reduce((n,p)=>n+p.points.length,0)});render();}
+function changed(action){issues=[];metrics=[];diagnosticComplete=true;markersVisible=true;record(action,{paths:doc.paths.length,nodes:doc.paths.reduce((n,p)=>n+p.points.length,0)});render();}
 function fit(){const pad=Math.max(doc.width,doc.height)*.07;$('canvas').setAttribute('viewBox',`${-pad} ${-pad} ${doc.width+pad*2} ${doc.height+pad*2}`);render();}
+function focusIssue(issue){
+  const canvas=$('canvas'),view=canvas.viewBox.baseVal;
+  const rawTolerance=Number($('tolerance').value);
+  const tolerance=Number.isFinite(rawTolerance)&&rawTolerance>0?rawTolerance:0.01;
+  const next=issueViewBox({x:view.x,y:view.y,width:view.width,height:view.height},issue.point,doc,tolerance);
+  if(!next){status('Невозможно перейти к замечанию: неверные координаты.');return;}
+  selected=new Set([issue.path,issue.other].filter(i=>Number.isInteger(i)&&i>=0&&i<doc.paths.length));
+  canvas.setAttribute('viewBox',`${next.x} ${next.y} ${next.width} ${next.height}`);
+  record('focus-issue',{kind:issue.kind,path:issue.path,other:issue.other,point:issue.point});
+  render();
+}
 function el(tag,attrs,parent){const e=document.createElementNS(ns,tag);for(const [k,v]of Object.entries(attrs))e.setAttribute(k,v);parent.append(e);return e;}
 const pathData=worldData;
 function appendMarkup(parent,text){const parsed=new DOMParser().parseFromString(`<svg xmlns="${ns}" xmlns:xlink="http://www.w3.org/1999/xlink">${text}</svg>`,'image/svg+xml');for(const child of [...parsed.documentElement.children])parent.append(document.importNode(child,true));}
@@ -25,13 +37,15 @@ function render(){
     if(selected.has(i)&&!p.artwork)p.points.forEach(([cx,cy],node)=>el('circle',{cx,cy,r:radius,class:'node','data-path':i,'data-node':node},$('geometry')));
     const b=document.createElement('button');b.textContent=`${i+1}. ${p.kind==='image'?'Изображение':p.artwork?'EPS / SVG':p.closed?'Замкнут':'Открыт'} · ${p.points.length} узлов`;b.classList.toggle('selected',selected.has(i));b.onclick=e=>{if(!e.shiftKey)selected.clear();selected.has(i)?selected.delete(i):selected.add(i);render();};$('paths').append(b);
   });
-  issues.slice(0,1000).forEach(x=>el('circle',{cx:x.point[0],cy:x.point[1],r:radius*1.6,class:`problem ${x.path!==x.other?'external':''}`,'data-path':x.path},$('markers')));
+  if(markersVisible)issues.slice(0,1000).forEach((x,i)=>el('circle',{cx:x.point[0],cy:x.point[1],r:radius*1.6,class:`problem ${x.path!==x.other?'external':''}`,'data-issue':i},$('markers')));
   $('draft').replaceChildren();if(draft.length)el('path',{d:pathData({points:draft}),class:'path selected'},$('draft'));
   $('issues').replaceChildren();const counts={};issues.forEach(x=>counts[x.kind]=(counts[x.kind]||0)+1);
   if(!diagnosticComplete)$('summary').textContent='Показаны первые 10000 замечаний. Проверка неполная: уменьшите выборку.';
   else if(issues.length)$('summary').textContent=Object.entries(counts).map(([k,n])=>`${names[k]}: ${n}`).join(' · ');
   else $('summary').textContent=metrics.length?'Проверка завершена: замечаний не найдено.':'Откройте SVG или нарисуйте векторы.';
-  issues.slice(0,100).forEach(x=>{const b=document.createElement('button');b.className='issue';b.textContent=`${names[x.kind]} · ${x.path+1}${x.other!==x.path?' ↔ '+(x.other+1):''}`;b.onclick=()=>{selected=new Set([x.path,x.other]);render();};$('issues').append(b);});
+  issues.slice(0,100).forEach(x=>{const b=document.createElement('button');b.className='issue';b.textContent=`${names[x.kind]} · ${x.path+1}${x.other!==x.path?' ↔ '+(x.other+1):''}`;b.title=`Перейти к X ${x.point[0].toFixed(3)} · Y ${x.point[1].toFixed(3)} мм`;b.onclick=()=>focusIssue(x);$('issues').append(b);});
+  $('toggle-markers').textContent=markersVisible?'Скрыть маркеры':'Показать маркеры';
+  $('toggle-markers').disabled=busy||!issues.length;
   $('undo').disabled=busy||!past.length;$('redo').disabled=busy||!future.length;
   $('diagnose').disabled=busy||!ready;document.querySelectorAll('[data-action]').forEach(b=>b.disabled=busy||!ready);
 }
@@ -51,7 +65,7 @@ function spawnWorker(){
       doc.paths=next;selected=new Set(changedIndices);changed(`repair-${task.action}`);
       status('Изменения применены. Для повторной проверки нажмите «Найти проблемы».');
     }else{
-      diagnosticComplete=data.output.diagnosticComplete;issues=data.output.issues.map(x=>({...x,path:task.scope[x.path],other:task.scope[x.other]}));metrics=doc.paths.map(()=>null);data.output.paths.forEach((p,i)=>metrics[task.scope[i]]=p);
+      diagnosticComplete=data.output.diagnosticComplete;markersVisible=true;issues=data.output.issues.map(x=>({...x,path:task.scope[x.path],other:task.scope[x.other]}));metrics=doc.paths.map(()=>null);data.output.paths.forEach((p,i)=>metrics[task.scope[i]]=p);
       record('diagnose',{issues:issues.length,scope:task.scope});render();status(diagnosticComplete?`Проверено объектов: ${task.scope.length}. Замечаний: ${issues.length}.`:'Проверка неполная: достигнут лимит 10000 замечаний.');
     }
   };
@@ -87,6 +101,8 @@ $('canvas').addEventListener('pointerdown',e=>{
   if(busy)return;const pos=at(e);const canvas=$('canvas');
   if(e.button===1){e.preventDefault();pan={pos};const b=canvas.viewBox.baseVal;pan.view=[b.x,b.y,b.width,b.height];canvas.setPointerCapture(e.pointerId);return;}
   if(e.button!==0)return;
+  const issueMarker=e.target.closest('[data-issue]');
+  if(issueMarker){const issue=issues[Number(issueMarker.dataset.issue)];if(issue)focusIssue(issue);return;}
   if(mode==='line'){draft.push(pos);render();return;}
   if(mode==='rect'||mode==='circle'){drag={start:pos,before:clone(doc),shape:mode};canvas.setPointerCapture(e.pointerId);return;}
   const target=e.target.closest('[data-path]');
@@ -116,7 +132,9 @@ $('canvas').addEventListener('pointercancel',()=>{if(drag)doc=drag.before;drag=n
 $('canvas').addEventListener('wheel',e=>{if(busy)return;e.preventDefault();const p=at(e),b=$('canvas').viewBox.baseVal,f=e.deltaY>0?1.15:1/1.15;if(b.width*f<.1||b.width*f>1e7)return;b.x=p[0]+(b.x-p[0])*f;b.y=p[1]+(b.y-p[1])*f;b.width*=f;b.height*=f;render();},{passive:false});
 document.addEventListener('keydown',e=>{if(busy||e.target.matches('input'))return;if(e.key==='Escape'){draft=[];render();}if(e.key==='Enter'&&draft.length>1){checkpoint();doc.paths.push({closed:false,points:draft});draft=[];changed('draw-polyline');}if(e.key==='Delete')$('delete').click();if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();$('undo').click();}});
 for(const m of ['select','line','rect','circle'])$(m).onclick=()=>setMode(m);
-$('fit').onclick=fit;$('diagnose').onclick=()=>calculate(0);document.querySelectorAll('[data-action]').forEach(e=>e.onclick=()=>calculate(Number(e.dataset.action)));
+$('fit').onclick=fit;
+$('toggle-markers').onclick=()=>{if(busy||!issues.length)return;markersVisible=!markersVisible;record('toggle-issue-markers',{visible:markersVisible});render();};
+$('diagnose').onclick=()=>calculate(0);document.querySelectorAll('[data-action]').forEach(e=>e.onclick=()=>calculate(Number(e.dataset.action)));
 $('cancel').onclick=()=>{if(epsWorker){stopEps();lock(false);record('eps-cancel');status('Импорт EPS отменён. Документ сохранён.');return;}worker.terminate();pending=null;ready=false;lock(false);record('engine-cancel');status('Расчёт отменён, документ сохранён.');spawnWorker();};
 $('undo').onclick=()=>{if(!past.length||busy)return;future.push(clone(doc));doc=past.pop();selected.clear();changed('undo');};
 $('redo').onclick=()=>{if(!future.length||busy)return;past.push(clone(doc));doc=future.pop();selected.clear();changed('redo');};
@@ -163,4 +181,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();
 });
-record('session-start',{version:'0.2.0-alpha.1'});spawnWorker();fit();
+record('session-start',{version:'0.2.0-alpha.2'});spawnWorker();fit();
