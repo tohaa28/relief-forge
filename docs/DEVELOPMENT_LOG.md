@@ -167,6 +167,14 @@ Browser QA: imported 11 EPS objects at 101.6×50.8 mm; visual curves/text/clip/c
 - The existing main release already contains the export button fix merged in PR #17. This follow-up only adds regression tests/documentation; it does not replace the concurrent smoothing kernel or bump runtime versions.
 - Chromium direct navigation in this execution environment is blocked by browser administration (`ERR_BLOCKED_BY_ADMINISTRATOR`), so no live-site browser verification is claimed; the independent algorithm/EPS checks and GitHub Actions remain available.
 
+## 2026-10-22 · Контрольная точка передачи между чатами, alpha.14
+
+- По прямому запросу пользователя обновлён корневой `HANDOFF.md`: подтверждённый `main` commit `c83764f47cbb00e621257c55254110b419df64d4`, версия `0.2.0-alpha.14`, ссылки на код/CI/сайт, параметры автоисправления, реальное сглаживание P2/P1, оптимизация сегментов, визуальное ДО/ПОСЛЕ, единая кнопка Apply, Undo, правила бесцветного EPS `_result` и история файлов.
+- Устаревший handoff версии alpha.1 сохранён без потерь как `docs/history/HANDOFF_ALPHA1_20261022_ARCHIVE.md`.
+- Обновлена `docs/FEATURE_MATRIX.md`: раздельные допуски сглаживания и оптимизации теперь реализованы (численная проверка, не строгая гарантия топологии); старые цифры JS-тестов заменены актуальными 63/63 из PR #17.
+- CI PR #17 run 39804189122 подтверждает Rust 15/15, JS 63/63, compiled WASM ABI PASS. В PR deploy skipped; текущая живая GitHub Pages после merge этого PR в данной среде не подтверждена.
+- Приватные EPS, снимки ArtCAM и сторонние бинарники в GitHub не загружались. Дальнейшая работа только от свежей main; параллельные PR #14 и #16 старые, их нельзя слепо сливать.
+
 ## Контрольная точка 2026-10-22 · 0.2.0-alpha.15
 
 Продолжение от main e863f1c; существующая история сохранена. Актуальный источник — GitHub tohaa28/relief-forge. Старые абсолютные пути ниже относятся к прежним средам и не определяют текущий checkout.
@@ -185,4 +193,3 @@ Browser QA: imported 11 EPS objects at 101.6×50.8 mm; visual curves/text/clip/c
 Проверки: 68/68 JS; 15/15 нативных Rust-тестов (прямой rustc --test той же tests/geometry.rs, стандартный cargo test локально блокируется Unicode-путями GNU linker); сборка настоящего WASM и scripts/check-wasm.mjs PASS. Полный cargo test --locked должен дополнительно пройти Linux CI. Браузер localhost: реальный Worker/WASM, импорт EPS (2 контура), SVG с двумя C-сегментами: 1 сглаженный стык при 0.05 мм, оценка 0.00672 мм, сегменты 2→2; применение и Undo, Redo при автоматически пересчитанном предпросмотре. Финальная проверка/публикация GitHub учитывается отдельно.
 
 Ограничения: допуски сглаживания/оптимизации — численная оценка, не доказательство нулевой потери геометрии/сохранения топологии. Изменяемый artwork получает нейтральную экранную обводку. Ручное лечение сложных кривых требует копии/аппроксимации; полноценный редактор ручек и эквивалентность ArtCAM не подтверждены. REA/Ghidra в этом продолжении не проводились. Следующие задачи: сохранение исходного оформления при модификации кривых, строгий контроль ошибки всей кривой и топологии, браузерные регрессии в CI.
-
