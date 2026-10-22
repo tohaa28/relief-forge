@@ -55,9 +55,15 @@ export async function interpretEps(input,{runGhostscript,mupdf,fonts=[],progress
     if(rendered){
       const warnings=logs.filter(s=>/substitut|not found|cannot find|can.t find|warning|recover/i.test(s));
       // A valid EPS without showpage may leave a white fallback page in pdfwrite.
-      if(attempt===0&&!/<(?:path|image|use)\b/.test(rendered.svg)&&!/\bshowpage\b/.test(new TextDecoder('latin1').decode(program)))continue;
+      const hasVisibleGeometry=/<(?:path|image|use)\b/.test(rendered.svg);
+      if(attempt===0&&!hasVisibleGeometry&&!/\bshowpage\b/.test(new TextDecoder('latin1').decode(program)))continue;
       if(Math.abs(rendered.widthPt-metadata.widthPt)>.05||Math.abs(rendered.heightPt-metadata.heightPt)>.05)throw Error('Интерпретатор изменил физический размер EPS; импорт отменён.');
-      return {...rendered,metadata,warnings:[...new Set(warnings)],logs};
+      // CorelDRAW can export all original paths without any paint operator.
+      // Preserve the real EPS; recover the literal cubic geometry only when
+      // Ghostscript correctly returns an empty drawing. Other EPS stay untouched.
+      const recovery=hasVisibleGeometry?null:recoverUnpaintedCorelOutlines(program,metadata);
+      if(recovery)warnings.push(`Обнаружено ${recovery.count} непечатаемых контуров CorelDRAW. Добавлена только видимая обводка для анализа; в исходном EPS заливки и толщины не изменены.`);
+      return {...rendered,svg:recovery?.svg||rendered.svg,outlineRecovery:recovery?{source:recovery.source,count:recovery.count,previewStrokePt:recovery.previewStrokePt}:null,metadata,warnings:[...new Set(warnings)],logs};
     }
   }
   throw Error('EPS не создал изображение страницы.');
