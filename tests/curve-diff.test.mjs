@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {removedCurveAnchors,changedCurveIndices} from '../web/curve-diff.js';
+import {removedCurveAnchors,changedCurveIndices,changedBezierSites} from '../web/curve-diff.js';
 import {optimizePaths,smoothAndOptimizePaths} from '../web/curve-optimizer.js';
 import {worldData} from '../web/rich-svg.js';
 
@@ -42,4 +42,15 @@ test('smoothing-only Bezier handle changes are visible without removing an ancho
  assert.deepEqual(removedCurveAnchors(original,candidate.document,[0]),[]);
  assert.notDeepEqual(candidate.document.paths[0].commands,original.paths[0].commands);
  assert.deepEqual(original.paths[0].commands[1],['C',1,0,2,0,3,0]);
+});
+
+test('smoothing-only altered cubic handles produce visible change markers despite same anchor count',()=>{
+ const before={paths:[{kind:'vector',offset:[0,0],artwork:'<path/>',points:[[0,0],[3,0],[6,.5]],
+ commands:[['M',0,0],['C',1,0,2,0,3,0],['C',4,.1,5,.5,6,.5]],closed:false}]};
+ const result=smoothAndOptimizePaths(before,[0],.15,.00001);
+ const sites=changedBezierSites(before,result.document,[0]);
+ assert.ok(sites.length>=1);
+ assert.ok(sites.every(x=>x.point.every(Number.isFinite)));
+ assert.deepEqual(removedCurveAnchors(before,result.document,[0]),[]);
+ assert.deepEqual(changedBezierSites(before,before,[0]),[]);
 });
