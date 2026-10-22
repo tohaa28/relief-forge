@@ -6,3 +6,10 @@
 #paths{max-height:240px;overflow:auto}.license-link{color:#126f6a;font-size:10px}#demo-eps{display:block;margin-top:8px}#font-count{color:#627185;font-size:10px}
 
 footer #status{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}footer #coords,footer #log{flex-shrink:0}
+
+/* Calculations must not cover the imported vectors: keep the image visible while locked. */
+#busy.compact{inset:auto 14px 14px auto;width:min(340px,calc(100% - 28px));background:rgba(249,252,254,.97);border:1px solid #b9cfde;border-radius:10px;box-shadow:0 9px 32px #23384c40;padding:14px 18px;z-index:10;gap:5px}
+#busy.compact .spinner{width:18px;height:18px;margin:3px}
+#busy.compact #import-progress{display:none}
+#busy.compact p{margin:0;font-size:11px}
+#busy.compact #cancel{margin-top:5px}
