@@ -44,7 +44,7 @@ function beginFileHistory(filename){
   renderFileHistory();
   return activeHistoryId;
 }
-function changed(action){issues=[];metrics=[];diagnosticComplete=true;markersVisible=true;appliedComparison=null;curvePreview=null;compareStage='before';if(activeHistoryId&&!action.startsWith('import-')&&action!=='auto-apply')updateFileHistory({status:'Изменён · требуется повторная проверка',diagnosis:null,repair:null});record(action,{paths:doc.paths.length,nodes:doc.paths.reduce((n,p)=>n+p.points.length,0)});render();}
+function changed(action){issues=[];metrics=[];diagnosticComplete=true;markersVisible=true;appliedComparison=null;curvePreview=null;compareStage='before';if(activeHistoryId&&!action.startsWith('import-')&&action!=='auto-apply')updateFileHistory({status:'Изменён · требуется повторная проверка',diagnosis:null,repair:null});record(action,{paths:doc.paths.length,nodes:doc.paths.reduce((n,p)=>n+p.points.length,0)});render();if(!action.startsWith('import-')&&action!=='unified-apply')requestRecalculation();}
 function fit(){const pad=Math.max(doc.width,doc.height)*.07;$('canvas').setAttribute('viewBox',`${-pad} ${-pad} ${doc.width+pad*2} ${doc.height+pad*2}`);render();}
 const currentComparison=()=>curvePreview?.comparisonData||appliedComparison;
 function zoom(factor,center){const box=$('canvas').viewBox.baseVal,view=zoomBox({x:box.x,y:box.y,width:box.width,height:box.height},factor,center);if(!view)return; $('canvas').setAttribute('viewBox',`${view.x} ${view.y} ${view.width} ${view.height}`);render();}
