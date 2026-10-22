@@ -73,3 +73,21 @@ test('UI optimizer vector selection excludes raster and includes selected curves
  assert.deepEqual(selectedVectorIndices(doc,new Set([1,2]),true),[2]);
  assert.deepEqual(selectedVectorIndices(doc,new Set([2]),false),[0,2]);
 });
+
+test('smoothing genuinely rewrites Bezier path and merge strength controls reduction',()=>{
+ const s=[[0,0],[6,0],[12,6],[18,6]];
+ const [a,b]=splitCubic(s),[c,d]=splitCubic(b);
+ const p={kind:'vector',artwork:'<path/>',offset:[0,0],closed:false,
+   commands:[['M',...a[0]],['C',...a[1],...a[2],...a[3]],['C',...c[1],...c[2],...c[3]],['C',...d[1],...d[2],...d[3]]],
+   points:[a[0],a[3],c[3],d[3]]};
+ const unchanged=structuredClone(p);
+ const small=optimizeVectorPath(p,.4,2),strong=optimizeVectorPath(p,.4,10);
+ assert.ok(strong.after<small.after,'higher optimization strength must merge more knots');
+ assert.ok(strong.after<strong.before);
+ assert.ok(strong.path.commands.every(x=>['M','C','Z','L'].includes(x[0])));
+ assert.notDeepEqual(strong.path.commands,p.commands,'curve geometry must be actually replaced');
+ assert.deepEqual(strong.path.commands.at(-1).slice(-2),s[3]);
+ assert.ok(strong.maxError<=.4*.55+1e-8);
+ assert.deepEqual(p,unchanged);
+ assert.throws(()=>optimizeVectorPath(p,.1,1),/Степень/);
+});
