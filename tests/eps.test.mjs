@@ -62,7 +62,7 @@ test('unpainted CorelDRAW EPS restores exact cubic curves for display and Rust d
   const restored=recoverUnpaintedCorelOutlines(input,epsMetadata(input));
   assert.equal(restored.count,2);
   assert.match(restored.svg,/fill="none" stroke="#34465b"/);
-  assert.match(restored.svg,/60 45 90 45 105 20 C/);
+  assert.match(restored.svg,/C 60 45 90 45 105 20/);
   const interpreted=await convert(input);
   assert.equal(interpreted.outlineRecovery?.count,2);
   assert.ok(interpreted.warnings.some(s=>s.includes('непечатаемых контуров')));
