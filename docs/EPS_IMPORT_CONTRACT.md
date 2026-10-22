@@ -1,4 +1,4 @@
-# EPS import contract — 0.2.0-alpha.1
+# EPS import contract — 0.2.0-alpha.3
 
 Branch: `feature/eps-import`, based on `f236c70a2ac6a045e6dff4c8ab22562bd337a90d`.
 Owner: this Codex session. Windows collaborator owns ArtCAM UI investigation and vector-healing module. Do not overwrite their work; integrate by normal merge. Right-hand healing panel and `src/lib.rs` are unchanged by this feature. `web/app.js` has minimal model/render/diagnostic integration changes; coordinate merges there.
