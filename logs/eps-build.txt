@@ -1,0 +1,74 @@
+rustc 1.85.1 (4eb161250 2025-03-15)
+cargo 1.85.1 (d73d2caf9 2024-12-31)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.00s
+     Running unittests src/lib.rs (target/debug/deps/relief_forge-903b168003ac8eeb)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/geometry.rs (target/debug/deps/geometry-dd2ed92fcec6840e)
+
+running 15 tests
+test adjacent_backtracking_is_overlap ... ok
+test adjacent_corner_is_not_crossing ... ok
+test ambiguous_junction_is_untouched ... ok
+test abi_result_is_json ... ok
+test area_direction_is_cartesian ... ok
+test clean_nodes_keeps_nonconsecutive_repeats ... ok
+test bow_tie_has_one_crossing ... ok
+test duplicate_closed_reversed_rotated ... ok
+test close_only_within_tolerance ... ok
+test figure_eight_retains_both_loops ... ok
+test joins_reversed_endpoints ... ok
+test open_path_is_not_closed_duplicate ... ok
+test parser_rejects_truncated_or_nan ... ok
+test simplify_with_error_budget ... ok
+test split_crossing_yields_four_spans ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests relief_forge
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+added 6 packages in 487ms
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> relief-forge-web@0.2.0-alpha.1 pretest
+> node scripts/vendor-importers.mjs
+
+Self-hosted EPS importers prepared; Ghostscript provenance digests verified.
+
+> relief-forge-web@0.2.0-alpha.1 test
+> node --test tests/*.test.mjs
+
+✔ DOS EPS binary header and trailer / HiRes bounding boxes (2.785559ms)
+✔ real Ghostscript WASM → MuPDF WASM retains curves, clipping, outlined text, units and SVG/project round trip (201.969916ms)
+✔ procedural PostScript, absent showpage, bitmap colorimage, compound holes and CMYK (240.313819ms)
+✔ broken PostScript is rejected (83.177903ms)
+✔ SVG arcs, transforms, uses and compound curves preserve geometry and reject active/external content (2.115296ms)
+✔ relative lines and close (1.823916ms)
+✔ implicit line after M (0.322628ms)
+✔ multiple subpaths remain separate (0.206202ms)
+✔ unsupported curves fail explicitly (0.412613ms)
+✔ truncated commands fail (0.169246ms)
+✔ scientific coordinates accepted (0.203768ms)
+✔ malformed bytes fail (0.156797ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 695.432898
+info: component rust-std for target wasm32-unknown-unknown is up to date
+   Compiling relief-forge v0.2.0-alpha.1 (/workspace/projects/relief-forge)
+    Finished `release` profile [optimized] target(s) in 0.71s
+PASS: compiled WASM ABI, crossings, split, loops, validation, repeated ownership (94844 bytes).
+Built web/engine.wasm. Serve web/ over HTTP.

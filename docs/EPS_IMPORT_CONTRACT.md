@@ -1,0 +1,49 @@
+# EPS import contract — 0.2.0-alpha.1
+
+Branch: `feature/eps-import`, based on `f236c70a2ac6a045e6dff4c8ab22562bd337a90d`.
+Owner: this Codex session. Windows collaborator owns ArtCAM UI investigation and vector-healing module. Do not overwrite their work; integrate by normal merge. Right-hand healing panel and `src/lib.rs` are unchanged by this feature. `web/app.js` has minimal model/render/diagnostic integration changes; coordinate merges there.
+
+## Interpreter boundary
+
+Classic `web/eps-worker.js` receives `{bytes: Uint8Array, fonts: [{name, bytes: Uint8Array}]}`. It emits `{type:'progress', percent, message}`, `{type:'error', message}` or `{type:'done', result}`. `result` includes `svg`, `widthPt`, `heightPt`, `metadata`, `warnings`, `logs`. Browser-local, no upload/server execution. EPS limit 64 MiB, optional fonts 32 MiB, timeout 120 seconds; terminate Worker for cancellation. Failed/cancelled import must leave the previous document unchanged.
+
+Pipeline: pinned Ghostscript 10.08.0 WASM (`@wasm-zoo/ghostscript@0.7.2`) interprets complete PostScript into vector PDF with `pdfwrite`, EPSCrop, no output fonts and no image downsampling. MuPDF 1.28.1 WASM writes SVG with `text=path,no-reuse-images`. Both engines are AGPL-3.0-or-later; see THIRD_PARTY_NOTICES.md and published licenses. This is an interpreter, not a regex drawing-command extractor. It preserves rendered appearance, not original PostScript dictionaries/procedure names/editable typography. Complex shading may be represented by local raster objects by the SVG writer.
+
+## Document boundary
+
+`importRichSvg(svg, {unitsPerInch:72})` from `web/rich-svg.js` returns existing `{format:'relief-forge', version:1, width, height, paths}` with dimensions/geometry in mm. Ordinary SVG uses default 96 units/inch. Additional document fields:
+
+- `svgDefs`: safe SVG definitions (clipping, masks, patterns, image resources).
+- `sourceSvg`: interpreter output SVG.
+- `epsImport`: original `name`, `originalBase64` (entire input, including binary preview header), `boundingBox`, `hires`, `widthPt`, `heightPt`, `warnings`, `logs`, engine versions.
+
+Imported path object:
+
+```js
+{
+  points: [[xMm,yMm], ...], // anchors ONLY, never pass as a polyline to Rust
+  closed: Boolean,         // final subpath's explicit Z; not a compound topology classification
+  commands: [['M',x,y], ['C',x1,y1,x2,y2,x,y], ...], // world mm, M/L/C/Q/Z
+  offset: [dxMm,dyMm],
+  artwork: '<g ...>...</g>', // original exact SVG painting, wrappers, transforms, clips
+  kind: 'vector' // or 'image'
+}
+```
+
+A vector may contain multiple M subpaths (glyph holes/compound paths). Preserve it as one painting object. Curves/arcs are stored as curves; render/export uses original SVG artwork, including exact original arc data. `commands` uses cubic conversion for arc geometry calculations. Images have bounding-box commands for selection only, and must never enter vector healing.
+
+- `worldData(path)`: full curve geometry with offset for hit/selection overlay.
+- `artworkMarkup(path)`: SVG painting with offset.
+- `exportDocument(doc)`: appearance-preserving SVG with mm dimensions and defs.
+- `safeFragment(fragment, optionalDOMParser)`: validate before accepting saved artwork/defs.
+- `sampledContours(path, toleranceMm)`: adaptive approximation for **analysis or explicitly requested copies only**. Returns separate `{points,closed}` contours. Does not mutate the original; images return `[]`. Max 20000 sampled nodes/object; Rust still limits each calculation to 2000 nodes. Maintain a kernel-index → document-index mapping, because one imported object can create several sampled contours.
+
+Existing polylines remain `{points,closed}` without `artwork`. Healing algorithms still accept only these. Current adapter blocks direct destructive healing of imported objects; “Копия для лечения” creates selected ordinary polylines with explicit tolerance and preserves originals in the document. Whole-object translation, selection, deletion, undo, project JSON and SVG export support imported objects. Direct Bezier node/control-handle editing is not implemented.
+
+## Verification / integration
+
+`npm ci && npm test` prepares self-hosted engines and runs real GS-WASM → MuPDF-WASM integration tests. `bash scripts/build.sh` additionally checks Rust and compiled Rust WASM. Do not commit `node_modules` or generated `web/vendor` binaries; CI regenerates from exact package-lock. Deploy includes these assets, licenses and provenance.
+
+At creation: 15 Rust tests, 12 JS tests and actual Rust-WASM checks pass locally. Browser and publication evidence is appended to logs/actions.jsonl; do not infer those from source-only state.
+
+Windows collaborator status (reported 2026-10-22): ArtCAM Premium 2018 is open, but Computer Use window capture failed twice with SetIsBorderRequired / 0x80004002. No visual observations or ArtCAM parity confirmed. Direct HTTPS git clone timed out; connector can read main. No collaborator code changes reported yet.

@@ -4,7 +4,7 @@
 Пользователь требует Rust/WASM функциональный аналог ArtCAM 2018, сначала базовый редактор, затем полный набор лечения векторов. Требует REA/Ghidra, полный журнал, сохранение истории. Последнее указание: перенести в Codex и получить опубликованную первую версию. Создание репозитория и публикация авторизованы.
 
 ## Авторитетная рабочая копия
-`/workspace/projects/relief-forge` (GitHub checkout), версия `0.1.0-alpha.2`. Исходная история alpha.1 сохранена, не переписана. Предыдущая копия `/workspace/scratch/d4b5ccc2d241/relief-forge` осталась контрольной точкой alpha.1; разработку вести в Sites checkout.
+`/workspace/projects/relief-forge` (GitHub checkout), версия `0.2.0-alpha.1`. Исходная история alpha.1 сохранена, не переписана. Предыдущая копия `/workspace/scratch/d4b5ccc2d241/relief-forge` осталась контрольной точкой alpha.1; разработку вести в GitHub checkout.
 
 ## GitHub — основной маршрут
 https://github.com/tohaa28/relief-forge — создан пользователем через разрешённую браузерную сессию агента; новый репозиторий добавлен к уже установленному ChatGPT Codex Connector. Запись через GitHub API проверена. Работу вести здесь, основной источник и публикация — GitHub.
@@ -44,3 +44,9 @@ CLI найден: /opt/codex/bin/codex, версия 0.159.2. cloud list --json 
 6. Продолжать logs/actions.jsonl и docs/DEVELOPMENT_LOG.md; версию обновлять одновременно в Cargo.toml/Cargo.lock/package.json/UI.
 
 Полный набор лечения ещё не готов. Это первая работающая полилинейная alpha, без рельефов и CNC-траекторий.
+
+## EPS checkpoint — 2026-10-22
+
+Ветка `feature/eps-import` от f236c70. Реальный Ghostscript WASM + MuPDF WASM, точное SVG-оформление/кривые/обтравка/изображения, optional fonts, оригинал EPS в JSON, отмена/таймаут. Контракт: docs/EPS_IMPORT_CONTRACT.md. Правая панель лечения и Rust-алгоритмы не менялись; адаптация модели в web/app.js. 15 Rust + 12 JS + compiled Rust-WASM pass. Browser: пример EPS 11 объектов, 101.6×50.8 мм, кривые/цвет/обтравка/текст видимы; диагностика выбранной кривой и save→new→open JSON проверены. Публикация новой версии ещё не подтверждена на момент этой записи — см. последующие logs/actions.jsonl.
+
+Второй участник работает в D:\_dst\Relief Forge, отвечает за ArtCAM UI/лечение. Его захват окна ArtCAM Premium 2018 дважды не удался с SetIsBorderRequired 0x80004002; никаких визуальных наблюдений и parity не подтверждено. Git clone по HTTPS у него таймаутится, connector читает main. До сообщения об интеграции не перезаписывать его изменения.

@@ -6,6 +6,7 @@ exec > >(tee "logs/build-$(date -u +%Y%m%dT%H%M%SZ).log") 2>&1
 rustc --version
 cargo --version
 cargo test --locked
+npm ci
 npm test
 rustup target add wasm32-unknown-unknown
 cargo build --locked --release --target wasm32-unknown-unknown

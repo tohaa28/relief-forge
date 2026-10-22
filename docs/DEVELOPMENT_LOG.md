@@ -36,3 +36,9 @@
 Создан публичный репозиторий tohaa28/relief-forge. Новому репозиторию выдан доступ существующего ChatGPT Codex Connector, после чего GitHub API подтвердил запись. Переносится полный проект, журнал, готовый проверенный модуль и точная исходная Git-история. Основным источником становится GitHub; размещение выполняется GitHub Actions/Pages. Старый Sites-манифест архивирован, предыдущий Site не удалён.
 
 Проверено завершение переноса: run 39753007526, оба job build/deploy успешны. На GitHub сохранены точные четыре прежних SHA. Живая версия https://tohaa28.github.io/relief-forge/ загружает Rust/WASM и показывает 23 ожидаемых замечания на примере. Подробный протокол — logs/github-publication.json.
+
+## 2026-10-22 — EPS implementation checkpoint
+
+Created feature/eps-import from f236c70. Added browser-local Ghostscript/MuPDF WASM interpretation, lossless SVG artwork/curve storage, binary EPS and physical dimensions, fonts, progress/cancel/timeout, original EPS retention, project/export integration and explicit polyline copies. 15 Rust + 12 JS + compiled Rust WASM checks pass. Browser and deployment pending. See EPS_IMPORT_CONTRACT.md and THIRD_PARTY_NOTICES.md. Windows collaborator reports ArtCAM window capture error 0x80004002; no visual parity established.
+
+Browser QA: imported 11 EPS objects at 101.6×50.8 mm; visual curves/text/clip/colors; Rust diagnosis; save/new/reopen with original-byte equality; binary EPS file picker; malformed EPS refusal and infinite-loop cancellation preserve prior 11 objects; explicit healing copy creates 65 sampled nodes while retaining original. Local-only preview copy used; no Sites publication. Build log: logs/eps-build.txt. MuPDF npm gitHead equals upstream 1.28.1 tag (20061bd4).

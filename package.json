@@ -1,11 +1,22 @@
 {
   "name": "relief-forge-web",
-  "version": "0.1.0-alpha.2",
+  "version": "0.2.0-alpha.1",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "serve": "node scripts/serve.mjs",
-    "prepare-dist": "node scripts/prepare-dist.mjs"
+    "prepare-dist": "node scripts/prepare-dist.mjs",
+    "pretest": "node scripts/vendor-importers.mjs",
+    "vendor": "node scripts/vendor-importers.mjs"
+  },
+  "dependencies": {
+    "@wasm-zoo/ghostscript": "0.7.2",
+    "mupdf": "1.28.1",
+    "svgpath": "2.6.0"
+  },
+  "devDependencies": {
+    "@xmldom/xmldom": "0.9.12",
+    "esbuild": "0.25.12"
   }
 }

@@ -28,6 +28,8 @@ jobs:
         run: |
           rustup toolchain install 1.85.1 --profile minimal --target wasm32-unknown-unknown
           rustup override set 1.85.1
+      - name: Install pinned EPS engines
+        run: npm ci
       - name: Verify native core
         run: cargo test --locked
       - name: Verify importer and JS syntax

@@ -18,6 +18,7 @@ try {
     }
     Invoke-Checked -Command 'rustc' -Arguments @('--version')
     Invoke-Checked -Command 'cargo' -Arguments @('test', '--locked')
+    Invoke-Checked -Command 'npm' -Arguments @('ci')
     Invoke-Checked -Command 'npm' -Arguments @('test')
     Invoke-Checked -Command 'rustup' -Arguments @('target', 'add', 'wasm32-unknown-unknown')
     Invoke-Checked -Command 'cargo' -Arguments @('build', '--locked', '--release', '--target', 'wasm32-unknown-unknown')

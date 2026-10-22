@@ -5,3 +5,5 @@
 *.log
 
 /.sites-preview/
+/node_modules/
+/web/vendor/
