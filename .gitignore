@@ -1,0 +1,6 @@
+/target/
+/dist/
+/web/engine.wasm
+/evidence/private/
+*.log
+
