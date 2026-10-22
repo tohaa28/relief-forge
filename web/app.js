@@ -3,24 +3,27 @@ import {issueViewBox} from './issue-focus.js';
 import {issueColors,issueLabels,visibleHealthyAnchors,circlePath} from './vector-points.js';
 import {exportEps} from './eps-export.js?v=0.2.0-alpha.7';
 import {AUTO_STEPS,basicPaths,packedInput,isChanged,comparisonBox,proposedIssueLocations} from './auto-repair.js';
+import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
-let diagnosticComplete=true,markersVisible=true,pointsVisible=true,autoPreview=null,autoIndex=0;
+let diagnosticComplete=true,markersVisible=true,pointsVisible=true,autoPreview=null,autoIndex=0,appliedComparison=null,compareStage='before',displayedIssues=[];
 let doc={format:'relief-forge',version:1,width:300,height:200,paths:[]},selected=new Set(),issues=[],metrics=[],past=[],future=[],mode='select',draft=[],drag=null,pan=null,worker,ready=false,pending=null,sequence=0,busy=false;
 let epsWorker=null,epsTimer=null;let importFonts=[];
 const journal=[];const clone=v=>structuredClone(v);
 function record(action,detail={}){journal.push({at:new Date().toISOString(),action,detail});}
 function status(s){$('status').textContent=String(s).split('\n')[0];$('status').title=s;}
 function checkpoint(before=doc){past.push(clone(before));if(past.length>100)past.shift();future=[];}
-function changed(action){issues=[];metrics=[];diagnosticComplete=true;markersVisible=true;autoPreview=null;record(action,{paths:doc.paths.length,nodes:doc.paths.reduce((n,p)=>n+p.points.length,0)});render();}
+function changed(action){issues=[];metrics=[];diagnosticComplete=true;markersVisible=true;autoPreview=null;appliedComparison=null;compareStage='before';record(action,{paths:doc.paths.length,nodes:doc.paths.reduce((n,p)=>n+p.points.length,0)});render();}
 function fit(){const pad=Math.max(doc.width,doc.height)*.07;$('canvas').setAttribute('viewBox',`${-pad} ${-pad} ${doc.width+pad*2} ${doc.height+pad*2}`);render();}
+const currentComparison=()=>autoPreview?.comparisonData||appliedComparison;
+function zoom(factor,center){const box=$('canvas').viewBox.baseVal,view=zoomBox({x:box.x,y:box.y,width:box.width,height:box.height},factor,center);if(!view)return; $('canvas').setAttribute('viewBox',`${view.x} ${view.y} ${view.width} ${view.height}`);render();}
 function focusIssue(issue){
   const canvas=$('canvas'),view=canvas.viewBox.baseVal;
   const rawTolerance=Number($('tolerance').value);
   const tolerance=Number.isFinite(rawTolerance)&&rawTolerance>0?rawTolerance:0.01;
   const next=issueViewBox({x:view.x,y:view.y,width:view.width,height:view.height},issue.point,doc,tolerance);
   if(!next){status('Невозможно перейти к замечанию: неверные координаты.');return;}
-  selected=new Set([issue.path,issue.other].filter(i=>Number.isInteger(i)&&i>=0&&i<doc.paths.length));
+  if(!currentComparison())selected=new Set([issue.path,issue.other].filter(i=>Number.isInteger(i)&&i>=0&&i<doc.paths.length));
   canvas.setAttribute('viewBox',`${next.x} ${next.y} ${next.width} ${next.height}`);
   record('focus-issue',{kind:issue.kind,path:issue.path,other:issue.other,point:issue.point});
   render();
