@@ -31,7 +31,7 @@ test('document creation tools are in a closed-by-default native disclosure',()=>
 
 
 test('diagnostic legend, issue list and all manual actions are collapsed by default',()=>{
-  for(const id of ['legend-panel','point-controls','issues-panel','manual-repairs','auto-local-details']){
+  for(const id of ['legend-panel','point-controls','issues-panel','manual-repairs','auto-local-details','auto-notes']){
     assert.match(html,new RegExp('<details id="'+id+'"'));
     assert.doesNotMatch(html,new RegExp('<details id="'+id+'"[^>]*\\bopen\\b'));
   }
