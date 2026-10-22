@@ -1,14 +1,14 @@
 import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js';
 import {issueViewBox} from './issue-focus.js';
 import {issueColors,issueLabels,visibleHealthyAnchors,circlePath} from './vector-points.js';
-import {exportEps} from './eps-export.js?v=0.2.0-alpha.12';
-import {AUTO_STEPS,basicPaths,packedInput,isChanged,comparisonBox,proposedIssueLocations} from './auto-repair.js';
+import {exportEps} from './eps-export.js?v=0.2.0-alpha.13';
+import {packedInput} from './auto-repair.js';
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
-import {optimizePaths,selectedVectorIndices,smoothAndOptimizePaths} from './curve-optimizer.js?v=0.2.0-alpha.12';
+import {selectedVectorIndices,smoothAndOptimizePaths} from './curve-optimizer.js?v=0.2.0-alpha.13';
 const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
-let diagnosticComplete=true,markersVisible=true,pointsVisible=true,autoPreview=null,autoIndex=0,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null;
+let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null;
 let doc={format:'relief-forge',version:1,width:300,height:200,paths:[]},selected=new Set(),issues=[],metrics=[],past=[],future=[],mode='select',draft=[],drag=null,pan=null,worker,ready=false,pending=null,sequence=0,busy=false;
 let epsWorker=null,epsTimer=null;let importFonts=[];
 const historyStorage=(()=>{try{return window.localStorage}catch{return null}})();
@@ -43,9 +43,9 @@ function beginFileHistory(filename){
   renderFileHistory();
   return activeHistoryId;
 }
-function changed(action){issues=[];metrics=[];diagnosticComplete=true;markersVisible=true;autoPreview=null;appliedComparison=null;curvePreview=null;compareStage='before';if(activeHistoryId&&!action.startsWith('import-')&&action!=='auto-apply')updateFileHistory({status:'Изменён · требуется повторная проверка',diagnosis:null,repair:null});record(action,{paths:doc.paths.length,nodes:doc.paths.reduce((n,p)=>n+p.points.length,0)});render();}
+function changed(action){issues=[];metrics=[];diagnosticComplete=true;markersVisible=true;appliedComparison=null;curvePreview=null;compareStage='before';if(activeHistoryId&&!action.startsWith('import-')&&action!=='auto-apply')updateFileHistory({status:'Изменён · требуется повторная проверка',diagnosis:null,repair:null});record(action,{paths:doc.paths.length,nodes:doc.paths.reduce((n,p)=>n+p.points.length,0)});render();if(!action.startsWith('import-')&&action!=='unified-apply')requestRecalculation();}
 function fit(){const pad=Math.max(doc.width,doc.height)*.07;$('canvas').setAttribute('viewBox',`${-pad} ${-pad} ${doc.width+pad*2} ${doc.height+pad*2}`);render();}
-const currentComparison=()=>curvePreview?.comparisonData||autoPreview?.comparisonData||appliedComparison;
+const currentComparison=()=>curvePreview?.comparisonData||appliedComparison;
 function zoom(factor,center){const box=$('canvas').viewBox.baseVal,view=zoomBox({x:box.x,y:box.y,width:box.width,height:box.height},factor,center);if(!view)return; $('canvas').setAttribute('viewBox',`${view.x} ${view.y} ${view.width} ${view.height}`);render();}
 function focusIssue(issue){
   const canvas=$('canvas'),view=canvas.viewBox.baseVal;
@@ -75,7 +75,7 @@ function render(){
   $('compare-before').setAttribute('aria-pressed',String(!comparison||compareStage==='before'));
   $('compare-after').setAttribute('aria-pressed',String(Boolean(comparison&&compareStage==='after')));
   $('compare-status').textContent=comparison?
-    (compareStage==='after'?'ПОСЛЕ':'ДО')+' · '+visibleDoc.paths.length+' контуров · '+(curvePreview?('сегменты '+(compareStage==='after'?curvePreview.stats.result:curvePreview.stats.original)+(compareStage==='after'?(curvePreview.afterDiagnosed?' · замечаний '+visibleIssues.length:' · диагностика не выполнена'):' · исходные')):visibleIssues.length+' замечаний')+(curvePreview?' · оптимизация':autoPreview?' · предпросмотр':' · применено'):
+    (compareStage==='after'?'ПОСЛЕ':'ДО')+' · '+visibleDoc.paths.length+' контуров · '+(curvePreview?('стыков '+curvePreview.stats.smoothedJoints+' · сегменты '+(compareStage==='after'?curvePreview.stats.result:curvePreview.stats.original)+(compareStage==='after'?(curvePreview.afterDiagnosed?' · замечаний '+visibleIssues.length:' · проверка после выполняется'):' · исходные')):visibleIssues.length+' замечаний')+(curvePreview?' · автоисправление':' · применено'):
     'Сравнение после автоисправления';
   $('width').value=doc.width;$('height').value=doc.height;$('count').textContent=visibleDoc.paths.length;
   for(const id of ['sheet','grid-bg']){$(id).setAttribute('width',visibleDoc.width);$(id).setAttribute('height',visibleDoc.height);}
@@ -87,7 +87,15 @@ function render(){
   visibleDoc.paths.forEach((p,i)=>{
     const sel=!reviewing&&selected.has(i);
     const attrs={d:pathData(p),'data-path':i};
-    if(p.artwork){
+    if(reviewing&&p.kind!=='image'){
+      // Draw the exact geometry commands, not the original imported SVG
+      // markup: that artwork could still contain the unsmoothed curves.
+      if(compareStage==='after'&&comparison?.beforeDoc.paths[i]&&
+         worldData(comparison.beforeDoc.paths[i])!==worldData(p)){
+        el('path',{d:worldData(comparison.beforeDoc.paths[i]),class:'comparison-ghost'},$('geometry'));
+      }
+      el('path',{...attrs,class:'comparison-path '+(compareStage==='after'?'after':'before')},$('geometry'));
+    }else if(p.artwork){
       const painted=el('g',{'data-path':i,class:visibleDoc.epsImport?.outlineRecovery?'outline-artwork':'svg-artwork'},$('geometry'));
       appendMarkup(painted,artworkMarkup(p));
       if(sel)el('path',{...attrs,class:'path selected rich-selection'},$('geometry'));
@@ -119,7 +127,6 @@ function render(){
   else $('summary').textContent=curvePreview&&compareStage==='after'&&!curvePreview.afterDiagnosed?'Диагностика оптимизированного результата пока недоступна.':comparison?'Для этой стадии замечаний не найдено.':metrics.length?'Проверка завершена: замечаний не найдено.':'Откройте SVG или нарисуйте векторы.';
   $('summary').title=Object.entries(counts).map(([k,n])=>(names[k]||k)+': '+n).join(' · ');
   $('issue-count').textContent=visibleIssues.length;
-  $('healing-issue-summary').textContent='Проблемных точек: '+visibleIssues.length+(curvePreview?' · сглаженных стыков: '+curvePreview.stats.smoothed+' · удалено сегментов: '+curvePreview.stats.removed:'');
   visibleIssues.slice(0,100).forEach(x=>{
     const b=document.createElement('button');b.className='issue';
     b.textContent=(names[x.kind]||x.kind)+' · '+(x.path+1)+(x.other!==x.path?' ↔ '+(x.other+1):'');
@@ -128,193 +135,119 @@ function render(){
   });
   $('toggle-points').textContent=pointsVisible?'Скрыть здоровые точки':'Показать здоровые точки';
   $('toggle-markers').textContent=markersVisible?'Скрыть маркеры':'Показать маркеры';
-  $('auto-heal').disabled=true;
-  $('auto-apply').disabled=busy||!curvePreview||!(curvePreview.stats.removed||curvePreview.stats.smoothed);
-  $('auto-apply').hidden=false;
-  $('optimize-preview').disabled=true;
-  $('optimization-actions').hidden=true;
-  $('optimize-apply').disabled=busy||!curvePreview;
-  $('optimize-cancel').disabled=busy||!curvePreview;
-  renderAutoPreview();
+  $('apply-changes').disabled=busy||!curvePreview||!curvePreview.hasGeometryChange;
+  $('auto-status').textContent=busy?'Идёт расчёт…':curvePreview?'Предварительный результат рассчитан, просмотрите ПОСЛЕ.':doc.paths.length?'Проверка и расчёт после открытия файла.':'Откройте файл для автоматической проверки.';
   $('toggle-markers').disabled=busy||!visibleIssues.length;
-  $('undo').disabled=busy||!past.length||Boolean(autoPreview||curvePreview);$('redo').disabled=busy||!future.length||Boolean(autoPreview||curvePreview);
+  $('undo').disabled=busy||!past.length||Boolean(curvePreview);$('redo').disabled=busy||!future.length||Boolean(curvePreview);
   $('delete').disabled=busy||reviewing;
   for(const id of ['new','line','rect','circle','select'])$(id).disabled=busy||reviewing;
-  $('diagnose').disabled=busy||!ready||reviewing;
+  // Diagnostics run automatically after opening/changing a document or settings.
   document.querySelectorAll('[data-action]').forEach(b=>b.disabled=busy||!ready||reviewing);
 }
 function lock(value,{coverCanvas=true}={}){busy=value;if(value){$('busy-label').textContent='Расчёт в Rust…';$('import-progress').value=0;}$('busy').hidden=!value;$('busy').classList.toggle('compact',value&&!coverCanvas);document.querySelectorAll('button,input').forEach(e=>{if(e.id!=='cancel'&&e.id!=='log')e.disabled=value;});if(!value)render();}
 
-function renderAutoPreview(){
-  const box=$('auto-preview');box.hidden=!autoPreview;
-  if(!autoPreview)return;
-  const v=autoPreview,sites=v.sites;
-  const point=sites[autoIndex%Math.max(sites.length,1)]||null;
-  const changed=isChanged(v.beforeSample,v.after);
-  $('auto-summary').textContent=
-    'Исходные дефекты: '+v.beforeIssues.length+'; после: '+v.afterIssues.length+
-    '. Предлагается '+v.beforeDoc.length+' → '+v.after.length+' контуров.'+
-    (v.hasCurves?'\nВнимание: EPS / Безье превращаются в полилинии с допуском '+v.tolerance+' мм. Оригинал сохраняется в Undo.':'')+
-    (!changed?'\nБезопасных изменений для этих объектов не найдено.':'');
-  $('auto-apply').disabled=busy||!changed;
-  $('auto-prev').disabled=sites.length<2;$('auto-next').disabled=sites.length<2;
-  $('auto-index').textContent=point?(autoIndex%sites.length+1)+'/'+sites.length+' · '+(issueLabels[point.kind]||point.kind)+(point.resolved?' · устранено':' · остаётся'):'Общий вид';
-  const view=comparisonBox(v.beforeSample,v.after,point,v.tolerance);
-  for(const [id,paths,original] of [['auto-before',v.beforeDoc,true],['auto-after',v.after,false]]){
-    const svg=$(id);svg.replaceChildren();svg.setAttribute('viewBox',[view.x,view.y,view.width,view.height].join(' '));
-    paths.forEach(p=>{const d=pathData(p);if(d)el('path',{d,fill:'none'},svg);});
-    if(point)el('circle',{cx:point.point[0],cy:point.point[1],r:Math.max(view.width/40,.015),fill:original?(issueColors[point.kind]||'#c93e53'):'#12947d',stroke:'white','stroke-width':Math.max(view.width/180,.006)},svg);
-  }
-}
-function nextAutoStage(chain,index){
-  const action=index===0?0:AUTO_STEPS[index-1].action;
-  const id=++sequence;
-  pending={id,autoStage:index,chain};
-  $('busy-label').textContent=index===0?'Автолечение · исходная диагностика…':'Автолечение · '+AUTO_STEPS[index-1].name+'…';
-  record('auto-stage-start',{stage:index,action,paths:chain.current.length});
-  worker.postMessage({id,input:packedInput(chain.current,chain.tolerance,action)});
-}
-function startAutoHeal(){
-  if(!ready||busy)return;
-  autoPreview=null;appliedComparison=null;curvePreview=null;compareStage='before';
-  const scope=doc.paths.map((p,i)=>i).filter(i=>pIsVector(doc.paths[i])&&(!$('selection-only').checked||!selected.size||selected.has(i)));
-  if(!scope.length){status('Нет векторных объектов для автоматического лечения.');return;}
-  const tolerance=Number($('tolerance').value);
-  try{
-    const original=scope.map(i=>clone(doc.paths[i]));
-    const samples=[],sampleScope=[];
-    for(const i of scope)for(const contour of sampledContours(doc.paths[i],tolerance)){samples.push(contour);sampleScope.push(i);}
-    const beforeSample=basicPaths(samples);
-    packedInput(beforeSample,tolerance,0);
-    const chain={scope,original,sampleScope,beforeSample,current:basicPaths(beforeSample),tolerance,
-      hasCurves:original.some(p=>p.artwork),beforeIssues:[]};
-    record('auto-preview-start',{scope,segments:beforeSample.length,tolerance,hasCurves:chain.hasCurves});
-    lock(true,{coverCanvas:false});nextAutoStage(chain,0);
-  }catch(e){lock(false);status('Автолечение: '+e.message);}
-}
-function pIsVector(p){return p.kind!=='image';}
-function finishAutoStage(task,data){
-  const chain=task.chain,index=task.autoStage;
-  if(index===0)chain.beforeIssues=data.output.issues;
-  else chain.current=basicPaths(data.output.paths);
-  if(index<AUTO_STEPS.length){nextAutoStage(chain,index+1);return;}
-  lock(false);
-  const after=basicPaths(data.output.paths);
-  autoPreview={scope:chain.scope,beforeDoc:chain.original,beforeSample:chain.beforeSample,after,
-    beforeIssues:chain.beforeIssues,afterIssues:data.output.issues,tolerance:chain.tolerance,
-    hasCurves:chain.hasCurves,
-    sites:proposedIssueLocations(chain.beforeIssues,data.output.issues,chain.tolerance),
-    comparisonData:mappedComparison(doc,chain.scope,chain.sampleScope,chain.beforeIssues,data.output.issues,after)};
-  autoIndex=0;compareStage='before';render();
-  const revised=isChanged(chain.beforeSample,after);
-  status(revised?'Автолечение рассчитано. Сравните до/после и подтвердите применение.':'Автолечение завершено: безопасных изменений не найдено.');
-  record('auto-preview-ready',{beforeIssues:chain.beforeIssues.length,afterIssues:data.output.issues.length,beforePaths:chain.original.length,afterPaths:after.length,changes:revised});
-}
-function applyAutoHeal(){
-  if(busy||!autoPreview||!isChanged(autoPreview.beforeSample,autoPreview.after))return;
-  if(Number($('tolerance').value)!==autoPreview.tolerance){status('Допуск изменился после расчёта. Запустите автоисправление заново.');return;}
-  const v=autoPreview,comparisonSnapshot=v.comparisonData,before=clone(doc),scope=new Set(v.scope),newPaths=[],selectedPaths=[];
-  let inserted=false;
-  for(let i=0;i<doc.paths.length;i++){
-    if(scope.has(i)){
-      if(!inserted){
-        for(const p of v.after){selectedPaths.push(newPaths.length);newPaths.push(clone(p));}
-        inserted=true;
-      }
-    }else newPaths.push(doc.paths[i]);
-  }
-  doc.paths=newPaths;selected=new Set(selectedPaths);checkpoint(before);
-  record('auto-apply',{sourceObjects:v.scope.length,resultObjects:v.after.length,tolerance:v.tolerance,
-    beforeIssues:v.beforeIssues.length,afterIssues:v.afterIssues.length,curveSampling:v.hasCurves});
-  changed('auto-apply');updateFileHistory({repair:{before:v.beforeIssues.length,after:v.afterIssues.length},status:'Автоисправлено'});appliedComparison=comparisonSnapshot;compareStage='after';render();status('Изменения применены. В центре можно сравнить ДО/ПОСЛЕ; Undo возвращает исходные кривые.');
-}
-$('auto-heal').onclick=startAutoHeal;
-$('auto-apply').onclick=()=>{if(curvePreview)applyCurveOptimization();};
-$('auto-discard').onclick=()=>{autoPreview=null;appliedComparison=null;compareStage='before';render();status('Предложенные исправления отклонены. Исходный макет не изменён.');};
-$('auto-prev').onclick=()=>{if(autoPreview){autoIndex=(autoIndex-1+Math.max(1,autoPreview.sites.length))%Math.max(1,autoPreview.sites.length);renderAutoPreview();}};
-$('auto-next').onclick=()=>{if(autoPreview){autoIndex=(autoIndex+1)%Math.max(1,autoPreview.sites.length);renderAutoPreview();}};
-
-
-function previewCurveOptimization(){
-  if(busy)return;
-  curvePreview=null;appliedComparison=null;autoPreview=null;
-  const tolerance=Number($('optimization-tolerance').value),smoothing=Number($('smoothing-tolerance').value);
+// The automatic section is declarative: settings trigger calculation, no
+// "start/cancel" action. Only Apply commits a candidate to the document.
+function buildUnifiedPreview(){
+  if(busy||!doc.paths.length)return;
   const scope=selectedVectorIndices(doc,selected,$('selection-only').checked);
-  if(!scope.length){status('Выберите векторные кривые для оптимизации.');return;}
+  if(!scope.length){curvePreview=null;$('optimization-result').textContent='Нет векторных кривых для обработки.';render();return;}
   try{
-    const result=smoothAndOptimizePaths(doc,scope,smoothing,tolerance),st=result.stats;
-    record('curve-optimize-measure',{tolerance,scope,stats:st});
-    const summary='Сглажено стыков: '+st.smoothed+'. Сегментов: '+st.original+' → '+st.result+' (−'+st.removed+').'+
-      '\nОценка отклонения: до '+st.estimateCombinedError.toFixed(5)+' мм. Сглаживание '+smoothing+' мм, оптимизация '+tolerance+' мм.';
-    $('optimization-result').textContent=st.removed?summary+'\nСравните ДО/ПОСЛЕ в центральном окне, затем примените.':summary+'\nБезопасных сокращений при этом допуске нет. Увеличьте допуск для более сильной оптимизации.';
-    if(!st.removed&&!st.smoothed){$('auto-apply').disabled=true;status('Изменений кривых в заданных допусках нет.');render();return;}
-    curvePreview={source:clone(doc),result:result.document,stats:st,afterDiagnosed:false,
-      comparisonData:{beforeDoc:clone(doc),afterDoc:result.document,beforeIssues:clone(issues),afterIssues:[]}};
-    compareStage='after';render();
-    // Diagnose the candidate, preserving a sampled-contour-to-object map.
-    // If the Rust limit is reached, show the candidate but never claim it is clean.
+    const smoothingAmount=Number($('smoothing-amount').value);
+    const optimizationTolerance=Number($('optimization-tolerance').value);
+    const optimized=smoothAndOptimizePaths(doc,scope,smoothingAmount,optimizationTolerance);
+    const st={...optimized.stats,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
+      smoothingDeviation:optimized.stats.smoothingError};
+    const different=scope.some(i=>worldData(doc.paths[i])!==worldData(optimized.document.paths[i]));
+    const msg='Кривые: сглажено стыков '+st.smoothedJoints+
+      ' · оценённое отклонение сглаживания до '+st.smoothingDeviation.toFixed(5)+' мм.'+
+      '\nСегментов: '+st.original+' → '+st.result+
+      ' (−'+st.removed+'), оценка отклонения оптимизации до '+st.maxError.toFixed(5)+' мм.'+
+      '\nДопуски: сглаживание '+smoothingAmount+' мм · оптимизация '+optimizationTolerance+' мм.'+
+      (different?'\nДля просмотра изменений выберите ДО / ПОСЛЕ. Красный пунктир — исходная кривая, зелёный — результат.':
+        '\nПри этих допусках форма не изменена.');
+    $('optimization-result').textContent=msg;
+    const pv={source:clone(doc),result:optimized.document,stats:st,hasGeometryChange:different,
+      afterDiagnosed:false,comparisonData:{
+        beforeDoc:clone(doc),afterDoc:optimized.document,beforeIssues:clone(issues),afterIssues:[]
+      }};
+    curvePreview=pv;compareStage='after';
+    record('autoheal-curve-preview',{scope,stats:st,changed:different});
+    render();
+    if(!ready)return;
     try{
-      if(!ready)throw Error('Rust/WASM пока не готов');
-      const diagnosticTolerance=Number($('tolerance').value),samples=[],mapping=[];
-      for(const i of scope)for(const part of sampledContours(result.document.paths[i],diagnosticTolerance)){
+      const tolerance=Number($('tolerance').value),samples=[],mapping=[];
+      for(const i of scope)for(const part of sampledContours(optimized.document.paths[i],tolerance)){
         samples.push(part);mapping.push(i);
       }
-      const input=packedInput(samples,diagnosticTolerance,0),id=++sequence;
-      pending={id,optimizeDiagnostic:true,scope:mapping};
+      const input=packedInput(samples,tolerance,0),id=++sequence;
+      pending={id,unifiedAfterDiagnostic:true,scope:mapping,preview:pv};
       lock(true,{coverCanvas:false});
       worker.postMessage({id,input});
     }catch(err){
-      status('Предпросмотр готов. Диагностика ПОСЛЕ недоступна: '+err.message);
+      status('Геометрия ПОСЛЕ рассчитана; Rust-проверка недоступна: '+err.message);
+      $('optimization-result').textContent+='\nПроверка дефектов ПОСЛЕ недоступна: '+err.message;
     }
-  }catch(e){$('optimization-result').textContent=e.message;status('Оптимизация: '+e.message);}
+  }catch(err){curvePreview=null;$('optimization-result').textContent=err.message;render();status('Автоисправление: '+err.message);}
 }
-function applyCurveOptimization(){
-  if(!curvePreview||busy)return;
+function applyUnifiedChanges(){
+  if(busy||!curvePreview||!curvePreview.hasGeometryChange)return;
   const pv=curvePreview;
-  if(Number($('optimization-tolerance').value)!==pv.stats.tolerance||Number($('smoothing-tolerance').value)!==pv.stats.smoothTolerance){
-    status('Допуск изменён. Пересчитайте оптимизацию перед применением.');return;
+  if(Number($('smoothing-amount').value)!==pv.stats.smoothingAmount||
+     Number($('optimization-tolerance').value)!==pv.stats.tolerance){
+    status('Параметры изменились. Автоматический расчёт ещё не завершён.');return;
   }
-  checkpoint(clone(doc));
-  doc=clone(pv.result);
-  const comparison=pv.comparisonData;
-  changed('curve-optimize-apply');
-  appliedComparison=comparison;compareStage='after';render();
-  updateFileHistory({status:'Оптимизировано: '+pv.stats.original+' → '+pv.stats.result+' сегментов; требуется повторная диагностика',diagnosis:null,repair:null});
-  record('curve-optimize-apply',{stats:pv.stats});
-  status('Оптимизация применена. Сегменты: '+pv.stats.original+' → '+pv.stats.result+'. Undo восстанавливает оригинальные кривые.');
+  const baseline=clone(doc),comparison=pv.comparisonData;
+  checkpoint(baseline);doc=clone(pv.result);
+  changed('unified-apply');appliedComparison=comparison;compareStage='after';render();
+  const st=pv.stats;
+  updateFileHistory({status:'Сглажено стыков: '+st.smoothedJoints+' · сегментов '+st.original+' → '+st.result,
+    diagnosis:null,repair:null});
+  record('unified-apply',{stats:st});
+  status('Изменения применены: '+st.smoothedJoints+' сглаженных стыков, '+st.removed+
+    ' удалённых сегментов. Undo восстанавливает исходные кривые.');
 }
-$('optimization-range').oninput=()=>{$('optimization-tolerance').value=$('optimization-range').value;previewCurveOptimization();};
-$('optimization-tolerance').oninput=()=>{
+function requestRecalculation(){
+  clearTimeout(settingsTimeout);settingsTimeout=setTimeout(()=>{
+    if(busy){requestRecalculation();return;}
+    curvePreview=null;appliedComparison=null;compareStage='before';
+    if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);
+    else render();
+  },180);
+}
+$('optimization-range').oninput=()=>{
+  $('optimization-tolerance').value=$('optimization-range').value;requestRecalculation();
+};
+$('optimization-tolerance').onchange=()=>{
   const t=Number($('optimization-tolerance').value);
   if(Number.isFinite(t))$('optimization-range').value=String(Math.max(.001,Math.min(.25,t)));
-  previewCurveOptimization();
+  requestRecalculation();
 };
-$('smoothing-tolerance').onchange=previewCurveOptimization;
-$('optimize-preview').onclick=null;
-$('optimize-apply').onclick=null;
-$('optimize-cancel').onclick=null;
+$('smoothing-amount').onchange=requestRecalculation;
+$('tolerance').onchange=requestRecalculation;
+$('selection-only').onchange=requestRecalculation;
+$('apply-changes').onclick=applyUnifiedChanges;
 
 function spawnWorker(){
   worker=new Worker(new URL('worker.js',import.meta.url),{type:'module'});
   worker.onmessage=({data})=>{
-    if(data.id===0){ready=!data.error;$('engine').textContent=ready?'● Rust / WASM готов':'○ WASM не собран';status(data.error||'Rust-ядро готово');render();return;}
+    if(data.id===0){ready=!data.error;$('engine').textContent=ready?'● Rust / WASM готов':'○ WASM не собран';status(data.error||'Rust-ядро готово');render();if(ready&&doc.paths.length&&!currentComparison())calculate(0);return;}
     if(!pending||data.id!==pending.id)return;
     const task=pending;pending=null;
     if(data.error){lock(false);record('engine-error',{error:data.error});status(data.error);return;}
-    if(task.optimizeDiagnostic){
-      if(curvePreview){
+    if(task.unifiedAfterDiagnostic){
+      if(curvePreview&&task.preview===curvePreview){
         curvePreview.comparisonData.afterIssues=data.output.issues.map(x=>({
           ...x,path:task.scope[x.path]??-1,other:task.scope[x.other]??-1
         }));
         curvePreview.afterDiagnosed=true;
         curvePreview.afterDiagnosticComplete=data.output.diagnosticComplete;
-        record('curve-optimization-diagnose',{issues:data.output.issues.length,complete:data.output.diagnosticComplete});
+        record('unified-autoheal-diagnose',{issues:data.output.issues.length,complete:data.output.diagnosticComplete});
       }
       lock(false);render();
-      status('Оптимизация: '+(curvePreview?.stats.original||0)+' → '+(curvePreview?.stats.result||0)+' сегментов; после: '+data.output.issues.length+' замечаний'+(data.output.diagnosticComplete?'':' (неполная проверка)'));
+      status('Сглаживание и оптимизация: '+(curvePreview?.stats.original||0)+' → '+(curvePreview?.stats.result||0)+' сегментов; после: '+data.output.issues.length+' замечаний'+(data.output.diagnosticComplete?'':' (неполная проверка)'));
       return;
     }
-    if(task.autoStage!==undefined){finishAutoStage(task,data);return;}
     lock(false);
     if(task.action){
       checkpoint(task.before);
@@ -325,14 +258,15 @@ function spawnWorker(){
       status('Изменения применены. Для повторной проверки нажмите «Найти проблемы».');
     }else{
       diagnosticComplete=data.output.diagnosticComplete;markersVisible=true;issues=data.output.issues.map(x=>({...x,path:task.scope[x.path],other:task.scope[x.other]}));metrics=doc.paths.map(()=>null);data.output.paths.forEach((p,i)=>metrics[task.scope[i]]=p);
-      record('diagnose',{issues:issues.length,scope:task.scope});updateFileHistory({diagnosis:{count:issues.length,complete:diagnosticComplete,selected:Boolean(task.selectedOnly)}});render();status(diagnosticComplete?`Проверено объектов: ${task.scope.length}. Замечаний: ${issues.length}.`:'Проверка неполная: достигнут лимит 10000 замечаний.');if(!currentComparison())previewCurveOptimization();
+      record('diagnose',{issues:issues.length,scope:task.scope});updateFileHistory({diagnosis:{count:issues.length,complete:diagnosticComplete,selected:Boolean(task.selectedOnly)}});render();status(diagnosticComplete?`Проверено объектов: ${task.scope.length}. Замечаний: ${issues.length}.`:'Проверка неполная: достигнут лимит 10000 замечаний.');
+      if(task.action===0)buildUnifiedPreview();
     }
   };
   worker.onerror=e=>{pending=null;ready=false;$('engine').textContent='○ Ошибка WASM';lock(false);status(`Ошибка WASM worker: ${e.message}`);};worker.postMessage({id:0});
 }
 function calculate(action){
   if(!ready||busy)return;
-  if(currentComparison()){status('Закройте режим ДО/ПОСЛЕ перед новой диагностикой.');return;}
+  if(currentComparison()&&action){status('Закройте режим ДО/ПОСЛЕ перед ручным редактированием.');return;}
   const selectedScope=doc.paths.map((_,i)=>i).filter(i=>(!$('selection-only').checked||!selected.size||selected.has(i))&&doc.paths[i].kind!=='image');
   if(!selectedScope.length){status('Нет векторов для проверки');return;}
   const tol=Number($('tolerance').value),parameter=Number($('loop-percent').value);
@@ -398,11 +332,11 @@ $('zoom-in').onclick=()=>zoom(0.8);
 $('zoom-out').onclick=()=>zoom(1.25);
 $('compare-before').onclick=()=>{if(!currentComparison())return;compareStage='before';record('compare-stage',{stage:'before'});render();};
 $('compare-after').onclick=()=>{if(!currentComparison())return;compareStage='after';record('compare-stage',{stage:'after'});render();};
-$('compare-exit').onclick=()=>{if(busy)return;autoPreview=null;appliedComparison=null;curvePreview=null;compareStage='before';record('compare-close');render();status('Сравнение закрыто, редактирование доступно.');};
+$('compare-exit').onclick=()=>{if(busy)return;appliedComparison=null;curvePreview=null;compareStage='before';record('compare-close');render();status('Сравнение закрыто, редактирование доступно.');};
 $('toggle-info').onclick=()=>{if(busy)return;const panel=$('info-panel'),expanded=panel.hidden;panel.hidden=!expanded;$('main-layout').classList.toggle('left-collapsed',!expanded);$('toggle-info').setAttribute('aria-expanded',String(expanded));$('toggle-info').textContent=expanded?'Сведения ◂':'Сведения ▸';record('info-panel-toggle',{expanded});};
 $('toggle-points').onclick=()=>{pointsVisible=!pointsVisible;record('toggle-all-anchors',{visible:pointsVisible});render();};
 $('toggle-markers').onclick=()=>{if(busy||!issues.length)return;markersVisible=!markersVisible;record('toggle-issue-markers',{visible:markersVisible});render();};
-$('diagnose').onclick=()=>calculate(0);document.querySelectorAll('[data-action]').forEach(e=>e.onclick=()=>calculate(Number(e.dataset.action)));
+document.querySelectorAll('[data-action]').forEach(e=>e.onclick=()=>calculate(Number(e.dataset.action)));
 $('cancel').onclick=()=>{if(epsWorker){stopEps();lock(false);record('eps-cancel');status('Импорт EPS отменён. Документ сохранён.');return;}worker.terminate();pending=null;ready=false;lock(false);record('engine-cancel');status('Расчёт отменён, документ сохранён.');spawnWorker();};
 $('undo').onclick=()=>{if(!past.length||busy)return;future.push(clone(doc));doc=past.pop();selected.clear();changed('undo');};
 $('redo').onclick=()=>{if(!future.length||busy)return;past.push(clone(doc));doc=future.pop();selected.clear();changed('redo');};
@@ -411,10 +345,10 @@ $('new').onclick=()=>{activeHistoryId=null;checkpoint();doc={format:'relief-forg
 for(const key of ['width','height'])$(key).onchange=()=>{const v=Number($(key).value);if(v>0&&v<1e6){checkpoint();doc[key]=v;changed('resize-sheet');fit();}else render();};
 $('save').onclick=()=>{record('save-project');download('relief-forge.rf.json',JSON.stringify({...doc,journal,history:{past,future}},null,2));};
 function stopEps(){epsWorker?.terminate();epsWorker=null;clearTimeout(epsTimer);}
-function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&!next.epsImport)previewCurveOptimization();}
+function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта EPS…';record('eps-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsWorker=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.12',import.meta.url));
+  epsWorker=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.13',import.meta.url));
   const fail=message=>{stopEps();lock(false);status(message);$('import-report').textContent='Не удалось открыть EPS: '+message;record('eps-error',{name,message});updateFileHistory({status:'Ошибка открытия: '+String(message).slice(0,180)});};
   epsTimer=setTimeout(()=>fail('EPS превысил лимит 120 секунд. Импорт отменён, документ сохранён.'),120000);
   epsWorker.onerror=e=>fail('Ошибка EPS: '+e.message);
@@ -429,8 +363,7 @@ function importEps(bytes,name,historyStarted=false){
       if(data.result.outlineRecovery){
         record('eps-outline-recovery',data.result.outlineRecovery);
         status(`Восстановлено ${data.result.outlineRecovery.count} непечатаемых EPS-контуров. Обводки только для просмотра; начинается проверка векторов…`);
-        if(ready)calculate(0);
-      }else{status(`EPS импортирован: ${next.paths.length} объектов. ${data.result.warnings.length?'Есть предупреждения — см. панель EPS.':'Кривые и оформление сохранены.'}`);if(ready)previewCurveOptimization();}
+      }else status(`EPS импортирован: ${next.paths.length} объектов. ${data.result.warnings.length?'Есть предупреждения — см. панель EPS.':'Кривые и оформление сохранены.'}`);
     }catch(e){fail(e.message);}
   };
   epsWorker.postMessage({bytes,fonts:importFonts});
@@ -443,7 +376,7 @@ $('fonts').onchange=async e=>{try{const files=[...e.target.files];if(files.reduc
 $('demo-eps').onclick=async()=>{try{const response=await fetch('examples/curves-text-clip.eps');if(!response.ok)throw Error('Не удалось загрузить пример');importEps(new Uint8Array(await response.arrayBuffer()),'curves-text-clip.eps');}catch(e){status(e.message);}};
 $('heal-copy').onclick=()=>{try{const ids=[...selected].filter(i=>doc.paths[i].kind!=='image');if(!ids.length)throw Error('Выделите импортированные векторы');const tol=Number($('tolerance').value);if(!Number.isFinite(tol)||tol<1e-6||tol>1000)throw Error('Укажите допуск от 0.000001 до 1000 мм');const copies=ids.flatMap(i=>sampledContours(doc.paths[i],tol));checkpoint();const start=doc.paths.length;doc.paths.push(...copies);selected=new Set(copies.map((_,i)=>start+i));changed('create-healing-copy');status(`Создано ${copies.length} полилиний, допуск ${tol} мм. Исходные кривые сохранены отдельными объектами.`);}catch(e){status(e.message);}};
 $('export').onclick=()=>{download('relief-forge.svg',exportDocument(doc),'image/svg+xml');record('export-svg');};
-$('export-eps').onclick=()=>{if(autoPreview||curvePreview){status('Сначала примените или отмените предварительное изменение векторов.');return;}try{const eps=exportEps(doc);const resultName=epsResultFilename(doc.sourceFileName||doc.epsImport?.name||'relief-forge.eps');download(resultName,eps,'application/postscript');updateFileHistory({exportName:resultName,exportAt:new Date().toISOString()});record('export-eps',{name:resultName,source:doc.sourceFileName||null,paths:doc.paths.length,bytes:eps.length});status('EPS сохранён: бесцветные контуры без заливки и толщины линий. В обычном просмотрщике такой EPS будет пустым — откройте его в ArtCAM.');}catch(e){status(e.message);record('eps-export-error',{message:e.message});}};
+$('export-eps').onclick=()=>{if(curvePreview){status('Сначала примените или отмените предварительное изменение векторов.');return;}try{const eps=exportEps(doc);const resultName=epsResultFilename(doc.sourceFileName||doc.epsImport?.name||'relief-forge.eps');download(resultName,eps,'application/postscript');updateFileHistory({exportName:resultName,exportAt:new Date().toISOString()});record('export-eps',{name:resultName,source:doc.sourceFileName||null,paths:doc.paths.length,bytes:eps.length});status('EPS сохранён: бесцветные контуры без заливки и толщины линий. В обычном просмотрщике такой EPS будет пустым — откройте его в ArtCAM.');}catch(e){status(e.message);record('eps-export-error',{message:e.message});}};
 $('log').onclick=()=>download('relief-forge-session.jsonl',journal.map(x=>JSON.stringify(x)).join('\n'),'application/x-ndjson');
 $('demo').onclick=()=>{activeHistoryId=null;checkpoint();doc={format:'relief-forge',version:1,width:150,height:100,paths:[{closed:true,points:[[10,10],[50,50],[10,50],[50,10]]},{closed:true,points:[[70,10],[110,10],[110,40],[70,40]]},{closed:true,points:[[110,40],[110,10],[70,10],[70,40]]},{closed:false,points:[[10,70],[30,70],[30.003,70],[50,70]]},{closed:false,points:[[50.005,70],[80,70],[80,90]]}]};selected.clear();changed('load-demo');fit();};
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
@@ -455,4 +388,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();
 });
-record('session-start',{version:'0.2.0-alpha.12'});renderFileHistory();spawnWorker();fit();
+record('session-start',{version:'0.2.0-alpha.13'});renderFileHistory();spawnWorker();fit();
