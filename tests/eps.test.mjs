@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import {createRequire} from 'node:module';
 import * as mupdf from 'mupdf';
 import {DOMParser} from '@xmldom/xmldom';
-import {epsProgram,epsMetadata,interpretEps,recoverOutlineOnlyEps} from '../web/eps-pipeline.js';
+import {epsProgram,epsMetadata,interpretEps,recoverOutlineOnlyEps,ghostscriptArgs,pdfToSvg} from '../web/eps-pipeline.js';
 import {recoverUnpaintedCorelOutlines} from '../web/corel-outline.js';
 import {exportEps} from '../web/eps-export.js';
 import {importRichSvg,exportDocument,sampledContours,worldData,safeFragment} from '../web/rich-svg.js';
@@ -147,32 +147,51 @@ test('EPS metadata supports trailer BoundingBox and rejects nested/page override
 });
 
 
-test('real EPS round trip preserves Bezier curves and exported painted outlines',async()=>{
+test('real EPS round trip preserves cubic geometry as unpainted legacy ArtCAM paths',async()=>{
   const source=new Uint8Array(readFileSync(new URL('tests/fixtures/eps/corel-unpainted.eps',root)));
   const raw=recoverOutlineOnlyEps(source);
   const doc=importRichSvg(raw.svg,{unitsPerInch:72,Parser:DOMParser});
   const snapshot=JSON.stringify(doc),eps=exportEps(doc);
   assert.match(eps,/^%!PS-Adobe-3\.0 EPSF-3\.0/);
-  assert.match(eps,/curveto/);
-  assert.match(eps,/closepath/);
-  assert.ok((eps.match(/\bstroke\b/g)||[]).length>=2);
+  assert.match(eps,/^%%Creator: Relief Forge$/m);
+  assert.match(eps,/^%%RF-OutlinePaths: 1$/m);
+  assert.match(eps,/^\/N\/newpath ld$/m);
+  assert.match(eps,/^[-\d. ]+ C$/m);
+  assert.match(eps,/^@c$/m);
+  assert.match(eps,/^N$/m);
+  assert.doesNotMatch(eps,/^\s*(?:stroke|fill|eofill|setlinewidth|setcmykcolor|setrgbcolor|setgray)\b/gm);
   assert.doesNotMatch(eps,/(?:diagnostic|problem|marker|circle node)/i);
   assert.ok(Math.abs(epsMetadata(new TextEncoder().encode(eps)).widthPt-100)<1e-5);
-  const rendered=await convert(new TextEncoder().encode(eps));
-  assert.ok(Math.abs(rendered.widthPt-100)<0.01,'EPS physical size must round-trip in points');
-  const imported=importRichSvg(rendered.svg,{unitsPerInch:72,Parser:DOMParser});
+  const interpreted=await convert(new TextEncoder().encode(eps));
+  assert.equal(interpreted.outlineRecovery?.source,'relief-forge-outline-paths');
+  assert.ok(Math.abs(interpreted.widthPt-100)<0.01);
+  const imported=importRichSvg(interpreted.svg,{unitsPerInch:72,Parser:DOMParser});
+  assert.equal(imported.paths.length,doc.paths.length);
   assert.ok(imported.paths.some(p=>p.commands.some(s=>s[0]==='C')));
-  assert.equal(JSON.stringify(doc),snapshot,'EPS export must not mutate source curves');
+  assert.equal(JSON.stringify(doc),snapshot,'Export must not modify original Bezier paths');
 });
 test('EPS export preserves quadratic curvature using cubic conversion, never lines',()=>{
   const doc={width:100,height:50,paths:[{kind:'vector',artwork:'<path/>',offset:[0,0],
     commands:[['M',10,10],['Q',15,0,20,10],['Z']],points:[[10,10],[20,10]],closed:true}]};
   const ps=exportEps(doc);
-  assert.match(ps,/curveto/);
-  assert.equal((ps.match(/\blineto\b/g)||[]).length,0);
-  assert.equal((ps.match(/\bclosepath\b/g)||[]).length,1);
+  assert.match(ps,/^[-\d. ]+ C$/m);
+  assert.doesNotMatch(ps,/^[-\d. ]+ L$/m);
+  assert.match(ps,/^@c$/m);
+  assert.doesNotMatch(ps,/^\s*(?:stroke|fill|setlinewidth)\b/gm);
 });
 test('EPS exporter rejects raster and clipped documents explicitly',()=>{
   assert.throws(()=>exportEps({width:10,height:10,paths:[{kind:'image',points:[[1,1]]}]}),/растровые/i);
   assert.throws(()=>exportEps({width:10,height:10,paths:[{artwork:'<path clip-path="url(#a)"/>',commands:[['M',1,1]]}]}),/обтравка/i);
+});
+
+test('real Ghostscript WASM confirms legacy ArtCAM EPS has zero printable artwork',async()=>{
+  const fixture=new Uint8Array(readFileSync(new URL('tests/fixtures/eps/corel-unpainted.eps',root)));
+  const doc=importRichSvg(recoverOutlineOnlyEps(fixture).svg,{unitsPerInch:72,Parser:DOMParser});
+  const bytes=new TextEncoder().encode(exportEps(doc));
+  // The producer may already write a blank EPS page at finalization.
+  // Appending showpage would add a second blank page, so interpret it as-is.
+  const result=await runGhostscript(bytes,ghostscriptArgs(false));
+  const rendered=pdfToSvg(result.pdf,mupdf);
+  assert.ok(!rendered||!/<(?:path|image|use)\b/.test(rendered.svg),
+    'A PostScript interpreter must not print any of these curves');
 });

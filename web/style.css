@@ -37,3 +37,21 @@ footer #status{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-wid
 .auto-navigation,.auto-controls{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-top:8px}
 .auto-navigation #auto-index{flex:1;text-align:center;font-size:10px;overflow:hidden;text-overflow:ellipsis}
 .auto-navigation button{padding:4px 10px}.auto-controls button{font-size:10px;flex:1;padding:6px 5px}
+
+/* Compact by default: left pane is reference information, not the working area. */
+main.left-collapsed{grid-template-columns:minmax(250px,1fr) 304px}
+#info-panel[hidden]{display:none}
+#toggle-info{white-space:nowrap;font-weight:600;border-color:#c7d6e3}
+#toggle-info[aria-expanded="true"]{background:#e6f2f8;border-color:#7eaabd}
+.creation-tools{position:relative;flex-shrink:0}
+.creation-tools>summary{display:block;list-style:none;cursor:pointer;padding:8px 10px;border:1px solid #d8e0e8;background:white;border-radius:6px;color:#283b50;white-space:nowrap}
+.creation-tools>summary::-webkit-details-marker{display:none}
+.creation-tools>summary::after{content:" ▾";color:#627a89}
+.creation-tools[open]>summary{background:#e6f2f8;border-color:#7eaabd}
+.creation-actions{position:absolute;z-index:40;top:calc(100% + 5px);left:0;min-width:210px;padding:10px;background:#fff;border:1px solid #bfcedb;box-shadow:0 9px 23px #27374730;border-radius:7px;display:grid;gap:5px}
+.creation-actions button{text-align:left}
+@media(max-width:1000px){
+  main.left-collapsed{grid-template-columns:minmax(200px,1fr) 260px}
+  nav{overflow:visible;flex-wrap:wrap;white-space:normal}
+}
+@media(max-width:740px){main.left-collapsed{display:flex}.creation-actions{max-width:calc(100vw - 20px)}}
