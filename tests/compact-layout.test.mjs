@@ -31,7 +31,7 @@ test('document creation tools are in a closed-by-default native disclosure',()=>
 
 
 test('diagnostic legend, issue list and all manual actions are collapsed by default',()=>{
-  for(const id of ['legend-panel','point-controls','issues-panel','manual-repairs','auto-local-details','auto-notes']){
+  for(const id of ['legend-panel','point-controls','issues-panel','manual-repairs']){
     assert.match(html,new RegExp('<details id="'+id+'"'));
     assert.doesNotMatch(html,new RegExp('<details id="'+id+'"[^>]*\\bopen\\b'));
   }
@@ -66,16 +66,26 @@ test('file history presents date / original filename / result in a closed sectio
   assert.match(css,/\.file-history-table/);
 });
 
-test('Bezier optimization exposes a bounded adjustable tolerance and central comparison',()=>{
- const start=html.indexOf('id="curve-optimization"');
- assert.ok(start>0);
- const area=html.slice(start,html.indexOf('</details>',start));
- for(const id of ['optimization-range','optimization-tolerance','optimize-preview','optimize-apply','optimize-cancel','optimization-result','optimization-actions'])assert.ok(area.includes('id="'+id+'"'),id);
- assert.match(area,/type="range" min="0.001" max="0.25"/);
- assert.match(area,/type="number" min="0.00001" max="2"/);
- assert.match(app,/function previewCurveOptimization\(\)/);
- assert.match(app,/function applyCurveOptimization\(\)/);
- assert.match(app,/curvePreview\?\.comparisonData/);
- assert.match(app,/checkpoint\(clone\(doc\)\)/);
- assert.match(app,/appliedComparison=comparison;compareStage='after'/);
+test('unified autoheal has one Apply action, problems and both smoothing/optimization sizes',()=>{
+ const start=html.indexOf('<aside class="right">');
+ const manual=html.indexOf('<details id="manual-repairs"',start);
+ assert.ok(start>0&&manual>start);
+ const area=html.slice(start,manual);
+ assert.match(area,/<h2>Автоисправление<\/h2>/);
+ for(const id of ['issues-panel','issues','issue-count','summary','tolerance',
+                  'smoothing-amount','optimization-tolerance','optimization-range','apply-changes'])
+   assert.ok(area.includes('id="'+id+'"'),id);
+ assert.equal((area.match(/<button\b/g)||[]).length,3,
+   'only Apply plus two visibility toggles, no old start/cancel/preview buttons');
+ assert.ok(area.includes('<button id="apply-changes" class="primary" disabled>Применить изменения</button>'));
+ for(const id of ['auto-heal','auto-apply','auto-discard','optimize-preview','optimize-apply','optimize-cancel','diagnose'])
+   assert.ok(!html.includes('id="'+id+'"'),id);
+ assert.match(app,/function buildUnifiedPreview\(\)/);
+ assert.match(app,/function applyUnifiedChanges\(\)/);
+ assert.match(app,/smoothPaths\(doc,scope,smoothingAmount\)/);
+ assert.match(app,/optimizePaths\(smoothed.document,scope,optimizationTolerance\)/);
+ assert.match(app,/task\.action===0\)buildUnifiedPreview\(\)/);
+ assert.match(app,/if\(ready&&doc\.paths\.some\(p=>p\.kind!=='image'\)\)calculate\(0\)/);
+ assert.match(app,/class:'comparison-path '/);
+ assert.match(app,/class:'comparison-ghost'/);
 });
