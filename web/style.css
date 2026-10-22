@@ -144,3 +144,10 @@ main.left-collapsed{grid-template-columns:minmax(250px,1fr) 304px}
 .problem-marker .issue-number{font-weight:800;font-family:system-ui,sans-serif;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round;vector-effect:non-scaling-stroke;pointer-events:none}
 .problem-marker:hover .issue-ring,.problem-marker:focus .issue-ring{stroke-width:3.5px}
 .marker-state{font-size:10.5px;line-height:1.5;color:#73513f;margin:5px 0 9px}
+.curve-node-tools{display:flex;align-items:center;gap:7px;min-height:54px;padding:8px 14px;background:#eaf5f3;border-bottom:1px solid #bad8d2}
+.curve-node-tools[hidden]{display:none}
+.curve-node-tools span{font-size:11px;color:#425f66;flex:1}
+.curve-editing main{height:calc(100vh - 218px)}
+.curve-node{fill:#fff;stroke:#007e79;stroke-width:1.8px;vector-effect:non-scaling-stroke;cursor:move;pointer-events:all}
+.curve-node.chosen{fill:#ffd45e;stroke:#8a6100}
+@media(max-width:740px){.curve-node-tools{flex-wrap:wrap}.curve-node-tools span{flex-basis:100%;order:1}.curve-editing main{height:auto}}

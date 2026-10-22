@@ -10,7 +10,7 @@ test('Undo and Redo operate on committed documents while an automatic preview ex
   const preview={result:{paths:[{points:[[0,0],[999,0]]}]}};
   const buttons={undo:{},redo:{}};
   const context={doc:structuredClone(committed),past:[structuredClone(original)],future:[],
-    curvePreview:preview,busy:false,selected:new Set([0]),clone:structuredClone,
+    curvePreview:preview,busy:false,curveEditing:()=>false,selected:new Set([0]),clone:structuredClone,
     $:id=>buttons[id]};
   context.changed=()=>{context.curvePreview=null;};
   vm.createContext(context);
