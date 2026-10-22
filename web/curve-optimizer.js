@@ -1,3 +1,10 @@
+// Explicitly resolve indices from the document; never capture a map callback's
+// path variable from a later filter callback. Empty selection means all.
+export function selectedVectorIndices(document,selected,selectionOnly=true){
+  const selection=new Set(selected||[]);
+  return document.paths.map((_,i)=>i).filter(i=>
+    document.paths[i].kind!=='image'&&(!selectionOnly||!selection.size||selection.has(i)));
+}
 // Conservative vector-path optimization. Simplifies geometry without turning
 // Bézier curves into polylines. Every accepted merge is checked in both
 // directions against fine adaptive samples, with a safety margin below the
