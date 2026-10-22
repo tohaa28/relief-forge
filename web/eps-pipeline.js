@@ -1,3 +1,4 @@
+import {recoverUnpaintedCorelOutlines} from './corel-outline.js';
 export const EPS_MAX_BYTES=64*1024*1024;
 export function epsProgram(input){
   const bytes=input instanceof Uint8Array?input:new Uint8Array(input);
