@@ -57,13 +57,102 @@ function render(){
   $('diagnose').disabled=busy||!ready;document.querySelectorAll('[data-action]').forEach(b=>b.disabled=busy||!ready);
 }
 function lock(value,{coverCanvas=true}={}){busy=value;if(value){$('busy-label').textContent='Расчёт в Rust…';$('import-progress').value=0;}$('busy').hidden=!value;$('busy').classList.toggle('compact',value&&!coverCanvas);document.querySelectorAll('button,input').forEach(e=>{if(e.id!=='cancel'&&e.id!=='log')e.disabled=value;});if(!value)render();}
+
+function renderAutoPreview(){
+  const box=$('auto-preview');box.hidden=!autoPreview;
+  if(!autoPreview)return;
+  const v=autoPreview,sites=v.sites;
+  const point=sites[autoIndex%Math.max(sites.length,1)]||null;
+  const changed=isChanged(v.beforeSample,v.after);
+  $('auto-summary').textContent=
+    'Исходные дефекты: '+v.beforeIssues.length+'; после: '+v.afterIssues.length+
+    '. Предлагается '+v.beforeDoc.length+' → '+v.after.length+' контуров.'+
+    (v.hasCurves?'\nВнимание: EPS / Безье превращаются в полилинии с допуском '+v.tolerance+' мм. Оригинал сохраняется в Undo.':'')+
+    (!changed?'\nБезопасных изменений для этих объектов не найдено.':'');
+  $('auto-apply').disabled=busy||!changed;
+  $('auto-prev').disabled=sites.length<2;$('auto-next').disabled=sites.length<2;
+  $('auto-index').textContent=point?(autoIndex%sites.length+1)+'/'+sites.length+' · '+(issueLabels[point.kind]||point.kind)+(point.resolved?' · устранено':' · остаётся'):'Общий вид';
+  const view=comparisonBox(v.beforeSample,v.after,point,v.tolerance);
+  for(const [id,paths,original] of [['auto-before',v.beforeDoc,true],['auto-after',v.after,false]]){
+    const svg=$(id);svg.replaceChildren();svg.setAttribute('viewBox',[view.x,view.y,view.width,view.height].join(' '));
+    paths.forEach(p=>{const d=pathData(p);if(d)el('path',{d,fill:'none'},svg);});
+    if(point)el('circle',{cx:point.point[0],cy:point.point[1],r:Math.max(view.width/40,.015),fill:original?(issueColors[point.kind]||'#c93e53'):'#12947d',stroke:'white','stroke-width':Math.max(view.width/180,.006)},svg);
+  }
+}
+function nextAutoStage(chain,index){
+  const action=index===0?0:AUTO_STEPS[index-1].action;
+  const id=++sequence;
+  pending={id,autoStage:index,chain};
+  $('busy-label').textContent=index===0?'Автолечение · исходная диагностика…':'Автолечение · '+AUTO_STEPS[index-1].name+'…';
+  record('auto-stage-start',{stage:index,action,paths:chain.current.length});
+  worker.postMessage({id,input:packedInput(chain.current,chain.tolerance,action)});
+}
+function startAutoHeal(){
+  if(!ready||busy)return;
+  autoPreview=null;
+  const scope=doc.paths.map((p,i)=>i).filter(i=>pIsVector(doc.paths[i])&&(!$('selection-only').checked||!selected.size||selected.has(i)));
+  if(!scope.length){status('Нет векторных объектов для автоматического лечения.');return;}
+  const tolerance=Number($('tolerance').value);
+  try{
+    const original=scope.map(i=>clone(doc.paths[i]));
+    const samples=scope.flatMap(i=>sampledContours(doc.paths[i],tolerance));
+    const beforeSample=basicPaths(samples);
+    packedInput(beforeSample,tolerance,0);
+    const chain={scope,original,beforeSample,current:basicPaths(beforeSample),tolerance,
+      hasCurves:original.some(p=>p.artwork),beforeIssues:[]};
+    record('auto-preview-start',{scope,segments:beforeSample.length,tolerance,hasCurves:chain.hasCurves});
+    lock(true,{coverCanvas:false});nextAutoStage(chain,0);
+  }catch(e){lock(false);status('Автолечение: '+e.message);}
+}
+function pIsVector(p){return p.kind!=='image';}
+function finishAutoStage(task,data){
+  const chain=task.chain,index=task.autoStage;
+  if(index===0)chain.beforeIssues=data.output.issues;
+  else chain.current=basicPaths(data.output.paths);
+  if(index<AUTO_STEPS.length){nextAutoStage(chain,index+1);return;}
+  lock(false);
+  const after=basicPaths(data.output.paths);
+  autoPreview={scope:chain.scope,beforeDoc:chain.original,beforeSample:chain.beforeSample,after,
+    beforeIssues:chain.beforeIssues,afterIssues:data.output.issues,tolerance:chain.tolerance,
+    hasCurves:chain.hasCurves,
+    sites:proposedIssueLocations(chain.beforeIssues,data.output.issues,chain.tolerance)};
+  autoIndex=0;render();
+  const revised=isChanged(chain.beforeSample,after);
+  status(revised?'Автолечение рассчитано. Сравните до/после и подтвердите применение.':'Автолечение завершено: безопасных изменений не найдено.');
+  record('auto-preview-ready',{beforeIssues:chain.beforeIssues.length,afterIssues:data.output.issues.length,beforePaths:chain.original.length,afterPaths:after.length,changes:revised});
+}
+function applyAutoHeal(){
+  if(busy||!autoPreview||!isChanged(autoPreview.beforeSample,autoPreview.after))return;
+  const v=autoPreview,before=clone(doc),scope=new Set(v.scope),newPaths=[],selectedPaths=[];
+  let inserted=false;
+  for(let i=0;i<doc.paths.length;i++){
+    if(scope.has(i)){
+      if(!inserted){
+        for(const p of v.after){selectedPaths.push(newPaths.length);newPaths.push(clone(p));}
+        inserted=true;
+      }
+    }else newPaths.push(doc.paths[i]);
+  }
+  doc.paths=newPaths;selected=new Set(selectedPaths);checkpoint(before);
+  record('auto-apply',{sourceObjects:v.scope.length,resultObjects:v.after.length,tolerance:v.tolerance,
+    beforeIssues:v.beforeIssues.length,afterIssues:v.afterIssues.length,curveSampling:v.hasCurves});
+  changed('auto-apply');status('Предложенные изменения применены. Undo восстанавливает исходные кривые. Запустите диагностику повторно.');
+}
+$('auto-heal').onclick=startAutoHeal;
+$('auto-apply').onclick=applyAutoHeal;
+$('auto-discard').onclick=()=>{autoPreview=null;render();status('Предложенные исправления отклонены. Исходный макет не изменён.');};
+$('auto-prev').onclick=()=>{if(autoPreview){autoIndex=(autoIndex-1+Math.max(1,autoPreview.sites.length))%Math.max(1,autoPreview.sites.length);renderAutoPreview();}};
+$('auto-next').onclick=()=>{if(autoPreview){autoIndex=(autoIndex+1)%Math.max(1,autoPreview.sites.length);renderAutoPreview();}};
+
 function spawnWorker(){
   worker=new Worker(new URL('worker.js',import.meta.url),{type:'module'});
   worker.onmessage=({data})=>{
     if(data.id===0){ready=!data.error;$('engine').textContent=ready?'● Rust / WASM готов':'○ WASM не собран';status(data.error||'Rust-ядро готово');render();return;}
     if(!pending||data.id!==pending.id)return;
-    const task=pending;pending=null;lock(false);
-    if(data.error){record('engine-error',{error:data.error});status(data.error);return;}
+    const task=pending;pending=null;
+    if(data.error){lock(false);record('engine-error',{error:data.error});status(data.error);return;}
+    if(task.autoStage!==undefined){finishAutoStage(task,data);return;}
+    lock(false);
     if(task.action){
       checkpoint(task.before);
       const scope=new Set(task.scope);const next=[];let inserted=false;const changedIndices=[];
