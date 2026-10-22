@@ -77,7 +77,7 @@ test('unified autoheal has one Apply action, problems and both smoothing/optimiz
    assert.ok(area.includes('id="'+id+'"'),id);
  assert.equal((area.match(/<button\b/g)||[]).length,3,
    'only Apply plus two visibility toggles, no old start/cancel/preview buttons');
- assert.ok(area.includes('<button id="apply-changes" class="primary" disabled>Применить изменения</button>'));
+ assert.match(area, /<button id="apply-changes" class="primary" disabled>[^]*?Применить изменения<\/button>/);
  for(const id of ['auto-heal','auto-apply','auto-discard','optimize-preview','optimize-apply','optimize-cancel','diagnose'])
    assert.ok(!html.includes('id="'+id+'"'),id);
  assert.match(app,/function buildUnifiedPreview\(\)/);
