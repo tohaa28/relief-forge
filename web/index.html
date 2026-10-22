@@ -8,8 +8,9 @@
 <div class="heal-controls">
 <label>Допуск поиска проблем, мм<input id="tolerance" type="number" min="0.000001" step="0.001" value="0.01"></label>
 <label class="check"><input id="selection-only" type="checkbox" checked> Только выделенные, если есть</label>
-<label>Сглаживание кривых, мм<input id="optimization-tolerance" type="number" min="0.00001" max="2" step="0.001" value="0.02"></label>
-<label>Степень оптимизации <output id="optimization-level-value">10 сегментов</output><input id="optimization-range" type="range" min="2" max="20" step="1" value="10"></label>
+<label>Допуск сглаживания кривых, мм<input id="smoothing-tolerance" type="number" min="0" max="2" step="0.001" value="0.02"></label>
+<label>Допуск оптимизации геометрии, мм<input id="optimization-tolerance" type="number" min="0.00001" max="2" step="0.001" value="0.02"></label>
+<label>Степень объединения кривых <output id="optimization-level-value">10 сегментов</output><input id="optimization-range" type="range" min="2" max="20" step="1" value="10"></label>
 <p id="summary">Откройте EPS или SVG для проверки.</p>
 <p id="optimization-result" role="status">Оптимизация пересчитывается при изменении параметров.</p>
 <details id="issues-panel" class="compact-section"><summary>Найденные проблемы <span id="issue-count">0</span></summary><div id="issues" aria-label="Найденные замечания"></div></details>
