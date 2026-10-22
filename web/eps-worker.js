@@ -2,7 +2,7 @@
 const send=(percent,message)=>self.postMessage({type:'progress',percent,message});
 self.onmessage=async({data})=>{
   try{
-    const pipeline=await import('./eps-pipeline.js?v=0.2.0-alpha.15');
+    const pipeline=await import('./eps-pipeline.js?v=0.2.0-alpha.16');
     // Unpainted CorelDRAW paths are pure vector data. Recover them before
     // downloading/initializing hundreds of MB of unrelated raster/PS engines.
     const direct=pipeline.recoverOutlineOnlyEps(new Uint8Array(data.bytes));

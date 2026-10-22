@@ -99,7 +99,16 @@ export function sampledContours(p,tolerance=.01){
     else if(op==='L')add(end);
     else if(op==='C')subdivide(prev,s.slice(1,3),s.slice(3,5),end);
     else if(op==='Q'){const q=s.slice(1,3);subdivide(prev,[prev[0]+2*(q[0]-prev[0])/3,prev[1]+2*(q[1]-prev[1])/3],[end[0]+2*(q[0]-end[0])/3,end[1]+2*(q[1]-end[1])/3],end);}
-    else if(op==='Z'){path.closed=true;prev=path.points[0];continue;}prev=end;
+    else if(op==='Z'){
+      path.closed=true;
+      // A closing C/L already ends at M. Rust's closed polyline model adds
+      // its own last→first edge; retaining that same endpoint twice creates
+      // a fictitious zero edge and breaks adjacency at the seam. Remove only
+      // the exact terminal repeat, never a merely nearby or interior node.
+      const first=path.points[0],last=path.points.at(-1);
+      if(path.points.length>2&&last[0]===first[0]&&last[1]===first[1])path.points.pop();
+      prev=first;continue;
+    }prev=end;
   }return out;
 }
 export function exportDocument(doc){return `<svg xmlns="${NS}" xmlns:xlink="http://www.w3.org/1999/xlink" width="${doc.width}mm" height="${doc.height}mm" viewBox="0 0 ${doc.width} ${doc.height}">${doc.svgDefs||''}${doc.paths.map(p=>p.artwork?artworkMarkup(p):`<path d="${worldData(p)}" fill="none" stroke="#000" stroke-width="0.1"/>`).join('')}</svg>`;}
