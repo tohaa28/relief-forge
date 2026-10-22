@@ -69,7 +69,7 @@ export function recoverOutlineOnlyEps(input){
   // has a creator field outside that window, full Ghostscript fallback still
   // recovers valid unpainted artwork after blank-page detection.
   const prefix=new TextDecoder('latin1').decode(program.subarray(0,Math.min(16384,program.length)));
-  if(!/^%%Creator:\\s*(?:CorelDRAW|Relief Forge)\\b/mi.test(prefix))return null;
+  if(!/^%%Creator:\s*(?:CorelDRAW|Relief Forge)\b/mi.test(prefix))return null;
   const metadata=epsMetadata(program);
   const recovered=recoverUnpaintedCorelOutlines(program,metadata);
   if(!recovered)return null;
