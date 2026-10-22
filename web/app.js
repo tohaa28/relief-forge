@@ -5,7 +5,7 @@ import {exportEps} from './eps-export.js?v=0.2.0-alpha.12';
 import {AUTO_STEPS,basicPaths,packedInput,isChanged,comparisonBox,proposedIssueLocations} from './auto-repair.js';
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
-import {optimizePaths,selectedVectorIndices} from './curve-optimizer.js';
+import {smoothAndOptimizePaths,selectedVectorIndices} from './curve-optimizer.js';
 import {removedCurveAnchors,changedCurveIndices} from './curve-diff.js';
 const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
@@ -144,7 +144,7 @@ function render(){
   });
   $('toggle-points').textContent=pointsVisible?'Скрыть здоровые точки':'Показать здоровые точки';
   $('toggle-markers').textContent=markersVisible?'Скрыть маркеры':'Показать маркеры';
-  $('auto-apply').disabled=busy||!curvePreview||!curvePreview.stats.removed;
+  $('auto-apply').disabled=busy||!curvePreview||!(curvePreview.stats.removed||curvePreview.stats.smoothed);
   $('optimize-preview').disabled=true;
   $('optimization-actions').hidden=true;
   $('optimize-apply').disabled=true;
@@ -251,19 +251,19 @@ $('auto-next').onclick=()=>{if(autoPreview){autoIndex=(autoIndex+1)%Math.max(1,a
 function previewCurveOptimization(){
   if(busy){recalcPending=true;return;}
   recalcPending=false;
-  const tolerance=Number($('optimization-tolerance').value);
+  const tolerance=Number($('optimization-tolerance').value),smoothing=Number($('smoothing-tolerance').value);
   const scope=selectedVectorIndices(doc,selected,$('selection-only').checked);
   if(!scope.length){status('Выберите векторные кривые для оптимизации.');return;}
   try{
-    const result=optimizePaths(doc,scope,tolerance,Number($('optimization-range').value)),st=result.stats;
+    const result=smoothAndOptimizePaths(doc,scope,smoothing,tolerance,Number($('optimization-range').value)),st=result.stats;
     const changedScope=changedCurveIndices(doc,result.document,scope);
     const removedAnchors=removedCurveAnchors(doc,result.document,changedScope);
-    record('curve-optimize-measure',{tolerance,scope,stats:st});
-    const summary='Сегментов: '+st.original+' → '+st.result+' (−'+st.removed+').'+
-      '\nУдалено опорных точек: '+removedAnchors.length+'.'+
-      '\nОценённое отклонение кривой: до '+st.maxError.toFixed(5)+' мм (допуск '+tolerance+' мм).';
-    $('optimization-result').textContent=st.removed?summary+'\nПОСЛЕ: зелёные кривые, пунктиром — прежние; точки показывают реальное сокращение.':summary+'\nБезопасных сокращений не найдено. Увеличьте допуск или степень оптимизации.';
-    if(!st.removed){curvePreview=null;appliedComparison=null;render();status('Не удалось сократить число узлов в заданном допуске.');return;}
+    record('curve-optimize-measure',{tolerance,smoothing,scope,stats:st});
+    const summary='Сглажено стыков Безье: '+st.smoothed+'. Сегментов: '+st.original+' → '+st.result+' (−'+st.removed+').'+
+      '\nУдалено опорных узлов: '+removedAnchors.length+'.'+
+      '\nОценка общего отклонения: до '+st.estimateCombinedError.toFixed(5)+' мм (сглаживание '+smoothing+', оптимизация '+tolerance+' мм).';
+    $('optimization-result').textContent=(st.removed||st.smoothed)?summary+'\nПОСЛЕ: зелёные изменённые кривые; красный пунктир — исходные; красные кружки — удалённые узлы.':summary+'\nИзменений кривых нет при выбранных параметрах.';
+    if(!(st.removed||st.smoothed)){curvePreview=null;appliedComparison=null;render();status('Сглаживание и оптимизация не изменили кривые при заданных допусках.');return;}
     curvePreview={source:clone(doc),result:result.document,scope,changedScope,removedAnchors,stats:st,afterDiagnosed:false,
       comparisonData:{beforeDoc:clone(doc),afterDoc:result.document,beforeIssues:clone(issues),afterIssues:[]}};
     compareStage='after';render();
@@ -287,7 +287,7 @@ function previewCurveOptimization(){
 function applyCurveOptimization(){
   if(!curvePreview||busy)return;
   const pv=curvePreview;
-  if(Number($('optimization-tolerance').value)!==pv.stats.tolerance||Number($('optimization-range').value)!==pv.stats.maxMerge){
+  if(Number($('optimization-tolerance').value)!==pv.stats.tolerance||Number($('smoothing-tolerance').value)!==pv.stats.smoothTolerance||Number($('optimization-range').value)!==pv.stats.maxMerge){
     status('Допуск изменён. Пересчитайте оптимизацию перед применением.');return;
   }
   checkpoint(clone(doc));
@@ -297,12 +297,13 @@ function applyCurveOptimization(){
   appliedComparison=comparison;compareStage='after';render();
   updateFileHistory({status:'Оптимизировано: '+pv.stats.original+' → '+pv.stats.result+' сегментов; требуется повторная диагностика',diagnosis:null,repair:null});
   record('curve-optimize-apply',{stats:pv.stats});
-  status('Оптимизация применена. Сегменты: '+pv.stats.original+' → '+pv.stats.result+'. Undo восстанавливает оригинальные кривые.');
+  status('Сглаживание и оптимизация применены. Стыков: '+pv.stats.smoothed+', сегменты: '+pv.stats.original+' → '+pv.stats.result+'. Undo восстанавливает оригинал.');
 }
 let recalcHandle=null,recalcPending=false;
 function scheduleHealing(){recalcPending=true;if(recalcHandle)clearTimeout(recalcHandle);recalcHandle=setTimeout(()=>{recalcHandle=null;if(busy)return;recalcPending=false;if(doc.paths.some(p=>p.kind!=='image'))previewCurveOptimization();},180);}
 $('optimization-range').oninput=()=>{$('optimization-level-value').textContent=$('optimization-range').value+' сегментов';scheduleHealing();};
 $('optimization-tolerance').oninput=scheduleHealing;
+$('smoothing-tolerance').oninput=scheduleHealing;
 $('tolerance').onchange=scheduleHealing;
 $('selection-only').onchange=scheduleHealing;
 $('optimize-preview').onclick=()=>{};
