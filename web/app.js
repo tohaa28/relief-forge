@@ -496,6 +496,7 @@ document.addEventListener('keydown',e=>{
   const action=keyboardAction(e,curveEditing());if(!action)return;
   e.preventDefault();
   if(action.button){$(action.button).click();return;}
+  if(action.repair){document.querySelector('[data-action="'+action.repair+'"]').click();return;}
   if(action.tool){nodeTool=action.tool;render();return;}
   if(action.operation)runNodeCommand(action.operation);
 });
