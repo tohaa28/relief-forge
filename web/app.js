@@ -64,12 +64,13 @@ const pathData=worldData;
 function appendMarkup(parent,text){const parsed=new DOMParser().parseFromString(`<svg xmlns="${ns}" xmlns:xlink="http://www.w3.org/1999/xlink">${text}</svg>`,'image/svg+xml');for(const child of [...parsed.documentElement.children])parent.append(document.importNode(child,true));}
 function render(){
   const comparison=currentComparison();
+  const optimizedView=curvePreview||appliedComparison?.optimization;
   const frame=activeComparisonFrame(comparison,compareStage,doc,issues);
   const visibleDoc=frame.document,visibleIssues=frame.issues;
   displayedIssues=visibleIssues;
   const reviewing=frame.readOnly;
   $('canvas').classList.toggle('is-comparing',reviewing);
-  $('canvas').classList.toggle('show-optimized',Boolean(curvePreview&&compareStage==='after'));
+  $('canvas').classList.toggle('show-optimized',Boolean(optimizedView&&compareStage==='after'));
   $('compare-exit').hidden=!comparison;
   $('compare-exit').disabled=busy;
   $('compare-before').disabled=busy||!comparison;
@@ -90,7 +91,7 @@ function render(){
     const sel=!reviewing&&selected.has(i);
     const attrs={d:pathData(p),'data-path':i};
     if(p.artwork){
-      const painted=el('g',{'data-path':i,class:(visibleDoc.epsImport?.outlineRecovery?'outline-artwork':'svg-artwork')+(curvePreview&&compareStage==='after'&&curvePreview.scope.includes(i)?' optimized-path':'')},$('geometry'));
+      const painted=el('g',{'data-path':i,class:(visibleDoc.epsImport?.outlineRecovery?'outline-artwork':'svg-artwork')+(optimizedView&&compareStage==='after'&&optimizedView.changedScope.includes(i)?' optimized-path':'')},$('geometry'));
       appendMarkup(painted,artworkMarkup(p));
       if(sel)el('path',{...attrs,class:'path selected rich-selection'},$('geometry'));
     }else el('path',{...attrs,class:'path '+(sel?'selected':'')},$('geometry'));
@@ -104,16 +105,16 @@ function render(){
   });
   // White-backed hollow rings always overlie the geometric stroke, at a
   // fixed screen-pixel radius. No diagnostic markup enters exported EPS.
-  if(curvePreview&&compareStage==='after'){
+  if(optimizedView&&compareStage==='after'){
     // Show the removed/relocated original curve overlay separately from the
     // optimized Bezier, so real changes can be inspected at any zoom.
     const ghost=el('g',{class:'optimized-before-ghost','pointer-events':'none'},$('geometry'));
-    for(const i of curvePreview.changedScope||[]){
-      const path=curvePreview.source.paths[i];
+    for(const i of optimizedView.changedScope||[]){
+      const path=optimizedView.source.paths[i];
       if(path?.kind!=='image'&&path)el('path',{d:pathData(path),class:'optimized-before-path'},ghost);
     }
     $('geometry').prepend(ghost); // Original red ghost must not hide the new green Bezier.
-    const gone=curvePreview.removedAnchors||[];
+    const gone=optimizedView.removedAnchors||[];
     if(gone.length){const marks=el('g',{class:'optimized-removed-anchors','pointer-events':'none'},$('markers'));
       for(const {point:[cx,cy]} of gone)el('circle',{cx,cy,r:radius*1.5},marks);
     }
@@ -290,7 +291,7 @@ function applyCurveOptimization(){
   }
   checkpoint(clone(doc));
   doc=clone(pv.result);
-  const comparison=pv.comparisonData;
+  const comparison={...pv.comparisonData,optimization:{source:pv.source,changedScope:pv.changedScope,removedAnchors:pv.removedAnchors,stats:pv.stats}};
   changed('curve-optimize-apply');
   appliedComparison=comparison;compareStage='after';render();
   updateFileHistory({status:'Оптимизировано: '+pv.stats.original+' → '+pv.stats.result+' сегментов; требуется повторная диагностика',diagnosis:null,repair:null});
