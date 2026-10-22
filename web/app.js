@@ -119,6 +119,7 @@ function render(){
   else $('summary').textContent=curvePreview&&compareStage==='after'&&!curvePreview.afterDiagnosed?'Диагностика оптимизированного результата пока недоступна.':comparison?'Для этой стадии замечаний не найдено.':metrics.length?'Проверка завершена: замечаний не найдено.':'Откройте SVG или нарисуйте векторы.';
   $('summary').title=Object.entries(counts).map(([k,n])=>(names[k]||k)+': '+n).join(' · ');
   $('issue-count').textContent=visibleIssues.length;
+  $('healing-issue-summary').textContent='Проблемных точек: '+visibleIssues.length+(curvePreview?' · сглаженных стыков: '+curvePreview.stats.smoothed+' · удалено сегментов: '+curvePreview.stats.removed:'');
   visibleIssues.slice(0,100).forEach(x=>{
     const b=document.createElement('button');b.className='issue';
     b.textContent=(names[x.kind]||x.kind)+' · '+(x.path+1)+(x.other!==x.path?' ↔ '+(x.other+1):'');
@@ -128,7 +129,7 @@ function render(){
   $('toggle-points').textContent=pointsVisible?'Скрыть здоровые точки':'Показать здоровые точки';
   $('toggle-markers').textContent=markersVisible?'Скрыть маркеры':'Показать маркеры';
   $('auto-heal').disabled=true;
-  $('auto-apply').disabled=busy||!curvePreview;
+  $('auto-apply').disabled=busy||!curvePreview||!(curvePreview.stats.removed||curvePreview.stats.smoothed);
   $('auto-apply').hidden=false;
   $('optimize-preview').disabled=true;
   $('optimization-actions').hidden=true;
