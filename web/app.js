@@ -339,7 +339,7 @@ function startCurveEditor(){
   clearTimeout(settingsTimeout);curvePreview=null;appliedComparison=null;compareStage='before';
   mode='nodes';nodeTool='move';activeCurveNode=null;draft=[];
   if(!selected.size){const i=doc.paths.findIndex(p=>p.kind!=='image');if(i>=0)selected=new Set([i]);}
-  render();status('Узлы: перетащите точку. Добавить — клик по кривой; удалить — клик по узлу. Редактируется сохранённая геометрия.');
+  render();status('Узлы: + и −, контрольные ручки, Перегиб/Сглаженное/Симметрическая. Правый клик — контекстное меню.');
 }
 function changeCurveNode(path,index,operation,keep=false){
   if(busy||!doc.paths[path])return;
@@ -428,8 +428,11 @@ $('canvas').addEventListener('pointerdown',e=>{
     const index=target.dataset.curveNode===undefined?null:Number(target.dataset.curveNode);
     if(index!==null){
       activeCurveNode={path:i,index};
-      if(nodeTool==='remove'){removeActiveCurveNode();return;}
-      if(nodeTool==='move'){drag={curveNode:index,path:i,before:clone(doc)};canvas.setPointerCapture(e.pointerId);}
+      if(target.dataset.curveHandle&&nodeTool==='handles'){
+        drag={curveHandle:target.dataset.curveHandle,curveNode:index,path:i,before:clone(doc)};
+        canvas.setPointerCapture(e.pointerId);
+      }else if(nodeTool==='remove'&&!target.dataset.curveHandle){removeActiveCurveNode();return;}
+      else if(nodeTool==='move'&&!target.dataset.curveHandle){drag={curveNode:index,path:i,before:clone(doc)};canvas.setPointerCapture(e.pointerId);}
     }else if(nodeTool==='add'){
       const nearest=nearestCurveSegment(doc.paths[i],pos),view=canvas.viewBox.baseVal;
       const hit=screenUnitsPerPixel(view,canvas.clientWidth,canvas.clientHeight)*12;
@@ -451,7 +454,10 @@ $('canvas').addEventListener('pointermove',e=>{
   const pos=at(e);$('coords').textContent=`X ${pos[0].toFixed(2)} · Y ${pos[1].toFixed(2)} мм`;
   if(pan){const b=$('canvas').viewBox.baseVal;const dx=pos[0]-pan.pos[0],dy=pos[1]-pan.pos[1];b.x-=dx;b.y-=dy;return;}
   if(!drag||busy)return;
-  if(drag.curveNode!==undefined){
+  if(drag.curveHandle){
+    try{doc.paths[drag.path]=moveCurveHandle(drag.before.paths[drag.path],drag.curveNode,drag.curveHandle,pos);render();}
+    catch(error){status(error.message);}
+  }else if(drag.curveNode!==undefined){
     try{doc.paths[drag.path]=moveCurveNode(drag.before.paths[drag.path],drag.curveNode,pos);render();}
     catch(error){status(error.message);}
   }else if(drag.node!==undefined){doc.paths[drag.path].points[drag.node]=pos;render();}
@@ -464,12 +470,11 @@ function makeShape(d){const [x,y]=d.start,[a,b]=d.end||d.start;
 $('canvas').addEventListener('pointerup',e=>{
   if(pan){pan=null;return;}if(!drag)return;
   if(drag.shape&&drag.end&&Math.hypot(drag.end[0]-drag.start[0],drag.end[1]-drag.start[1])>.001){doc.paths.push(makeShape(drag));selected=new Set([doc.paths.length-1]);}
-  if(JSON.stringify(doc)!==JSON.stringify(drag.before)){checkpoint(drag.before);changed(drag.curveNode!==undefined?'curve-node-move':drag.shape?'draw-'+drag.shape:'move-nodes');}else render();drag=null;
+  if(JSON.stringify(doc)!==JSON.stringify(drag.before)){checkpoint(drag.before);changed(drag.curveHandle?'curve-node-handle':drag.curveNode!==undefined?'curve-node-move':drag.shape?'draw-'+drag.shape:'move-nodes');}else render();drag=null;
 });
-$('canvas').addEventListener('pointercancel',()=>{if(drag){doc=drag.before;drag=null;render();}pan=null;});
 $('canvas').addEventListener('pointercancel',()=>{if(drag)doc=drag.before;drag=null;pan=null;render();});
 $('canvas').addEventListener('wheel',e=>{if(busy)return;e.preventDefault();zoom(e.deltaY>0?1.15:1/1.15,at(e));},{passive:false});
-document.addEventListener('keydown',e=>{if(busy||e.target.matches('input'))return;if(e.key==='Escape'){if(drag){doc=drag.before;drag=null;}pan=null;draft=[];activeCurveNode=null;render();}if(e.key==='Enter'&&draft.length>1){checkpoint();doc.paths.push({closed:false,points:draft});draft=[];changed('draw-polyline');}if(e.key==='Delete'){if(curveEditing()){e.preventDefault();removeActiveCurveNode();}else $('delete').click();}if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();$('undo').click();}});
+document.addEventListener('keydown',e=>{if(busy||e.target.matches('input'))return;if(e.key==='Escape'){$('node-context').hidden=true;if(drag){doc=drag.before;drag=null;}pan=null;draft=[];activeCurveNode=null;render();}if(e.key==='Enter'&&draft.length>1){checkpoint();doc.paths.push({closed:false,points:draft});draft=[];changed('draw-polyline');}if(e.key==='Delete'){if(curveEditing()){e.preventDefault();removeActiveCurveNode();}else $('delete').click();}if(curveEditing()&&!e.ctrlKey&&!e.metaKey&&['c','C','s','S'].includes(e.key)&&activeCurveNode){e.preventDefault();const kind=curveNodeType(doc.paths[activeCurveNode.path],activeCurveNode.index);runNodeCommand(e.key.toLowerCase()==='c'?(kind==='cusp'?'smooth':'cusp'):(kind==='symmetric'?'smooth':'symmetric'));}if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();$('undo').click();}});
 for(const m of ['select','line','rect','circle'])$(m).onclick=()=>setMode(m);
 $('fit').onclick=fit;
 $('zoom-in').onclick=()=>zoom(0.8);
