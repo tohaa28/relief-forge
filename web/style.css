@@ -101,3 +101,15 @@ main.left-collapsed{grid-template-columns:minmax(250px,1fr) 304px}
 .file-history-table th:nth-child(3){width:36%}
 .file-history-wrap .hint{margin:7px 2px 3px;font-size:9px;line-height:1.4}
 #file-history-note{margin:3px 2px;font-size:10px;color:#b3583d}
+
+/* Non-destructive optimized Bezier preview. Compact adjustable precision. */
+.optimizer-body{padding:7px 8px 9px;display:grid;gap:6px}
+.optimizer-body>label{font-size:10px;color:#435b6e;font-weight:600}
+.optimizer-precision{display:flex;gap:7px;align-items:center}
+.optimizer-precision input[type=range]{flex:1;min-width:65px;accent-color:#147f77}
+.optimizer-precision input[type=number]{width:76px;min-width:60px;padding:5px;font-size:11px}
+.optimizer-body .hint{margin:1px 0 4px;font-size:9.5px}
+.optimizer-body button{font-size:10.5px;padding:7px 5px}
+#optimization-result{font-size:10px;line-height:1.4;color:#3e6474;margin:1px 0;white-space:pre-wrap}
+#optimization-actions{display:grid;gap:5px}
+#optimization-actions[hidden]{display:none}
