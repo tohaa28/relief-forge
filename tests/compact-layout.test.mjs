@@ -85,5 +85,5 @@ test('after preview visibly overlays original and highlighted optimized Bézier 
  assert.match(app,/curvePreview\.scope\.includes\(i\)/);
  assert.match(css,/#canvas\.show-optimized #geometry .optimized-before-path/);
  assert.match(css,/#canvas\.show-optimized #geometry g\.optimized-path path/);
- assert.match(app,/curvePreview=\{source:clone\(doc\),result:result\.document,scope,stats:st/);
+ assert.match(app,/curvePreview=\{source:clone\(doc\),result:result\.document,scope,changedScope,removedAnchors,stats:st/);
 });
