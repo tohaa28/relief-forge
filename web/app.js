@@ -100,7 +100,7 @@ function render(){
     const b=document.createElement('button');
     b.textContent=(i+1)+'. '+(p.kind==='image'?'Изображение':p.artwork?'EPS / SVG':p.closed?'Замкнут':'Открыт')+' · '+p.points.length+' узлов';
     b.classList.toggle('selected',sel);b.disabled=reviewing;
-    b.onclick=e=>{if(!e.shiftKey)selected.clear();selected.has(i)?selected.delete(i):selected.add(i);render();};
+    b.onclick=e=>{if(!e.shiftKey)selected.clear();selected.has(i)?selected.delete(i):selected.add(i);render();scheduleHealing();};
     $('paths').append(b);
   });
   // White-backed hollow rings always overlie the geometric stroke, at a
@@ -157,7 +157,7 @@ function render(){
   $('diagnose').disabled=busy||!ready||reviewing;
   document.querySelectorAll('[data-action]').forEach(b=>b.disabled=busy||!ready||reviewing);
 }
-function lock(value,{coverCanvas=true}={}){busy=value;if(value){$('busy-label').textContent='Расчёт в Rust…';$('import-progress').value=0;}$('busy').hidden=!value;$('busy').classList.toggle('compact',value&&!coverCanvas);document.querySelectorAll('button,input').forEach(e=>{if(e.id!=='cancel'&&e.id!=='log')e.disabled=value;});if(!value)render();}
+function lock(value,{coverCanvas=true}={}){busy=value;if(value){$('busy-label').textContent='Расчёт в Rust…';$('import-progress').value=0;}$('busy').hidden=!value;$('busy').classList.toggle('compact',value&&!coverCanvas);document.querySelectorAll('button,input').forEach(e=>{if(e.id!=='cancel'&&e.id!=='log')e.disabled=value;});if(!value){render();if(recalcPending)scheduleHealing();}}
 
 function renderAutoPreview(){
   const box=$('auto-preview');box.hidden=!autoPreview;
@@ -249,7 +249,8 @@ $('auto-next').onclick=()=>{if(autoPreview){autoIndex=(autoIndex+1)%Math.max(1,a
 
 
 function previewCurveOptimization(){
-  if(busy)return;
+  if(busy){recalcPending=true;return;}
+  recalcPending=false;
   const tolerance=Number($('optimization-tolerance').value);
   const scope=selectedVectorIndices(doc,selected,$('selection-only').checked);
   if(!scope.length){status('Выберите векторные кривые для оптимизации.');return;}
@@ -298,8 +299,8 @@ function applyCurveOptimization(){
   record('curve-optimize-apply',{stats:pv.stats});
   status('Оптимизация применена. Сегменты: '+pv.stats.original+' → '+pv.stats.result+'. Undo восстанавливает оригинальные кривые.');
 }
-let recalcHandle=null;
-function scheduleHealing(){if(recalcHandle)clearTimeout(recalcHandle);recalcHandle=setTimeout(()=>{recalcHandle=null;if(!busy&&doc.paths.some(p=>p.kind!=='image'))previewCurveOptimization();},180);}
+let recalcHandle=null,recalcPending=false;
+function scheduleHealing(){recalcPending=true;if(recalcHandle)clearTimeout(recalcHandle);recalcHandle=setTimeout(()=>{recalcHandle=null;if(busy)return;recalcPending=false;if(doc.paths.some(p=>p.kind!=='image'))previewCurveOptimization();},180);}
 $('optimization-range').oninput=()=>{$('optimization-level-value').textContent=$('optimization-range').value+' сегментов';scheduleHealing();};
 $('optimization-tolerance').oninput=scheduleHealing;
 $('tolerance').onchange=scheduleHealing;
@@ -311,7 +312,7 @@ $('optimize-cancel').onclick=()=>{curvePreview=null;compareStage='before';$('opt
 function spawnWorker(){
   worker=new Worker(new URL('worker.js',import.meta.url),{type:'module'});
   worker.onmessage=({data})=>{
-    if(data.id===0){ready=!data.error;$('engine').textContent=ready?'● Rust / WASM готов':'○ WASM не собран';status(data.error||'Rust-ядро готово');render();return;}
+    if(data.id===0){ready=!data.error;$('engine').textContent=ready?'● Rust / WASM готов':'○ WASM не собран';status(data.error||'Rust-ядро готово');render();if(ready&&!busy&&doc.paths.length&&!currentComparison())calculate(0);return;}
     if(!pending||data.id!==pending.id)return;
     const task=pending;pending=null;
     if(data.error){lock(false);record('engine-error',{error:data.error});status(data.error);return;}
