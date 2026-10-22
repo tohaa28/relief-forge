@@ -175,3 +175,26 @@ main.left-collapsed{grid-template-columns:minmax(250px,1fr) 304px}
 .node-context button:disabled{color:#9ca8b5}
 .node-context hr{border:0;border-top:1px solid #e6ebf0;margin:4px 1px}
 @media(max-width:740px){.curve-node-tools{gap:5px}.curve-node-tools #node-hint{flex-basis:100%;order:1}.curve-editing main{height:auto}}
+
+
+/* Doctor Uzelkov: approved playful teal/cyan identity and per-tool icons */
+header{background:linear-gradient(105deg,#0F2D3A,#143e51);border-bottom:2px solid #14B8A6}
+.brand{gap:7px;white-space:nowrap}.brand-mascot{width:69px;height:69px;object-fit:contain;filter:drop-shadow(0 2px 4px #041e2d66)}
+.brand-copy strong{font-size:19px;letter-spacing:-.35px;color:#f4ffff}.brand-copy em{font-style:normal;color:#38D9E9}
+.brand-copy small{font-size:9.5px;color:#d0edf1}
+.tool-icon{width:19px;height:19px;flex:none;vertical-align:middle;overflow:visible}
+button:has(>.tool-icon){display:inline-flex;align-items:center;justify-content:center;gap:6px}
+button kbd{font-family:system-ui,sans-serif;font-size:9px;font-weight:600;background:#f4fafb;color:#305a67;border:1px solid #dce8ef;border-radius:4px;padding:1px 4px;margin-left:3px;white-space:nowrap}
+button.active kbd,button.primary kbd{background:#126e78;color:#fff;border-color:#32c2bd}
+header .tool-icon{width:20px;height:20px}
+header button{padding:8px 10px}
+#curve-node-tools .tool-icon{width:16px;height:16px}
+.curve-node-tools .node-buttons button{gap:3px;padding:5px}
+.curve-node-tools .node-buttons button kbd{font-size:9px;padding:1px 3px}
+.creation-actions button{justify-content:flex-start}
+.mascot-welcome{position:absolute;z-index:2;top:65px;left:20px;max-width:270px;display:flex;align-items:center;background:#f5ffffed;border:1px solid #b7e7ea;border-radius:14px;box-shadow:0 8px 28px #0f2d3a12;padding:8px 12px;gap:5px;pointer-events:none}
+.mascot-welcome[hidden]{display:none}.mascot-welcome img{width:84px;height:84px;flex:none}
+.mascot-welcome strong{display:block;color:#0F2D3A;font-size:14px}
+.mascot-welcome small{display:block;font-size:11px;color:#3b6975;line-height:1.45;margin-top:6px}
+@media(max-width:1050px){.brand-mascot{width:48px;height:48px}.brand-copy strong{font-size:16px}.brand-copy small{font-size:8px}}
+@media(max-width:740px){.mascot-welcome{top:64px;left:5px}.brand-copy strong{font-size:18px}header .brand{min-width:0}}

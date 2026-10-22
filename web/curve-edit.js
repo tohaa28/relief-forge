@@ -191,6 +191,27 @@ function getKind(ctx,path){
   return Math.abs(av-bv)<=Math.max(av,bv)*1e-5?'symmetric':'smooth';
 }
 export function curveNodeType(path,index){return getKind(nodeContext(path,index),path);}
+// Resolve all anchor types in one parse. The old UI called curveNodeType()
+// for every visible anchor, reparsing the whole path O(n²) during dragging.
+export function curveNodesTyped(path){
+  const {parts}=read(path),shift=offset(path),nodes=[];
+  parts.forEach((part,partIndex)=>{
+    const points=[{index:part.startIndex,point:part.start,ordinal:0}];
+    part.segments.forEach((s,i)=>{
+      if(!(part.closed&&i===part.segments.length-1&&same(end(s.c),part.start)))
+        points.push({index:s.index,point:end(s.c),ordinal:i+1});
+    });
+    for(const item of points){
+      const n=item.ordinal,context={node:{index:item.index},part,n,
+        incoming:n?part.segments[n-1]:part.closed?part.segments.at(-1):null,
+        outgoing:part.segments[n]||null};
+      nodes.push({index:item.index,part:partIndex,ordinal:n,
+        point:item.point.map((v,i)=>v+shift[i]),type:getKind(context,path)});
+    }
+  });
+  return nodes;
+}
+
 export function curveHandles(path,index){
   const ctx=nodeContext(path,index),shift=offset(path),answer={type:getKind(ctx,path),anchor:ctx.node.point,handles:[]};
   for(const [side,segment,control]of [['in',ctx.incoming,incomingControl(ctx.incoming)],
