@@ -122,6 +122,12 @@ function optimizeSegments(segs,tol){
     let best={count:1,seg:segs[i],error:0,straight:false};
     let length=1;
     for(let end=i+1;end<segs.length&&length<10;end++){
+      // A positional tolerance alone can round a small intentional corner.
+      // Never fit across a discontinuity in the incoming/outgoing tangents.
+      const left=segs[end-1],right=segs[end];
+      const incoming=unit(sub(left.p3,left.p2))||unit(sub(left.p3,left.p0));
+      const outgoing=unit(sub(right.p1,right.p0))||unit(sub(right.p3,right.p0));
+      if(!incoming||!outgoing||incoming[0]*outgoing[0]+incoming[1]*outgoing[1]<.90)break;
       const group=segs.slice(i,end+1);length=group.length;
       if(exactStraight(group)){
         best={count:group.length,seg:{p0:group[0].p0,p3:group.at(-1).p3},error:0,straight:true};continue;
@@ -142,12 +148,13 @@ function optimizeSegments(segs,tol){
 // Tangent smoothing at already-smooth cubic joins. This is actual geometry
 // modification, not merely hiding markers. Guard both sides with the same
 // adaptive geometric check as the optimizer. Sharp corners are untouched.
-function smoothSegments(segs,tolerance){
+function smoothSegments(segs,tolerance,closed=false){
   const copy=segs.map(s=>({...s,p0:[...s.p0],p1:[...s.p1],p2:[...s.p2],p3:[...s.p3]}));
   let changed=0,maxError=0;
   if(!(tolerance>0))return {segments:copy,changed,maxError};
-  for(let i=0;i<copy.length-1;i++){
-    const a=copy[i],b=copy[i+1],join=a.p3;
+  const joins=copy.length>1?copy.length-1+Number(closed):0;
+  for(let i=0;i<joins;i++){
+    const a=copy[i],b=copy[(i+1)%copy.length],join=a.p3;
     if(dist(join,b.p0)>1e-8||a.original==='L'||b.original==='L')continue;
     const va=sub(join,a.p2),vb=sub(b.p1,join),la=norm(va),lb=norm(vb);
     if(la<1e-8||lb<1e-8)continue;
@@ -188,7 +195,7 @@ export function smoothVectorPath(path,tolerance=.01){
   const paths=makeSegments(cmds,path.offset||[0,0]);
   let changed=0,maxError=0;
   const converted=paths.map(p=>{
-    const result=smoothSegments(p.segments,tolerance);
+    const result=smoothSegments(p.segments,tolerance,p.closed);
     changed+=result.changed;maxError=Math.max(maxError,result.maxError);
     return {...p,segments:result.segments};
   });

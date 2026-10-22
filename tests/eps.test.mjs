@@ -88,7 +88,7 @@ test('Corel outline fallback is limited to certified, simple, unpainted single-p
   const text=new TextDecoder('latin1').decode(input),metadata=epsMetadata(input);
   const run=t=>recoverUnpaintedCorelOutlines(new TextEncoder().encode(t),metadata);
   assert.equal(run(text.replace('CorelDRAW','NotCorel')),null);
-  assert.equal(run(text.replace('N\n%%PageTrailer','S\n%%PageTrailer')),null);
+  assert.equal(run(text.replace(/N\r?\n%%PageTrailer/,'S\n%%PageTrailer')),null);
   assert.equal(run(text.replace('30 20 L','30 20 L\nsomeUnsafeProcedure')),null);
   assert.equal(run(text.replace('30 20 L','30000000 20 L')),null);
   assert.equal(run(text.replace('%%PageTrailer','%%Page: 2 2\n%%PageTrailer')),null);
@@ -119,7 +119,7 @@ test('unrecognized/painted EPS cannot bypass normal Ghostscript importer',()=>{
   const encoded=t=>new TextEncoder().encode(t);
   assert.equal(recoverOutlineOnlyEps(encoded(base.replace('CorelDRAW','Unknown'))),null);
   assert.equal(recoverOutlineOnlyEps(encoded(base.replace('30 20 L','30 20 L\nstroke'))),null);
-  assert.equal(recoverOutlineOnlyEps(encoded(base.replace('N\n%%PageTrailer','fill\n%%PageTrailer'))),null);
+  assert.equal(recoverOutlineOnlyEps(encoded(base.replace(/N\r?\n%%PageTrailer/,'fill\n%%PageTrailer'))),null);
 });
 
 
