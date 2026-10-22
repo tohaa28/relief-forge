@@ -1,15 +1,18 @@
 import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js';
 import {issueViewBox} from './issue-focus.js';
+import {issueColors,issueLabels,visibleHealthyAnchors,circlePath} from './vector-points.js';
+import {exportEps} from './eps-export.js';
+import {AUTO_STEPS,basicPaths,packedInput,isChanged,comparisonBox,proposedIssueLocations} from './auto-repair.js';
 const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
-let diagnosticComplete=true,markersVisible=true;
+let diagnosticComplete=true,markersVisible=true,pointsVisible=true,autoPreview=null,autoIndex=0;
 let doc={format:'relief-forge',version:1,width:300,height:200,paths:[]},selected=new Set(),issues=[],metrics=[],past=[],future=[],mode='select',draft=[],drag=null,pan=null,worker,ready=false,pending=null,sequence=0,busy=false;
 let epsWorker=null,epsTimer=null;let importFonts=[];
 const journal=[];const clone=v=>structuredClone(v);
 function record(action,detail={}){journal.push({at:new Date().toISOString(),action,detail});}
 function status(s){$('status').textContent=String(s).split('\n')[0];$('status').title=s;}
 function checkpoint(before=doc){past.push(clone(before));if(past.length>100)past.shift();future=[];}
-function changed(action){issues=[];metrics=[];diagnosticComplete=true;markersVisible=true;record(action,{paths:doc.paths.length,nodes:doc.paths.reduce((n,p)=>n+p.points.length,0)});render();}
+function changed(action){issues=[];metrics=[];diagnosticComplete=true;markersVisible=true;autoPreview=null;record(action,{paths:doc.paths.length,nodes:doc.paths.reduce((n,p)=>n+p.points.length,0)});render();}
 function fit(){const pad=Math.max(doc.width,doc.height)*.07;$('canvas').setAttribute('viewBox',`${-pad} ${-pad} ${doc.width+pad*2} ${doc.height+pad*2}`);render();}
 function focusIssue(issue){
   const canvas=$('canvas'),view=canvas.viewBox.baseVal;
@@ -28,7 +31,7 @@ function appendMarkup(parent,text){const parsed=new DOMParser().parseFromString(
 function render(){
   $('width').value=doc.width;$('height').value=doc.height;$('count').textContent=doc.paths.length;
   for(const id of ['sheet','grid-bg']){ $(id).setAttribute('width',doc.width);$(id).setAttribute('height',doc.height); }
-  $('geometry').replaceChildren();$('markers').replaceChildren();$('paths').replaceChildren();
+  $('geometry').replaceChildren();$('nodes').replaceChildren();$('markers').replaceChildren();$('paths').replaceChildren();
   if(doc.svgDefs)appendMarkup($('geometry'),doc.svgDefs);
   $('import-report').textContent=doc.epsImport?`EPS · ${doc.width.toFixed(3)} × ${doc.height.toFixed(3)} мм · ${doc.paths.filter(p=>p.kind!=='image').length} векторов · ${doc.paths.filter(p=>p.kind==='image').length} изображений. ${doc.epsImport.warnings.length?'Предупреждения: '+doc.epsImport.warnings.join(' · '):'Импорт завершён.'}`:'';
   const radius=$('canvas').viewBox.baseVal.width/450;
@@ -37,14 +40,18 @@ function render(){
     if(selected.has(i)&&!p.artwork)p.points.forEach(([cx,cy],node)=>el('circle',{cx,cy,r:radius,class:'node','data-path':i,'data-node':node},$('geometry')));
     const b=document.createElement('button');b.textContent=`${i+1}. ${p.kind==='image'?'Изображение':p.artwork?'EPS / SVG':p.closed?'Замкнут':'Открыт'} · ${p.points.length} узлов`;b.classList.toggle('selected',selected.has(i));b.onclick=e=>{if(!e.shiftKey)selected.clear();selected.has(i)?selected.delete(i):selected.add(i);render();};$('paths').append(b);
   });
-  if(markersVisible)issues.slice(0,1000).forEach((x,i)=>el('circle',{cx:x.point[0],cy:x.point[1],r:radius*1.6,class:`problem ${x.path!==x.other?'external':''}`,'data-issue':i},$('markers')));
+  if(pointsVisible){const healthy=visibleHealthyAnchors(doc,issues,Number($('tolerance').value));if(healthy.length)el('path',{d:circlePath(healthy,Math.max(radius*.55,.00001)),class:'healthy-anchors'},$('nodes'));}
+  if(markersVisible)issues.slice(0,1000).forEach((x,i)=>el('circle',{cx:x.point[0],cy:x.point[1],r:radius*1.6,class:'problem','data-issue':i,fill:issueColors[x.kind]||'#64748b'},$('markers')));
   $('draft').replaceChildren();if(draft.length)el('path',{d:pathData({points:draft}),class:'path selected'},$('draft'));
   $('issues').replaceChildren();const counts={};issues.forEach(x=>counts[x.kind]=(counts[x.kind]||0)+1);
   if(!diagnosticComplete)$('summary').textContent='Показаны первые 10000 замечаний. Проверка неполная: уменьшите выборку.';
   else if(issues.length)$('summary').textContent=Object.entries(counts).map(([k,n])=>`${names[k]}: ${n}`).join(' · ');
   else $('summary').textContent=metrics.length?'Проверка завершена: замечаний не найдено.':'Откройте SVG или нарисуйте векторы.';
   issues.slice(0,100).forEach(x=>{const b=document.createElement('button');b.className='issue';b.textContent=`${names[x.kind]} · ${x.path+1}${x.other!==x.path?' ↔ '+(x.other+1):''}`;b.title=`Перейти к X ${x.point[0].toFixed(3)} · Y ${x.point[1].toFixed(3)} мм`;b.onclick=()=>focusIssue(x);$('issues').append(b);});
+  $('toggle-points').textContent=pointsVisible?'Скрыть здоровые точки':'Показать здоровые точки';
   $('toggle-markers').textContent=markersVisible?'Скрыть маркеры':'Показать маркеры';
+  $('auto-heal').disabled=busy||!ready||!doc.paths.some(p=>p.kind!=='image');
+  renderAutoPreview();
   $('toggle-markers').disabled=busy||!issues.length;
   $('undo').disabled=busy||!past.length;$('redo').disabled=busy||!future.length;
   $('diagnose').disabled=busy||!ready;document.querySelectorAll('[data-action]').forEach(b=>b.disabled=busy||!ready);
@@ -133,6 +140,7 @@ $('canvas').addEventListener('wheel',e=>{if(busy)return;e.preventDefault();const
 document.addEventListener('keydown',e=>{if(busy||e.target.matches('input'))return;if(e.key==='Escape'){draft=[];render();}if(e.key==='Enter'&&draft.length>1){checkpoint();doc.paths.push({closed:false,points:draft});draft=[];changed('draw-polyline');}if(e.key==='Delete')$('delete').click();if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();$('undo').click();}});
 for(const m of ['select','line','rect','circle'])$(m).onclick=()=>setMode(m);
 $('fit').onclick=fit;
+$('toggle-points').onclick=()=>{pointsVisible=!pointsVisible;record('toggle-all-anchors',{visible:pointsVisible});render();};
 $('toggle-markers').onclick=()=>{if(busy||!issues.length)return;markersVisible=!markersVisible;record('toggle-issue-markers',{visible:markersVisible});render();};
 $('diagnose').onclick=()=>calculate(0);document.querySelectorAll('[data-action]').forEach(e=>e.onclick=()=>calculate(Number(e.dataset.action)));
 $('cancel').onclick=()=>{if(epsWorker){stopEps();lock(false);record('eps-cancel');status('Импорт EPS отменён. Документ сохранён.');return;}worker.terminate();pending=null;ready=false;lock(false);record('engine-cancel');status('Расчёт отменён, документ сохранён.');spawnWorker();};
@@ -175,6 +183,7 @@ $('fonts').onchange=async e=>{try{const files=[...e.target.files];if(files.reduc
 $('demo-eps').onclick=async()=>{try{const response=await fetch('examples/curves-text-clip.eps');if(!response.ok)throw Error('Не удалось загрузить пример');importEps(new Uint8Array(await response.arrayBuffer()),'curves-text-clip.eps');}catch(e){status(e.message);}};
 $('heal-copy').onclick=()=>{try{const ids=[...selected].filter(i=>doc.paths[i].kind!=='image');if(!ids.length)throw Error('Выделите импортированные векторы');const tol=Number($('tolerance').value);if(!Number.isFinite(tol)||tol<1e-6||tol>1000)throw Error('Укажите допуск от 0.000001 до 1000 мм');const copies=ids.flatMap(i=>sampledContours(doc.paths[i],tol));checkpoint();const start=doc.paths.length;doc.paths.push(...copies);selected=new Set(copies.map((_,i)=>start+i));changed('create-healing-copy');status(`Создано ${copies.length} полилиний, допуск ${tol} мм. Исходные кривые сохранены отдельными объектами.`);}catch(e){status(e.message);}};
 $('export').onclick=()=>{download('relief-forge.svg',exportDocument(doc),'image/svg+xml');record('export-svg');};
+$('export-eps').onclick=()=>{try{const eps=exportEps(doc);download('relief-forge-result.eps',eps,'application/postscript');record('export-eps',{paths:doc.paths.length,bytes:eps.length});status('EPS сохранён: точные кривые, без диагностических точек и маркеров.');}catch(e){status(e.message);record('eps-export-error',{message:e.message});}};
 $('log').onclick=()=>download('relief-forge-session.jsonl',journal.map(x=>JSON.stringify(x)).join('\n'),'application/x-ndjson');
 $('demo').onclick=()=>{checkpoint();doc={format:'relief-forge',version:1,width:150,height:100,paths:[{closed:true,points:[[10,10],[50,50],[10,50],[50,10]]},{closed:true,points:[[70,10],[110,10],[110,40],[70,40]]},{closed:true,points:[[110,40],[110,10],[70,10],[70,40]]},{closed:false,points:[[10,70],[30,70],[30.003,70],[50,70]]},{closed:false,points:[[50.005,70],[80,70],[80,90]]}]};selected.clear();changed('load-demo');fit();};
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
