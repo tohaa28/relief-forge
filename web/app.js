@@ -1,15 +1,17 @@
-import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.18';
+import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.19';
 import {issueViewBox} from './issue-focus.js';
 import {visibleHealthyAnchors,circlePath} from './vector-points.js';
-import {screenUnitsPerPixel,renderIssueMarkers} from './issue-markers.js?v=0.2.0-alpha.18';
-import {exportEps} from './eps-export.js?v=0.2.0-alpha.18';
+import {screenUnitsPerPixel,renderIssueMarkers} from './issue-markers.js?v=0.2.0-alpha.19';
+import {exportEps} from './eps-export.js?v=0.2.0-alpha.19';
 import {packedInput} from './auto-repair.js';
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
-import {selectedVectorIndices,smoothAndOptimizePaths} from './curve-optimizer.js?v=0.2.0-alpha.18';
-import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.18';
-import {curveNodes,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode} from './curve-edit.js?v=0.2.0-alpha.18';
-let nodeTool='move',activeCurveNode=null;
+import {selectedVectorIndices,smoothAndOptimizePaths} from './curve-optimizer.js?v=0.2.0-alpha.19';
+import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.19';
+import {curveNodes,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.19';
+let nodeTool='move',activeCurveNode=null,contextHit=null;
+const nodeCursor=symbol=>{const svg='<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26"><circle cx="13" cy="13" r="11" fill="white" stroke="#173946" stroke-width="1.7"/><text x="13" y="19" text-anchor="middle" fill="#007e79" font-family="Arial" font-weight="bold" font-size="19">'+symbol+'</text></svg>';return 'url("data:image/svg+xml,'+encodeURIComponent(svg)+'") 13 13, crosshair';};
+const plusCursor=nodeCursor('+'),minusCursor=nodeCursor('−');
 const curveEditing=()=>mode==='nodes';
 const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
@@ -72,7 +74,13 @@ function render(){
   if(curveEditing())$('optimization-result').textContent='Автоматический предпросмотр появится после нажатия «Готово». Ручные изменения уже сохраняются в документе.';
   $('curve-edit').classList.toggle('active',curveEditing());
   $('curve-edit').setAttribute('aria-pressed',String(curveEditing()));
-  for(const tool of ['move','add','remove'])$('node-'+tool).classList.toggle('active',nodeTool===tool);
+  for(const tool of ['move','add','remove','handles'])$('node-'+tool).classList.toggle('active',nodeTool===tool);
+  $('canvas').dataset.nodeTool=curveEditing()?nodeTool:'';
+  $('canvas').style.cursor=curveEditing()?(nodeTool==='add'?plusCursor:nodeTool==='remove'?minusCursor:nodeTool==='handles'?'crosshair':''):'';
+  const chosenNode=curveEditing()&&activeCurveNode&&doc.paths[activeCurveNode.path];
+  for(const name of ['cusp','smooth','symmetric','line','curve','break','close','reverse'])$('node-'+name).disabled=busy||!chosenNode;
+  for(const name of ['cusp','smooth','symmetric'])$('node-'+name).classList.toggle('active',!!chosenNode&&curveNodeType(chosenNode,activeCurveNode.index)===name);
+  $('node-hint').textContent=chosenNode?'Выбран узел: '+({cusp:'Перегиб',smooth:'Сглаженное',symmetric:'Симметрическая'}[curveNodeType(chosenNode,activeCurveNode.index)])+' · перетаскивайте ручки.':'Выберите узел; «Ручки углов» — управление касательными. Правый клик — контекстное меню.';
   const comparison=currentComparison();
   const frame=activeComparisonFrame(comparison,compareStage,doc,issues);
   const visibleDoc=frame.document,visibleIssues=frame.issues;
@@ -113,11 +121,24 @@ function render(){
       if(sel)el('path',{...attrs,class:'path selected rich-selection'},$('geometry'));
     }else el('path',{...attrs,class:'path '+(sel?'selected':'')},$('geometry'));
     if(!reviewing)el('path',{...attrs,class:'hit'},$('geometry'));
-    if(sel&&curveEditing()&&p.kind!=='image')curveNodes(p).forEach(node=>{
-      const [cx,cy]=node.point;
-      el('circle',{cx,cy,r:markerUnit*4.5,class:'curve-node'+(activeCurveNode?.path===i&&activeCurveNode.index===node.index?' chosen':''),
-        'data-path':i,'data-curve-node':node.index},$('geometry'));
-    });
+    if(sel&&curveEditing()&&p.kind!=='image'){
+      if(activeCurveNode?.path===i){
+        const info=curveHandles(p,activeCurveNode.index);
+        for(const handle of info.handles){
+          const [hx,hy]=handle.point,[ax,ay]=info.anchor;
+          el('path',{d:'M'+ax+' '+ay+'L'+hx+' '+hy,class:'curve-tangent-guide'},$('geometry'));
+          el('circle',{cx:hx,cy:hy,r:markerUnit*4.5,class:'curve-control-handle',
+            'data-path':i,'data-curve-node':activeCurveNode.index,'data-curve-handle':handle.side},$('geometry'));
+        }
+      }
+      curveNodes(p).forEach(node=>{
+        const [cx,cy]=node.point,kind=curveNodeType(p,node.index),chosen=activeCurveNode?.path===i&&activeCurveNode.index===node.index;
+        const common={'data-path':i,'data-curve-node':node.index,class:'curve-node'+(chosen?' chosen':'')};
+        if(kind==='smooth')el('circle',{...common,cx,cy,r:markerUnit*4.5},$('geometry'));
+        else if(kind==='symmetric')el('polygon',{...common,points:[[cx,cy-markerUnit*5.2],[cx+markerUnit*5.2,cy],[cx,cy+markerUnit*5.2],[cx-markerUnit*5.2,cy]].map(a=>a.join(',')).join(' ')},$('geometry'));
+        else el('rect',{...common,x:cx-markerUnit*4.2,y:cy-markerUnit*4.2,width:markerUnit*8.4,height:markerUnit*8.4},$('geometry'));
+      });
+    }
     else if(sel&&!p.artwork)p.points.forEach(([cx,cy],node)=>el('circle',{cx,cy,r:radius,class:'node','data-path':i,'data-node':node},$('geometry')));
     const b=document.createElement('button');
     b.textContent=(i+1)+'. '+(p.kind==='image'?'Изображение':p.artwork?'EPS / SVG':p.closed?'Замкнут':'Открыт')+' · '+p.points.length+' узлов';
@@ -318,20 +339,64 @@ function startCurveEditor(){
   clearTimeout(settingsTimeout);curvePreview=null;appliedComparison=null;compareStage='before';
   mode='nodes';nodeTool='move';activeCurveNode=null;draft=[];
   if(!selected.size){const i=doc.paths.findIndex(p=>p.kind!=='image');if(i>=0)selected=new Set([i]);}
-  render();status('Узлы: перетащите точку. Добавить — клик по кривой; удалить — клик по узлу. Редактируется сохранённая геометрия.');
+  render();status('Узлы: + и −, контрольные ручки, Перегиб/Сглаженное/Симметрическая. Правый клик — контекстное меню.');
 }
-function changeCurveNode(path,index,operation){
-  try{const next=operation(doc.paths[path]);checkpoint();doc.paths[path]=next;
-    selected=new Set([path]);activeCurveNode=null;changed('curve-node-'+index);
+function changeCurveNode(path,index,operation,keep=false){
+  if(busy||!doc.paths[path])return;
+  try{
+    const before=doc.paths[path],atNode=keep&&activeCurveNode?curveNodes(before).find(n=>n.index===activeCurveNode.index):null;
+    const next=operation(before);
+    if(JSON.stringify(next)===JSON.stringify(before)){status('Геометрия не изменилась.');return;}
+    checkpoint();doc.paths[path]=next;selected=new Set([path]);activeCurveNode=null;
+    if(atNode){
+      const candidate=curveNodes(next).find(n=>n.part===atNode.part&&Math.hypot(n.point[0]-atNode.point[0],n.point[1]-atNode.point[1])<1e-8);
+      if(candidate)activeCurveNode={path,index:candidate.index};
+    }
+    changed('curve-node-'+index);
   }catch(error){status(error.message);}
 }
 function removeActiveCurveNode(){
   if(!activeCurveNode){status('Выберите узел для удаления.');return;}
   const {path,index}=activeCurveNode;changeCurveNode(path,'delete',p=>deleteCurveNode(p,index));
 }
+function runNodeCommand(name){
+  if(busy||!curveEditing())return;
+  if(name==='add'){nodeTool='add';render();status('Курсор +: нажмите между узлами на кривой.');return;}
+  if(name==='remove'){removeActiveCurveNode();return;}
+  if(!activeCurveNode){status('Сначала выберите узел.');return;}
+  const {path,index}=activeCurveNode;
+  const op=({cusp:p=>setCurveNodeType(p,index,'cusp'),smooth:p=>setCurveNodeType(p,index,'smooth'),
+    symmetric:p=>setCurveNodeType(p,index,'symmetric'),line:p=>setCurveSegmentType(p,index,'line'),
+    curve:p=>setCurveSegmentType(p,index,'curve'),break:p=>breakCurveAtNode(p,index),
+    close:p=>closeCurveAtNode(p,index),reverse:p=>reverseCurveDirection(p)})[name];
+  if(op)changeCurveNode(path,name,op,true);
+}
 $('curve-edit').onclick=startCurveEditor;
-for(const tool of ['move','add','remove'])$('node-'+tool).onclick=()=>{nodeTool=tool;render();};
-$('node-done').onclick=startCurveEditor;
+for(const tool of ['move','add','remove','handles'])$('node-'+tool).onclick=()=>{if(busy)return;nodeTool=tool;$('node-context').hidden=true;render();};
+for(const name of ['cusp','smooth','symmetric','line','curve','break','close','reverse'])
+  $('node-'+name).onclick=()=>runNodeCommand(name);
+$('node-done').onclick=()=>{$('node-context').hidden=true;startCurveEditor();};
+$('node-context').querySelectorAll('[data-node-menu]').forEach(button=>button.onclick=()=>{
+  const name=button.dataset.nodeMenu;$('node-context').hidden=true;
+  if(name==='add'&&contextHit?.nearest&&contextHit.node===null&&contextHit.nearest.t>1e-6&&contextHit.nearest.t<1-1e-6)
+    changeCurveNode(contextHit.path,'add',p=>addCurveNode(p,contextHit.nearest.index,contextHit.nearest.t));
+  else runNodeCommand(name);
+});
+$('canvas').addEventListener('contextmenu',e=>{
+  if(!curveEditing()||busy)return;
+  const target=e.target.closest('[data-path]');if(!target)return;
+  const path=Number(target.dataset.path);if(!doc.paths[path]||doc.paths[path].kind==='image')return;
+  e.preventDefault();const node=target.dataset.curveNode===undefined?null:Number(target.dataset.curveNode);
+  selected=new Set([path]);activeCurveNode=node===null?null:{path,index:node};
+  const pos=at(e);contextHit={path,node,nearest:nearestCurveSegment(doc.paths[path],pos)};
+  render();const menu=$('node-context');
+  for(const button of menu.querySelectorAll('[data-node-menu]'))
+    button.disabled=(node===null&&button.dataset.nodeMenu!=='add')||(node!==null&&button.dataset.nodeMenu==='add');
+  menu.hidden=false;
+  menu.style.left=Math.max(4,Math.min(e.clientX,window.innerWidth-240))+'px';
+  menu.style.top=Math.max(4,Math.min(e.clientY,window.innerHeight-330))+'px';
+});
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('#node-context'))$('node-context').hidden=true;});
 function download(name,content,type='application/json'){const a=document.createElement('a');const url=URL.createObjectURL(new Blob([content],{type}));a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function validate(value){
   if(value?.format!=='relief-forge'||value.version!==1||!Number.isFinite(value.width)||!Number.isFinite(value.height)||value.width<=0||value.height<=0||!Array.isArray(value.paths))throw Error('Неверный формат проекта');
@@ -363,8 +428,11 @@ $('canvas').addEventListener('pointerdown',e=>{
     const index=target.dataset.curveNode===undefined?null:Number(target.dataset.curveNode);
     if(index!==null){
       activeCurveNode={path:i,index};
-      if(nodeTool==='remove'){removeActiveCurveNode();return;}
-      if(nodeTool==='move'){drag={curveNode:index,path:i,before:clone(doc)};canvas.setPointerCapture(e.pointerId);}
+      if(target.dataset.curveHandle&&nodeTool==='handles'){
+        drag={curveHandle:target.dataset.curveHandle,curveNode:index,path:i,before:clone(doc)};
+        canvas.setPointerCapture(e.pointerId);
+      }else if(nodeTool==='remove'&&!target.dataset.curveHandle){removeActiveCurveNode();return;}
+      else if(nodeTool==='move'&&!target.dataset.curveHandle){drag={curveNode:index,path:i,before:clone(doc)};canvas.setPointerCapture(e.pointerId);}
     }else if(nodeTool==='add'){
       const nearest=nearestCurveSegment(doc.paths[i],pos),view=canvas.viewBox.baseVal;
       const hit=screenUnitsPerPixel(view,canvas.clientWidth,canvas.clientHeight)*12;
@@ -386,7 +454,10 @@ $('canvas').addEventListener('pointermove',e=>{
   const pos=at(e);$('coords').textContent=`X ${pos[0].toFixed(2)} · Y ${pos[1].toFixed(2)} мм`;
   if(pan){const b=$('canvas').viewBox.baseVal;const dx=pos[0]-pan.pos[0],dy=pos[1]-pan.pos[1];b.x-=dx;b.y-=dy;return;}
   if(!drag||busy)return;
-  if(drag.curveNode!==undefined){
+  if(drag.curveHandle){
+    try{doc.paths[drag.path]=moveCurveHandle(drag.before.paths[drag.path],drag.curveNode,drag.curveHandle,pos);render();}
+    catch(error){status(error.message);}
+  }else if(drag.curveNode!==undefined){
     try{doc.paths[drag.path]=moveCurveNode(drag.before.paths[drag.path],drag.curveNode,pos);render();}
     catch(error){status(error.message);}
   }else if(drag.node!==undefined){doc.paths[drag.path].points[drag.node]=pos;render();}
@@ -399,12 +470,11 @@ function makeShape(d){const [x,y]=d.start,[a,b]=d.end||d.start;
 $('canvas').addEventListener('pointerup',e=>{
   if(pan){pan=null;return;}if(!drag)return;
   if(drag.shape&&drag.end&&Math.hypot(drag.end[0]-drag.start[0],drag.end[1]-drag.start[1])>.001){doc.paths.push(makeShape(drag));selected=new Set([doc.paths.length-1]);}
-  if(JSON.stringify(doc)!==JSON.stringify(drag.before)){checkpoint(drag.before);changed(drag.curveNode!==undefined?'curve-node-move':drag.shape?'draw-'+drag.shape:'move-nodes');}else render();drag=null;
+  if(JSON.stringify(doc)!==JSON.stringify(drag.before)){checkpoint(drag.before);changed(drag.curveHandle?'curve-node-handle':drag.curveNode!==undefined?'curve-node-move':drag.shape?'draw-'+drag.shape:'move-nodes');}else render();drag=null;
 });
-$('canvas').addEventListener('pointercancel',()=>{if(drag){doc=drag.before;drag=null;render();}pan=null;});
 $('canvas').addEventListener('pointercancel',()=>{if(drag)doc=drag.before;drag=null;pan=null;render();});
 $('canvas').addEventListener('wheel',e=>{if(busy)return;e.preventDefault();zoom(e.deltaY>0?1.15:1/1.15,at(e));},{passive:false});
-document.addEventListener('keydown',e=>{if(busy||e.target.matches('input'))return;if(e.key==='Escape'){if(drag){doc=drag.before;drag=null;}pan=null;draft=[];activeCurveNode=null;render();}if(e.key==='Enter'&&draft.length>1){checkpoint();doc.paths.push({closed:false,points:draft});draft=[];changed('draw-polyline');}if(e.key==='Delete'){if(curveEditing()){e.preventDefault();removeActiveCurveNode();}else $('delete').click();}if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();$('undo').click();}});
+document.addEventListener('keydown',e=>{if(busy||e.target.matches('input'))return;if(e.key==='Escape'){$('node-context').hidden=true;if(drag){doc=drag.before;drag=null;}pan=null;draft=[];activeCurveNode=null;render();}if(e.key==='Enter'&&draft.length>1){checkpoint();doc.paths.push({closed:false,points:draft});draft=[];changed('draw-polyline');}if(e.key==='Delete'){if(curveEditing()){e.preventDefault();removeActiveCurveNode();}else $('delete').click();}if(curveEditing()&&!e.ctrlKey&&!e.metaKey&&['c','C','s','S'].includes(e.key)&&activeCurveNode){e.preventDefault();const kind=curveNodeType(doc.paths[activeCurveNode.path],activeCurveNode.index);runNodeCommand(e.key.toLowerCase()==='c'?(kind==='cusp'?'smooth':'cusp'):(kind==='symmetric'?'smooth':'symmetric'));}if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();$('undo').click();}});
 for(const m of ['select','line','rect','circle'])$(m).onclick=()=>setMode(m);
 $('fit').onclick=fit;
 $('zoom-in').onclick=()=>zoom(0.8);
@@ -427,7 +497,7 @@ function stopEps(){epsWorker?.terminate();epsWorker=null;clearTimeout(epsTimer);
 function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта EPS…';record('eps-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsWorker=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.18',import.meta.url));
+  epsWorker=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.19',import.meta.url));
   const fail=message=>{stopEps();lock(false);status(message);$('import-report').textContent='Не удалось открыть EPS: '+message;record('eps-error',{name,message});updateFileHistory({status:'Ошибка открытия: '+String(message).slice(0,180)});};
   epsTimer=setTimeout(()=>fail('EPS превысил лимит 120 секунд. Импорт отменён, документ сохранён.'),120000);
   epsWorker.onerror=e=>fail('Ошибка EPS: '+e.message);
@@ -467,4 +537,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();
 });
-record('session-start',{version:'0.2.0-alpha.18'});renderFileHistory();spawnWorker();fit();
+record('session-start',{version:'0.2.0-alpha.19'});renderFileHistory();spawnWorker();fit();
