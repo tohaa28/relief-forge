@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" role="img" aria-label="Доктор Узелков — весёлый доктор векторных кривых">
+<defs><linearGradient id="face" x2="1" y2="1"><stop stop-color="#fbffff"/><stop offset="1" stop-color="#d9faff"/></linearGradient><linearGradient id="body" x2="0" y2="1"><stop stop-color="#2be6dc"/><stop offset="1" stop-color="#00858a"/></linearGradient></defs>
+<!-- Bézier antenna hair: live handles and nodal ends -->
+<g fill="none" stroke="#14B8A6" stroke-width="10" stroke-linecap="round"><path d="M70 70Q12 12 22 55"/><path d="M210 54Q264 -1 285 63"/><path d="M148 44Q147 9 175 12"/></g>
+<g fill="#38D9E9" stroke="#0F2D3A" stroke-width="5"><circle cx="22" cy="55" r="12"/><circle cx="285" cy="63" r="12"/><circle cx="175" cy="12" r="10"/></g>
+<!-- sneakers and coat -->
+<path d="M128 242 114 275 81 278Q71 292 105 291l39-8 20-34M177 240l28 31 27-6q24 2 18 19-11 12-48 6l-37-26" fill="#0F2D3A" stroke="#0F2D3A" stroke-width="7" stroke-linejoin="round"/>
+<path d="M92 176Q69 182 69 218l-7 33q7 17 27 12l31-11 18 18 28-13 28 13 16-22 24 12q25 4 25-17l-10-51q-12-33-35-33Z" fill="#faffff" stroke="#0F2D3A" stroke-width="6" stroke-linejoin="round"/>
+<path d="M127 179 147 235l18 20 18-20 11-56" fill="url(#body)" stroke="#14B8A6" stroke-width="5"/>
+<path d="M101 189 130 219l-5 44-34 8m105-82-19 27 5 47 31 7" fill="none" stroke="#b5dfe7" stroke-width="5"/>
+<circle cx="205" cy="230" r="12" fill="#e5fcff" stroke="#14B8A6" stroke-width="5"/><path d="M205 223v14m-7-7h14" stroke="#14B8A6" stroke-width="4" stroke-linecap="round"/>
+<!-- oversized node face -->
+<rect x="52" y="43" width="183" height="155" rx="39" fill="#0F2D3A" stroke="#0F2D3A" stroke-width="12" transform="rotate(-5 145 120)"/>
+<rect x="55" y="41" width="181" height="151" rx="36" fill="url(#face)" stroke="#14B8A6" stroke-width="10" transform="rotate(-5 145 120)"/>
+<g fill="#0F2D3A" stroke="#0F2D3A" stroke-width="5" stroke-linecap="round"><path d="M91 107q18-21 32-2" fill="none"/><path d="M166 96q13-23 34-9" fill="none"/><path d="M83 124q19 21 41-2" fill="none"/><ellipse cx="184" cy="125" rx="16" ry="24"/></g>
+<circle cx="189" cy="118" r="6" fill="white"/><ellipse cx="83" cy="151" rx="12" ry="6" fill="#ffa6a0" opacity=".65"/><ellipse cx="213" cy="151" rx="12" ry="6" fill="#ffa6a0" opacity=".65"/>
+<path d="M123 151q34 57 77-8-31 8-77 8Z" fill="#532636" stroke="#0F2D3A" stroke-width="4" stroke-linejoin="round"/><path d="M151 158q17 10 30-3" fill="none" stroke="white" stroke-width="7" stroke-linecap="round"/><path d="M143 181q14-9 27 1" fill="none" stroke="#ff8181" stroke-width="9" stroke-linecap="round"/>
+<!-- square anchors on face outline -->
+<g fill="#07718A" stroke="#0F2D3A" stroke-width="4"><rect x="47" y="91" width="22" height="22" rx="4" transform="rotate(-5 58 102)"/><rect x="216" y="71" width="22" height="22" rx="4"/><rect x="201" y="173" width="22" height="22" rx="4"/></g>
+<!-- Pen held aloft, whimsical giant pen nib -->
+<path d="M235 202q17-19 26-24" fill="none" stroke="#0F2D3A" stroke-width="15" stroke-linecap="round"/><path d="M254 183l18-45-17-26-20 26z" fill="#c2faff" stroke="#0F2D3A" stroke-width="5"/><circle cx="253" cy="143" r="4" fill="#0F2D3A"/><path d="M252 144 254 168" stroke="#0F2D3A" stroke-width="3"/>
+<path d="M265 114l9-10m-19 3v-12m25 26 12-1" stroke="#FFB74D" stroke-width="6" stroke-linecap="round"/>
+<!-- doctor's clipboard with a deliberately silly kinked curve -->
+<path d="M72 205q-18-5-29-17" stroke="#0F2D3A" stroke-width="12" stroke-linecap="round" fill="none"/>
+<path d="M8 183 76 166 91 225 21 244Z" fill="#e8fcff" stroke="#0F2D3A" stroke-width="5"/>
+<path d="M28 217Q44 175 63 209" fill="none" stroke="#14B8A6" stroke-width="4"/><rect x="37" y="193" width="9" height="9" rx="2" fill="#0F2D3A"/><circle cx="28" cy="217" r="5" fill="#38D9E9" stroke="#0F2D3A" stroke-width="2"/><circle cx="63" cy="209" r="5" fill="#38D9E9" stroke="#0F2D3A" stroke-width="2"/>
+</svg>
