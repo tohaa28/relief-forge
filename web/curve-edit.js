@@ -158,14 +158,14 @@ export function deleteCurveNode(path,index,options){
 // polyline is promoted to a single unpainted SVG path only when it gains a
 // C/Q segment; this prevents losing the curve on the next editor gesture.
 const finitePoint=p=>Array.isArray(p)&&p.length===2&&p.every(v=>Number.isFinite(v)&&Math.abs(v)<1e9);
-function saveEditedCurve(path,commands){
+function saveEditedCurve(path,commands,options){
   let source=path;
   if(!path.artwork&&commands.some(c=>c[0]==='C'||c[0]==='Q')){
     const original=read(path).commands;
     source={...path,artwork:'<path d="'+data(original)+'" fill="none" stroke="#007e79"/>',
       commands:original,offset:[0,0]};
   }
-  const result=write(source,commands);
+  const result=write(source,commands,options);
   if(path.nodeKinds)result.nodeKinds={...path.nodeKinds};
   return result;
 }
@@ -249,7 +249,7 @@ export function setCurveNodeType(path,index,type,options){
   const leftLen=type==='symmetric'?(lenIn+lenOut)/2:lenIn;
   const rightLen=type==='symmetric'?leftLen:lenOut;
   for(let i=0;i<2;i++){left[3+i]=anchor[i]-direction[i]*leftLen;right[1+i]=anchor[i]+direction[i]*rightLen;}
-  const result=saveEditedCurve(path,ctx.commands);
+  const result=saveEditedCurve(path,ctx.commands,options);
   return saveKinds(path,result,index,type);
 }
 export function moveCurveHandle(path,index,side,target,options){
@@ -265,7 +265,7 @@ export function moveCurveHandle(path,index,side,target,options){
     const length=type==='symmetric'?magnitude(vec):magnitude(old);
     for(let i=0;i<2;i++)other[o+i]=ctx.anchor[i]-(unit?.[i]||0)*length;
   }
-  const result=saveEditedCurve(path,ctx.commands);
+  const result=saveEditedCurve(path,ctx.commands,options);
   return saveKinds(path,result,index,type);
 }
 export function setCurveSegmentType(path,index,type,options){
@@ -273,7 +273,7 @@ export function setCurveSegmentType(path,index,type,options){
   const ctx=editableContext(path,index),s=ctx.outgoing||ctx.incoming;
   if(!s)throw Error('Не найден смежный сегмент');
   ctx.commands[s.index]=type==='line'?['L',...end(s.c)]:cubicFor(s);
-  return saveKinds(path,saveEditedCurve(path,ctx.commands),index);
+  return saveKinds(path,saveEditedCurve(path,ctx.commands,options),index);
 }
 export function reverseCurveDirection(path,options){
   const {parts}=read(path),commands=[];
@@ -291,7 +291,7 @@ export function reverseCurveDirection(path,options){
     }
     if(p.closed)commands.push(['Z']);
   }
-  return saveKinds(path,saveEditedCurve(path,commands),null);
+  return saveKinds(path,saveEditedCurve(path,commands,options),null);
 }
 export function closeCurveAtNode(path,index,options){
   const ctx=nodeContext(path,index);
@@ -301,7 +301,7 @@ export function closeCurveAtNode(path,index,options){
     commands.push(['M',...p.start],...p.segments.map(s=>s.c));
     if(p.closed||i===ctx.node.part)commands.push(['Z']);
   });
-  return saveKinds(path,saveEditedCurve(path,commands),null);
+  return saveKinds(path,saveEditedCurve(path,commands,options),null);
 }
 export function breakCurveAtNode(path,index,options){
   const ctx=nodeContext(path,index),all=read(path).parts,commands=[];
@@ -323,5 +323,5 @@ export function breakCurveAtNode(path,index,options){
         ['M',...cut],...p.segments.slice(ctx.n).map(s=>s.c));
     }
   }
-  return saveEditedCurve(path,commands);
+  return saveEditedCurve(path,commands,options);
 }
