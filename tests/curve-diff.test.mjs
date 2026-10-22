@@ -10,7 +10,7 @@ function split([p0,p1,p2,p3]){
  return [[p0,a,d,m],[m,e,c,p3]];
 }
 test('optimized actual cubic path changes geometry and drops real Bezier anchor, not just count label',()=>{
- const [a,b]=split([[0,0],[5,0],[10,10],[15,10]]);
+ const [a,b]=split([[0,0],[6,0],[12,6],[18,6]]);
  const doc={width:20,height:20,paths:[{
   kind:'vector',closed:false,artwork:'<path d="M 0 0"/>',offset:[0,0],
   points:[a[0],a[3],b[3]],commands:[['M',...a[0]],['C',...a[1],...a[2],...a[3]],['C',...b[1],...b[2],...b[3]]]
