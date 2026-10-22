@@ -137,3 +137,9 @@ main.left-collapsed{grid-template-columns:minmax(250px,1fr) 304px}
 #optimization-result{font-size:11px;white-space:pre-wrap;line-height:1.5;color:#2b6670;margin:4px 0}
 #apply-changes{padding:10px 7px;width:100%;font-size:12px}
 #apply-changes:disabled{opacity:.53}
+
+/* Evidence of actual Bezier changes in AFTER, never part of EPS export. */
+#canvas.show-optimized #geometry g.optimized-path path{stroke:#168775!important;stroke-width:1.2px!important;vector-effect:non-scaling-stroke}
+#canvas.show-optimized #geometry .optimized-before-path{fill:none!important;stroke:#d35158!important;stroke-width:1.1px!important;stroke-dasharray:5 3;vector-effect:non-scaling-stroke;opacity:.9;pointer-events:none}
+#canvas.show-optimized #markers .optimized-removed-anchors circle{fill:none;stroke:#db8e1f;stroke-width:1.2px;stroke-dasharray:2 2;vector-effect:non-scaling-stroke}
+#canvas.show-optimized #markers .optimized-smoothed-sites circle{fill:none;stroke:#10a596;stroke-width:1.5px;stroke-dasharray:3 2;vector-effect:non-scaling-stroke}

@@ -90,3 +90,17 @@ test('unified autoheal has one Apply action, problems and both smoothing/optimiz
  assert.match(app,/class:'comparison-path '/);
  assert.match(app,/class:'comparison-ghost'/);
 });
+
+test('unified Autoheal AFTER exposes actual changed cubic overlay without an extra Apply button',()=>{
+ assert.match(html,/<h2>Автоисправление<\/h2>/);
+ assert.match(html,/id="smoothing-amount"/);
+ assert.match(html,/id="optimization-tolerance"/);
+ assert.match(html,/id="apply-changes"/);
+ assert.ok(app.includes("$('apply-changes').onclick=applyUnifiedChanges"));
+ assert.match(app,/const changedScope=changedCurveIndices\\(doc,optimized\\.document,scope\\)/);
+ assert.match(app,/const smoothedSites=changedBezierSites\\(doc,optimized\\.document,changedScope\\)/);
+ assert.match(app,/class:'optimized-before-path'/);
+ assert.match(app,/class:'optimized-smoothed-sites'/);
+ assert.match(css,/\\.optimized-before-path/);
+ assert.match(css,/\\.optimized-smoothed-sites/);
+});

@@ -1,11 +1,12 @@
 import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js';
 import {issueViewBox} from './issue-focus.js';
 import {issueColors,issueLabels,visibleHealthyAnchors,circlePath} from './vector-points.js';
-import {exportEps} from './eps-export.js?v=0.2.0-alpha.13';
+import {exportEps} from './eps-export.js?v=0.2.0-alpha.14';
 import {packedInput} from './auto-repair.js';
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
-import {selectedVectorIndices,smoothAndOptimizePaths} from './curve-optimizer.js?v=0.2.0-alpha.13';
+import {selectedVectorIndices,smoothAndOptimizePaths} from './curve-optimizer.js?v=0.2.0-alpha.14';
+import {changedCurveIndices,removedCurveAnchors,changedBezierSites} from './curve-diff.js';
 const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
 let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null;
@@ -63,11 +64,13 @@ const pathData=worldData;
 function appendMarkup(parent,text){const parsed=new DOMParser().parseFromString(`<svg xmlns="${ns}" xmlns:xlink="http://www.w3.org/1999/xlink">${text}</svg>`,'image/svg+xml');for(const child of [...parsed.documentElement.children])parent.append(document.importNode(child,true));}
 function render(){
   const comparison=currentComparison();
+  const changedView=curvePreview||appliedComparison?.optimization;
   const frame=activeComparisonFrame(comparison,compareStage,doc,issues);
   const visibleDoc=frame.document,visibleIssues=frame.issues;
   displayedIssues=visibleIssues;
   const reviewing=frame.readOnly;
   $('canvas').classList.toggle('is-comparing',reviewing);
+  $('canvas').classList.toggle('show-optimized',Boolean(changedView&&compareStage==='after'));
   $('compare-exit').hidden=!comparison;
   $('compare-exit').disabled=busy;
   $('compare-before').disabled=busy||!comparison;
@@ -96,7 +99,7 @@ function render(){
       }
       el('path',{...attrs,class:'comparison-path '+(compareStage==='after'?'after':'before')},$('geometry'));
     }else if(p.artwork){
-      const painted=el('g',{'data-path':i,class:visibleDoc.epsImport?.outlineRecovery?'outline-artwork':'svg-artwork'},$('geometry'));
+      const painted=el('g',{'data-path':i,class:(visibleDoc.epsImport?.outlineRecovery?'outline-artwork':'svg-artwork')+(changedView&&compareStage==='after'&&changedView.changedScope.includes(i)?' optimized-path':'')},$('geometry'));
       appendMarkup(painted,artworkMarkup(p));
       if(sel)el('path',{...attrs,class:'path selected rich-selection'},$('geometry'));
     }else el('path',{...attrs,class:'path '+(sel?'selected':'')},$('geometry'));
@@ -110,6 +113,20 @@ function render(){
   });
   // White-backed hollow rings always overlie the geometric stroke, at a
   // fixed screen-pixel radius. No diagnostic markup enters exported EPS.
+  if(changedView&&compareStage==='after'){
+    const ghost=el('g',{class:'optimized-before-ghost','pointer-events':'none'},$('geometry'));
+    for(const i of changedView.changedScope){
+      const original=changedView.source.paths[i];
+      if(original?.kind!=='image'&&original)el('path',{d:pathData(original),class:'optimized-before-path'},ghost);
+    }
+    $('geometry').prepend(ghost);
+    const removed=changedView.removedAnchors||[];
+    if(removed.length){const marks=el('g',{class:'optimized-removed-anchors','pointer-events':'none'},$('markers'));
+      for(const {point:[cx,cy]} of removed)el('circle',{cx,cy,r:radius*1.5},marks);}
+    const smooth=changedView.smoothedSites||[];
+    if(smooth.length){const marks=el('g',{class:'optimized-smoothed-sites','pointer-events':'none'},$('markers'));
+      for(const {point:[cx,cy]} of smooth)el('circle',{cx,cy,r:radius*2.4},marks);}
+  }
   if(pointsVisible){
     const healthy=visibleHealthyAnchors(visibleDoc,visibleIssues,Number($('tolerance').value));
     if(healthy.length)el('path',{d:circlePath(healthy,radius),class:'healthy-anchors'},$('nodes'));
@@ -156,6 +173,9 @@ function buildUnifiedPreview(){
     const smoothingAmount=Number($('smoothing-amount').value);
     const optimizationTolerance=Number($('optimization-tolerance').value);
     const optimized=smoothAndOptimizePaths(doc,scope,smoothingAmount,optimizationTolerance);
+    const changedScope=changedCurveIndices(doc,optimized.document,scope);
+    const removedAnchors=removedCurveAnchors(doc,optimized.document,changedScope);
+    const smoothedSites=changedBezierSites(doc,optimized.document,changedScope);
     const st={...optimized.stats,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
       smoothingDeviation:optimized.stats.smoothingError};
     const different=scope.some(i=>worldData(doc.paths[i])!==worldData(optimized.document.paths[i]));
@@ -167,7 +187,7 @@ function buildUnifiedPreview(){
       (different?'\nДля просмотра изменений выберите ДО / ПОСЛЕ. Красный пунктир — исходная кривая, зелёный — результат.':
         '\nПри этих допусках форма не изменена.');
     $('optimization-result').textContent=msg;
-    const pv={source:clone(doc),result:optimized.document,stats:st,hasGeometryChange:different,
+    const pv={source:clone(doc),result:optimized.document,changedScope,removedAnchors,smoothedSites,stats:st,hasGeometryChange:different,
       afterDiagnosed:false,comparisonData:{
         beforeDoc:clone(doc),afterDoc:optimized.document,beforeIssues:clone(issues),afterIssues:[]
       }};
@@ -197,7 +217,7 @@ function applyUnifiedChanges(){
      Number($('optimization-tolerance').value)!==pv.stats.tolerance){
     status('Параметры изменились. Автоматический расчёт ещё не завершён.');return;
   }
-  const baseline=clone(doc),comparison=pv.comparisonData;
+  const baseline=clone(doc),comparison={...pv.comparisonData,optimization:{source:pv.source,changedScope:pv.changedScope,removedAnchors:pv.removedAnchors,smoothedSites:pv.smoothedSites}};
   checkpoint(baseline);doc=clone(pv.result);
   changed('unified-apply');appliedComparison=comparison;compareStage='after';render();
   const st=pv.stats;
@@ -348,7 +368,7 @@ function stopEps(){epsWorker?.terminate();epsWorker=null;clearTimeout(epsTimer);
 function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта EPS…';record('eps-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsWorker=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.13',import.meta.url));
+  epsWorker=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.14',import.meta.url));
   const fail=message=>{stopEps();lock(false);status(message);$('import-report').textContent='Не удалось открыть EPS: '+message;record('eps-error',{name,message});updateFileHistory({status:'Ошибка открытия: '+String(message).slice(0,180)});};
   epsTimer=setTimeout(()=>fail('EPS превысил лимит 120 секунд. Импорт отменён, документ сохранён.'),120000);
   epsWorker.onerror=e=>fail('Ошибка EPS: '+e.message);
@@ -388,4 +408,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();
 });
-record('session-start',{version:'0.2.0-alpha.13'});renderFileHistory();spawnWorker();fit();
+record('session-start',{version:'0.2.0-alpha.14'});renderFileHistory();spawnWorker();fit();
