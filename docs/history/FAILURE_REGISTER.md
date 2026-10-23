@@ -201,3 +201,10 @@
 - Fix alpha.34: explicit source provenance + common mapping for both stages, one report for genuinely open source, last→first edge retained for closed source. Exact endpoint return without Z is geometrically closed in diagnostic copy only.
 - Tests: diagnostic-topology, real WASM private EPS before/after 0 issues, partial inter-batch status preserved.
 - Independent optimizer guards reject new sampled intersections/short segments/topology changes; numeric, not analytic guarantees. Browser and CI outcomes in DEVELOPMENT_LOG.
+
+## F-026. Browser CI stage combined installation and smoke, obscuring a long dependency setup (non-failing but costly)
+- Observation: alpha.34 PR CI run 39954313037 step 'Browser smoke with real Worker and WASM' began 12:34:37Z; Chromium download began only at 12:48:10Z and actual browser PASS was logged 12:48:21Z. Whole run succeeded. During those 13+ minutes GitHub displayed one in_progress step without separate setup/smoke evidence.
+- Cause established to extent available: time spent before Chromium download in the combined Playwright dependency preparation; the logs do not isolate apt network versus package installation. This was NOT a failing test or a hanging application.
+- First intervention: split 'install-deps chromium' (8m budget), 'install --only-shell chromium' (8m), and 'node scripts/browser-smoke.mjs' (8m). Outcome: new PR run 39956129539 SUCCESS; retain all required real browser tests, do not replace with mocks.
+- Rejected: bypassing smoke to merge; declaring in_progress a CI failure; deploying from an untested newer commit. Private EPS remains excluded.
+- Future regression guard: record timing per CI stage; if runner lacks Chromium shared libraries, dependency setup must fail explicitly and be investigated. Never infer user Windows success from CI Linux Chromium success.
