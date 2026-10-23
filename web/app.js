@@ -95,7 +95,7 @@ function appendMarkup(parent,text){
   }
   for(const child of parsed.documentElement.children)parent.append(document.importNode(child,true));
 }
-function updateMascot(){return syncWorkspaceMascot($('mascot-welcome'),$('drop-target'),{hasDocument:doc.paths.length>0,importing:openingFile});}
+function updateMascot(){return syncWorkspaceMascot($('mascot-welcome'),$('drop-target'),{hasDocument:Boolean(doc.paths.length||doc.sourceFileName||doc.epsImport||doc.pdfImport),importing:openingFile});}
 function render(){
   document.body.classList.toggle('curve-editing',curveEditing());
   updateMascot();
