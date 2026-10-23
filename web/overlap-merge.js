@@ -137,7 +137,7 @@ function asCompound(group){
     artwork:'<path d="'+d+'" fill="none" stroke="#34465b" stroke-width="0.07"/>'},
     removedExact,welded:false};
 }
-export function mergeOverlappingObjects(document,{tolerance=.01,indices=null}={}){
+export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance=tolerance,indices=null}={}){
   if(!Array.isArray(document?.paths))throw Error('Документ не содержит векторных объектов');
   const doc=structuredClone(document),pathCount=doc.paths.length;
   const selected=indices?new Set(indices):null;
@@ -162,6 +162,8 @@ export function mergeOverlappingObjects(document,{tolerance=.01,indices=null}={}
   for(let i=0;i<pathCount;i++){const id=root(i);
     if(!groups.has(id))groups.set(id,[]);groups.get(id).push(i);}
   let mergedObjects=0,removedExact=0,weldedGroups=0,skipped=0,holes=0,flattenedVertices=0;
+  const cleanupStats={coincident:0,collinear:0,short:0,shortEdgesRemaining:0,reverted:0,before:0,after:0};
+  const addCleanup=stats=>{if(!stats)return;for(const k of ['coincident','collinear','short','before','after'])cleanupStats[k]+=stats[k]||0;cleanupStats.shortEdgesRemaining+=stats.shortEdgesRemaining||0;cleanupStats.reverted+=Number(stats.reverted);};
   const replacements=new Map(),drop=new Set();
   for(const ids of groups.values()){
     if(ids.length<2)continue;
@@ -174,7 +176,8 @@ export function mergeOverlappingObjects(document,{tolerance=.01,indices=null}={}
         JSON.stringify(geometryCommands(group[0])));
       let out;
       if(allFilled&&!identical){
-        const welded=unionFilledPaths(group,{tolerance});
+        const welded=unionFilledPaths(group,{tolerance,cleanupTolerance});
+        addCleanup(welded.cleanup);
         const d=welded.commands.map(c=>c.join(' ')).join(' ');
         const paint=structuredClone(group[0].paint);
         paint.fillRule='evenodd';
@@ -203,7 +206,8 @@ export function mergeOverlappingObjects(document,{tolerance=.01,indices=null}={}
     const parts=sampledGeometry(path,tolerance)?.parts;
     if(!parts||parts.length<2||parts.some(part=>!part.closed))continue;
     try{
-      const union=unionFilledPaths([path],{tolerance});
+      const union=unionFilledPaths([path],{tolerance,cleanupTolerance});
+      addCleanup(union.cleanup);
       const paint=structuredClone(path.paint);
       paint.fillRule='evenodd';
       const commands=union.commands,d=commands.map(c=>c.join(' ')).join(' ');
@@ -217,6 +221,7 @@ export function mergeOverlappingObjects(document,{tolerance=.01,indices=null}={}
   }
   return {document:doc,stats:{before:pathCount,after:doc.paths.length,mergedObjects,removedExact,
     weldedGroups,compoundGroups:replacements.size-weldedGroups,normalizedObjects,
-    skipped,holes,flattenedVertices,booleanEngine:'Clipper 6.4.2.2',
+    skipped,holes,flattenedVertices,cleanup:cleanupStats,
+    booleanEngine:'Clipper 6.4.2.2',
     unionToleranceMm:Math.max(.0002,Math.min(.005,tolerance*.05))}};
 }

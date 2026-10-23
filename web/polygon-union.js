@@ -1,5 +1,6 @@
 import './vendor/clipper.js';
 import {sampledContours} from './rich-svg.js';
+import {cleanUnionContours} from './union-node-cleanup.js';
 const C=globalThis.ClipperLib;
 if(!C?.Clipper)throw Error('Clipper 6.4.2.2 is not available');
 
@@ -76,14 +77,16 @@ function positiveIntersection(normalizedA,normalizedB){
       C.PolyFillType.pftNonZero,C.PolyFillType.pftNonZero))return false;
   return treeContours(tree).some(({points,hole})=>!hole&&square(points)>2);
 }
-export function unionFilledPaths(paths,{tolerance=.01}={}){
+export function unionFilledPaths(paths,{tolerance=.01,cleanupTolerance=tolerance}={}){
   if(!Array.isArray(paths)||!paths.length)throw Error('Нет объектов для булева объединения');
   const scale=toScale(tolerance);
   const normalized=paths.map(p=>normalizePath(p,tolerance,scale));
   const polys=normalized.flat();
   if(polys.reduce((n,p)=>n+p.length,0)>80000)throw Error('Слишком много точек для безопасного Union');
-  const contours=runUnion(polys);
-  if(!contours.length)throw Error('Объединение дало пустой контур');
+  const rawContours=runUnion(polys);
+  if(!rawContours.length)throw Error('Объединение дало пустой контур');
+  const cleanup=cleanUnionContours(rawContours,{scale,tolerance,cleanupTolerance});
+  const contours=cleanup.contours;
   let commands=[],holes=0,vertices=0;
   for(const item of contours){
     const ring=item.points;
@@ -92,7 +95,7 @@ export function unionFilledPaths(paths,{tolerance=.01}={}){
     commands.push(['M',...world[0]],...world.slice(1).map(p=>['L',...p]),['Z']);
     holes+=Number(item.hole);vertices+=ring.length;
   }
-  return {commands,holes,vertices,contours:contours.length,
+  return {commands,holes,vertices,contours:contours.length,cleanup:cleanup.stats,
     flattenToleranceMm:flattenTolerance(tolerance),
     quantizationMm:1/scale};
 }
