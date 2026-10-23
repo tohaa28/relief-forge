@@ -395,3 +395,32 @@ footer{flex-wrap:wrap;gap:8px 15px;padding-top:6px;padding-bottom:6px}
 .pdf-page-actions{display:flex;gap:10px;justify-content:flex-end}
 .pdf-page-actions button{min-height:39px;padding:9px 14px}
 @media(max-width:540px){.pdf-page-content{padding:14px}.pdf-page-actions{flex-direction:column}.pdf-page-actions button{width:100%}}
+
+
+/* Workspace diagnostics are deliberately independent of the mascot asset. */
+.workspace-health-state{position:absolute;z-index:12;left:14px;top:14px;max-width:min(520px,calc(100% - 28px));
+  padding:9px 12px;border:1px solid #cc7a42;background:#fff5e9f5;color:#6c3d22;
+  font-size:12px;line-height:1.45;border-radius:9px;box-shadow:0 5px 20px #2342}
+.workspace-health-state[data-health="ok"]{border-color:#91c5ba;background:#f0faf8f5;color:#27665c}
+.workspace-health-state[hidden]{display:none!important}
+.workspace-health-dialog{box-sizing:border-box;width:min(660px,calc(100vw - 20px));max-height:calc(100dvh - 24px);
+  padding:0;background:white;border:1px solid #d6e2e9;border-radius:13px;box-shadow:0 16px 65px #132f4555;color:#1a3342}
+.workspace-health-dialog::backdrop{background:#14344799}
+.workspace-health-content{display:flex;flex-direction:column;gap:10px;padding:19px}
+.workspace-health-content h2{font-size:17px;margin:0 0 3px}
+.workspace-health-content p{font-size:12px;color:#58707c;line-height:1.5;margin:0}
+.workspace-health-content label{margin:2px 0;font-size:12px}
+#workspace-health-report{display:block;box-sizing:border-box;resize:vertical;width:100%;min-height:120px;
+  max-height:45vh;border:1px solid #c8d5dc;border-radius:7px;background:#f6f9fb;
+  color:#233b49;padding:10px;font:11px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace}
+.workspace-health-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:9px}
+.workspace-health-actions button{min-height:38px}
+@media(max-width:650px){.workspace-health-actions{flex-direction:column}.workspace-health-actions button{width:100%}}
+
+/* Emergency view bypasses imported painting/filter styling, keeps original
+   vector commands intact for inspection and leaves export untouched. */
+#geometry .wireframe-override{display:inline!important;visibility:visible!important;
+  fill:none!important;stroke:#193e53!important;stroke-width:1.35px!important;
+  stroke-opacity:1!important;vector-effect:non-scaling-stroke!important;
+  opacity:1!important}
+#geometry .wireframe-override.selected{stroke:#079c95!important;stroke-width:1.8px!important}
