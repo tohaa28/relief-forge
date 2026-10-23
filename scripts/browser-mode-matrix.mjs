@@ -45,7 +45,8 @@ try{
   const projectDownload=page.waitForEvent('download');await page.keyboard.press('Control+Shift+s');
   const project=await projectDownload,bytes=readFileSync(await project.path()),doc=JSON.parse(bytes);
   assert.ok(doc.paths.length>0);assert.ok(doc.history.past.length>0);
-  const preview=doc.journal.filter(x=>x.action==='autoheal-curve-preview').at(-1);
+  const firstExport=doc.journal.findIndex(x=>x.action==='export-eps-after');
+  const preview=doc.journal.slice(0,firstExport).filter(x=>x.action==='autoheal-curve-preview').at(-1);
   assert.deepEqual(preview.detail.scope,selection?[2]:[0,1,2],'actual selected objects must determine the recalculated preview');
   await page.locator('#file').setInputFiles({name:'reopened.rf.json',mimeType:'application/json',buffer:bytes});
   await page.waitForTimeout(250); // Await the async file stream and any scheduled UI update.
