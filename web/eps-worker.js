@@ -2,7 +2,8 @@
  * across independent imports. Never share Ghostscript filesystem state between
  * documents: create a fresh core for each conversion. */
 const send=(percent,message)=>self.postMessage({type:'progress',percent,message});
-let enginesPromise=null;
+let enginesPromise=null,mupdfPromise=null,pendingPdf=null;
+const loadMupdf=()=>mupdfPromise??=(import('./vendor/mupdf/mupdf.js').catch(e=>{mupdfPromise=null;throw e;}));
 async function loadEngines(){
   if(enginesPromise)return enginesPromise;
   enginesPromise=(async()=>{
@@ -12,7 +13,7 @@ async function loadEngines(){
     const wasmBinary=new Uint8Array(await response.arrayBuffer());
     importScripts(new URL('vendor/ghostscript/gs-core.js',self.location.href).href);
     send(15,'Подготовка векторного импортера…');
-    const mupdf=await import('./vendor/mupdf/mupdf.js');
+    const mupdf=await loadMupdf();
     return {wasmBinary,mupdf};
   })().catch(error=>{enginesPromise=null;throw error;});
   return enginesPromise;
@@ -20,7 +21,34 @@ async function loadEngines(){
 self.onmessage=async({data})=>{
   const started=Date.now();
   try{
-    const pipeline=await import('./eps-pipeline.js?v=0.2.0-alpha.29');
+    if(data.kind==='pdf'||data.type==='select-pdf-page'){
+      const pdf=await import('./pdf-pipeline.js?v=0.2.0-alpha.30');
+      if(data.kind==='pdf'){
+        pendingPdf=pdf.pdfProgram(new Uint8Array(data.bytes)).slice();
+        send(12,'Загрузка движка MuPDF для PDF…');
+        const mupdf=await loadMupdf();
+        send(40,'Чтение страниц PDF…');
+        const pages=pdf.pdfPages(pendingPdf,mupdf);
+        if(pages.length>1){
+          send(55,'Выбор страницы PDF…');
+          self.postMessage({type:'pages',pages,count:pages.length});
+          return;
+        }
+        send(65,'Извлечение векторной геометрии PDF…');
+        const result=pdf.pdfPageToSvg(pendingPdf,mupdf,0);
+        pendingPdf=null;
+        self.postMessage({type:'done',result,durationMs:Date.now()-started,format:'pdf'});
+        return;
+      }
+      if(!pendingPdf)throw Error('PDF не загружен: откройте файл повторно.');
+      const mupdf=await loadMupdf();
+      send(65,'Извлечение страницы '+(data.pageIndex+1)+' PDF…');
+      const result=pdf.pdfPageToSvg(pendingPdf,mupdf,data.pageIndex);
+      pendingPdf=null;
+      self.postMessage({type:'done',result,durationMs:Date.now()-started,format:'pdf'});
+      return;
+    }
+    const pipeline=await import('./eps-pipeline.js?v=0.2.0-alpha.30');
     // Path-only files never load heavyweight interpreters at all.
     const direct=pipeline.recoverOutlineOnlyEps(new Uint8Array(data.bytes));
     if(direct){
@@ -53,5 +81,5 @@ self.onmessage=async({data})=>{
     });
     send(85,'Подготовка редактируемых объектов…');
     self.postMessage({type:'done',result,durationMs:Date.now()-started,fastPath:false,warm});
-  }catch(error){self.postMessage({type:'error',message:error?.message||String(error)});}
+  }catch(error){pendingPdf=null;self.postMessage({type:'error',message:error?.message||String(error)});}
 };
