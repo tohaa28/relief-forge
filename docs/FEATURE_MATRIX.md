@@ -87,3 +87,7 @@ Diagnostic report and interactive colored markers are tied to every AFTER vector
 
 ### alpha.30 — PDF vector import and mascot reliability
 Direct PDF (single/multi-page page picker) vector import through bundled MuPDF with text outlines and retained embedded bitmap objects. Multi-page imports selected page only. File-open and drag/drop accept PDF. Mascot uses cross-browser state synchronization and hides during and after any successful file load, unhide only for empty document on failure/cancel. PDF export NOT added; Save EPS unchanged.
+
+### alpha.31 — Workspace Health
+Automatic post-import check and recovery for SVG layout size, CSS visibility, mascot/drop overlays and artwork outside viewBox, independent backup wireframe rendering, one-click JSON diagnostics and plain script startup watchdog when the main module itself fails. No document mutation, no auto-zoom on ordinary manual navigation. Intended for browser-/machine-dependent blank workspaces.
+
