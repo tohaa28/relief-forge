@@ -95,3 +95,14 @@ test('UI checks workspace after opening and can switch to unstyled real path geo
  assert.match(html,/id="workspace-check-wireframe"/);
  assert.match(css,/#geometry \.wireframe-override/);
 });
+
+test('plain JS startup watchdog reports failure even when app ES modules never initialize',()=>{
+ const source=readFileSync(new URL('../web/bootstrap-watchdog.js',import.meta.url),'utf8');
+ const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
+ const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
+ assert.match(source,/setTimeout\(function\(\)\{/);
+ assert.match(source,/dataset\.doctorReady==='true'/);
+ assert.match(source,/Не удалось завершить загрузку рабочего поля/);
+ assert.match(app,/document\.documentElement\.dataset\.doctorReady='true'/);
+ assert.match(html,/bootstrap-watchdog\.js\?v=0\.2\.0-alpha\.31/);
+});
