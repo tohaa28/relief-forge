@@ -1,3 +1,4 @@
+import {pruneCoveredRetraces} from './covered-retraces.js?v=0.2.0-alpha.38';
 const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
 const end=c=>c.slice(-2);
 
@@ -8,7 +9,7 @@ const end=c=>c.slice(-2);
 export function repairVectorPoints(source,indices,tolerance){
   if(!Number.isFinite(tolerance)||tolerance<=0||tolerance>1000)throw Error('Неверный допуск исправления точек');
   const document=structuredClone(source),selection=new Set(indices);
-  const stats={removedNodes:0,closedGaps:0,maxDeviation:0,skipped:0};
+  const stats={removedNodes:0,closedGaps:0,maxDeviation:0,skipped:0,removedRetraces:0,removedRetracedNodes:0};
   for(const i of selection){
     const path=document.paths[i];
     if(!path||path.kind==='image')continue;
@@ -69,6 +70,11 @@ export function repairVectorPoints(source,indices,tolerance){
       // Native polylines store closure implicitly, without a repeated anchor.
       if(path.closed&&path.points.length>2&&distance(path.points[0],path.points.at(-1))===0)path.points.pop();
     }
+  }
+  for(const i of selection){
+    const r=pruneCoveredRetraces(document.paths[i]);
+    if(r.limited)stats.skipped++;
+    if(r.removedContours){document.paths[i]=r.path;stats.removedRetraces+=r.removedContours;stats.removedRetracedNodes+=r.removedNodes;}
   }
   return {document,stats};
 }

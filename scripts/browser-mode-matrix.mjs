@@ -57,6 +57,24 @@ try{
   await page.keyboard.press('Control+z');assert.ok(await page.locator('#geometry [data-path]').count());
   await page.close();modes++;
  }
+ const tracePage=await browser.newPage();tracePage.on('pageerror',e=>errors.push(e.message));
+ await tracePage.goto('http://localhost:'+port);await tracePage.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
+ const traceSvg='<svg xmlns="http://www.w3.org/2000/svg" width="20mm" height="20mm" viewBox="0 0 20 20"><path fill="red" stroke="none" d="M0 0 L10 0 L10 10 L0 10 Z M2 0 L8 0 L2 0 Z"/></svg>';
+ await tracePage.locator('#file').setInputFiles({name:'covered-retrace.svg',mimeType:'image/svg+xml',buffer:Buffer.from(traceSvg)});
+ await tracePage.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));await tracePage.waitForFunction(()=>document.querySelector('#busy').hidden);
+ assert.match(await tracePage.locator('#optimization-result').textContent(),/покрытых повторных проходов 1/);
+ assert.match(await tracePage.locator('#status').textContent(),/0 неисправленных/);
+ await tracePage.locator('#compare-before').click();const traceBefore=await tracePage.locator('#geometry .comparison-path').first().getAttribute('d');
+ await tracePage.locator('#compare-after').click();const traceAfter=await tracePage.locator('#geometry .comparison-path').first().getAttribute('d');assert.notEqual(traceBefore,traceAfter);
+ await tracePage.locator('#apply-changes').click();await tracePage.keyboard.press('Control+z');
+ await tracePage.waitForTimeout(250);await tracePage.waitForFunction(()=>document.querySelector('#busy').hidden);
+ const traceProjectEvent=tracePage.waitForEvent('download');await tracePage.keyboard.press('Control+Shift+s');const traceProjectFile=await traceProjectEvent;
+ const traceProject=JSON.parse(readFileSync(await traceProjectFile.path(),'utf8'));
+ const nodeCount=d=>d.paths.reduce((n,p)=>n+p.commands.filter(c=>['M','L','C','Q'].includes(c[0])).length,0);
+ assert.equal(nodeCount(traceProject),7,'Undo restores the original duplicate subpath');assert.ok(traceProject.history.future.some(d=>nodeCount(d)===4));
+ const traceEpsEvent=tracePage.waitForEvent('download');await tracePage.locator('#export-eps').click();await tracePage.locator('input[name="eps-color-mode"][value="outline"]').check();await tracePage.locator('#eps-color-confirm').click();assert.equal(await tracePage.locator('#eps-save-warning').isVisible(),false);
+ const traceEps=await traceEpsEvent;assert.equal(readFileSync(await traceEps.path(),'utf8').split(/\r?\n/).filter(s=>/^[-\d. ]+ (?:m|L|C)$/.test(s)).length,4);
+ await tracePage.close();console.log('PASS covered retrace UI: real repair, cached AFTER, Apply, Undo restores seven anchors, EPS saves four');
  const pdfPage=await browser.newPage();pdfPage.on('pageerror',e=>errors.push(e.message));
  await pdfPage.goto('http://localhost:'+port);await pdfPage.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
  await pdfPage.locator('#file').setInputFiles({name:'vector-regression.pdf',mimeType:'application/pdf',buffer:Buffer.from(simpleVectorPdf())});

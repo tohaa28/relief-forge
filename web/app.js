@@ -1,27 +1,27 @@
-import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.37';
-import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.37';
+import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.38';
+import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.38';
 import {issueViewBox} from './issue-focus.js';
 import {visibleHealthyAnchors,circlePath} from './vector-points.js';
-import {screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.37';
-import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.37';
-import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.37';
+import {screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.38';
+import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.38';
+import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.38';
 import {packedInput} from './auto-repair.js';
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
-import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.37';
-import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.37';
-import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.37';
-import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.37';
-import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.37';
-import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.37';
-import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.37';
-import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.37';
-import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.37';
-import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.37';
-import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.37';
-import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.37';
-import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.37';
-import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.37';
+import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.38';
+import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.38';
+import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.38';
+import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.38';
+import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.38';
+import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.38';
+import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.38';
+import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.38';
+import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.38';
+import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.38';
+import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.38';
+import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.38';
+import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.38';
+import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.38';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 const nodeCursor=symbol=>{const svg='<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26"><circle cx="13" cy="13" r="11" fill="white" stroke="#173946" stroke-width="1.7"/><text x="13" y="19" text-anchor="middle" fill="#007e79" font-family="Arial" font-weight="bold" font-size="19">'+symbol+'</text></svg>';return 'url("data:image/svg+xml,'+encodeURIComponent(svg)+'") 13 13, crosshair';};
 const plusCursor=nodeCursor('+'),minusCursor=nodeCursor('−');
@@ -135,7 +135,7 @@ function workspaceScan({attemptRepair=false,manual=false}={}){
   state.hidden=health.ok&&!manual;
   state.dataset.health=health.ok?'ok':'warning';
   $('workspace-health-report').value=safeWorkspaceReport(health,{
-    version:'0.2.0-alpha.37',source:lastImportFailure?.source||doc.sourceFileName||'',
+    version:'0.2.0-alpha.38',source:lastImportFailure?.source||doc.sourceFileName||'',
     errors:displayErrors});
   record('workspace-health',{ok:health.ok,issues:health.issues,forceWireframe,attempts:repairs,
     count:health.elementCount,rect:health.canvasRect,bbox:health.geometryBox});
@@ -162,7 +162,7 @@ $('workspace-check').onclick=()=>{
   const health=workspaceScan({attemptRepair:true,manual:true});
   $('workspace-health-report').value=safeWorkspaceReport(health||{
     ok:true,issues:[],note:'Документ не открыт'},{
-    version:'0.2.0-alpha.37',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
+    version:'0.2.0-alpha.38',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
   $('workspace-health-dialog').showModal();
 };
 $('workspace-check-repair').onclick=()=>{
@@ -364,7 +364,7 @@ function buildUnifiedPreview(){
     const different=JSON.stringify(doc.paths.map(worldData))!==JSON.stringify(after.paths.map(worldData));
     const msg='ИТОГОВЫЕ реальные узлы: '+st.actualNodesBefore+' → '+st.actualNodesAfter+'.'+
       (budget.reason?'\n'+previewBudgetMessage(budget)+' Показатели Union ниже относятся к отклонённой попытке.':'')+'\nТочки: убрано коротких/нулевых сегментов '+st.pointRepairs.removedNodes+
-      ' · замкнуто близких концов '+st.pointRepairs.closedGaps+'.'+
+      ' · замкнуто близких концов '+st.pointRepairs.closedGaps+' · удалено покрытых повторных проходов '+(st.pointRepairs.removedRetraces||0)+'.'+
       '\nБулево объединение Clipper: слито объектов '+st.overlaps.mergedObjects+
       ', сварено заполненных групп '+st.overlaps.weldedGroups+
       ', нормализовано составных заливок '+st.overlaps.normalizedObjects+
@@ -495,7 +495,7 @@ async function buildLargeUnifiedPreview(indices){
     optimizationTolerance=Number($('optimization-tolerance').value);
   const stats={scope:[...indices],original:0,result:0,removed:0,maxError:0,tolerance:optimizationTolerance,
     smoothingAmount,smoothedJoints:0,smoothingDeviation:0,rejected:0,smoothingRejected:0,pointRepairs:{
-      removedNodes:0,closedGaps:0,maxDeviation:0,skipped:0
+      removedNodes:0,closedGaps:0,maxDeviation:0,skipped:0,removedRetraces:0,removedRetracedNodes:0
     },diagnosticTolerance:tol};
   lock(true,{coverCanvas:false});
   try{
@@ -515,6 +515,8 @@ async function buildLargeUnifiedPreview(indices){
       stats.maxError=Math.max(stats.maxError,optimized.maxError);
       stats.pointRepairs.removedNodes+=repaired.stats.removedNodes;
       stats.pointRepairs.closedGaps+=repaired.stats.closedGaps;
+      stats.pointRepairs.removedRetraces+=repaired.stats.removedRetraces||0;
+      stats.pointRepairs.removedRetracedNodes+=repaired.stats.removedRetracedNodes||0;
       stats.pointRepairs.skipped+=repaired.stats.skipped;
       stats.pointRepairs.maxDeviation=Math.max(stats.pointRepairs.maxDeviation,repaired.stats.maxDeviation);
       if((k+1)%3===0||k===indices.length-1){
@@ -552,7 +554,7 @@ async function buildLargeUnifiedPreview(indices){
     curvePreview=pv;compareStage='after';
     $('optimization-result').textContent='ИТОГОВЫЕ реальные узлы: '+stats.actualNodesBefore+' → '+stats.actualNodesAfter+'.'+
       (budget.reason?' '+previewBudgetMessage(budget)+' Показатели Union ниже — отклонённая попытка.':'')+'\nБольшой документ: обработано '+indices.length+
-      ' контуров; сглажено '+stats.smoothedJoints+' стыков, удалено '+stats.removed+
+      ' контуров; удалено покрытых повторных проходов '+stats.pointRepairs.removedRetraces+' ('+stats.pointRepairs.removedRetracedNodes+' узлов); сглажено '+stats.smoothedJoints+' стыков, удалено '+stats.removed+
       ' сегментов; слито объектов '+stats.overlaps.mergedObjects+
       ', нормализовано заливок '+stats.overlaps.normalizedObjects+
       ', сохранено отверстий '+stats.overlaps.holes+
@@ -916,7 +918,7 @@ function stopEps({destroy=false}={}){const picker=$('pdf-page-picker');if(picker
 function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);openingFile=false;lastImportFailure=null;lastImportAttempt={source:name,status:'opened',objects:next.paths.length};forceWireframe=false;syncWireframeControl();if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();scheduleWorkspaceCheck();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;openingFile=true;lastImportFailure=null;lastImportAttempt={source:name,status:'converting',bytes:bytes.byteLength};updateMascot();if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта '+(/\.pdf$/i.test(name)?'PDF':'EPS')+'…';record('vector-import-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.37',import.meta.url));
+  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.38',import.meta.url));
   progressStage(/\.pdf$/i.test(name)?'Импорт PDF: подготовка MuPDF':'Импорт EPS: подготовка интерпретатора',9);
   const started=performance.now();
   const fail=message=>{
@@ -1171,4 +1173,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();if(!curveEditing())requestRecalculation();
 });
-record('session-start',{version:'0.2.0-alpha.37'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorReady='true';
+record('session-start',{version:'0.2.0-alpha.38'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorReady='true';
