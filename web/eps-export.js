@@ -127,7 +127,7 @@ export function exportColoredEps(doc,{Parser=globalThis.DOMParser}={}){
   for(const path of doc.paths){
     const geometry=geometryCommands(path);
     if(!geometry.length)continue;
-    const paint=path.paint||paintFromArtwork(path.artwork,{Parser});
+    const paint=path.paint||(path.artwork?paintFromArtwork(path.artwork,{Parser}):{fill:'none',stroke:'#000000',strokeWidthMm:0.1,opacity:1});
     if(paint?.unsupported)throw Error(paint.unsupported);
     if(paint.opacity!==undefined&&paint.opacity!==1)
       throw Error('EPS с цветом: прозрачность не может быть сохранена без изменения вида');
