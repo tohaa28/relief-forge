@@ -77,7 +77,7 @@ test('a valid horizontal line with zero-height getBBox is not mistaken for broke
 test('report serializes CSS and geometry state for investigation without exposing source contents',()=>{
  const s=scene({geometry:{bbox:{x:2000,y:2000,width:50,height:50}}});
  const health=inspectWorkspace(s),text=safeWorkspaceReport(health,{
-   version:'0.2.0-alpha.31',source:'client.eps',errors:['TypeError: fail']});
+   version:'0.2.0-alpha.32',source:'client.eps',errors:['TypeError: fail']});
  assert.match(text,/"viewBox"/);assert.match(text,/"geometryBox"/);
  assert.match(text,/client\.eps/);assert.match(text,/TypeError/);
 });
@@ -104,5 +104,5 @@ test('plain JS startup watchdog reports failure even when app ES modules never i
  assert.match(source,/dataset\.doctorReady==='true'/);
  assert.match(source,/Не удалось завершить загрузку рабочего поля/);
  assert.match(app,/document\.documentElement\.dataset\.doctorReady='true'/);
- assert.match(html,/bootstrap-watchdog\.js\?v=0\.2\.0-alpha\.31/);
+ assert.match(html,/bootstrap-watchdog\.js\?v=0\.2\.0-alpha\.32/);
 });

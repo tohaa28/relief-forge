@@ -24,7 +24,7 @@
     var report=document.createElement('textarea');report.readOnly=true;
     report.style.cssText='display:none;box-sizing:border-box;width:100%;height:85px;'+
       'font:11px Consolas,monospace;margin-top:7px';
-    report.value=JSON.stringify({at:new Date().toISOString(),version:'0.2.0-alpha.31',
+    report.value=JSON.stringify({at:new Date().toISOString(),version:'0.2.0-alpha.32',
       userAgent:navigator.userAgent,appReady:document.documentElement.dataset.doctorReady||null,
       errors:failures},null,2);
     var toggle=document.createElement('button');toggle.type='button';

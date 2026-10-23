@@ -32,7 +32,7 @@ function hiddenStyle(style){
     style.visibility==='collapse'||Number(style.opacity)===0);
 }
 export function inspectWorkspace({canvas,workspace,geometry,mascot,documentPaths=0,
-  documentLoaded=false,styleOf=e=>getComputedStyle(e),
+  documentLoaded=false,documentType='',importFailure=null,styleOf=e=>getComputedStyle(e),
   bounding=()=>geometry.getBBox(),overlay=null}={}){
   const issues=[];
   const rect=snapshotRect(canvas?.getBoundingClientRect?.());
@@ -42,7 +42,7 @@ export function inspectWorkspace({canvas,workspace,geometry,mascot,documentPaths
   const viewBox=canvas?.viewBox?.baseVal;
   const view=viewBox?{x:number(viewBox.x),y:number(viewBox.y),
     width:number(viewBox.width),height:number(viewBox.height)}:null;
-  const expected=Boolean(documentPaths||documentLoaded);
+  const expected=Boolean(documentPaths||documentLoaded||importFailure);
   const elementCount=geometry?.childElementCount||0;
   let geometryBox=null,bboxError=null;
   if(elementCount&&expected){
@@ -62,13 +62,17 @@ export function inspectWorkspace({canvas,workspace,geometry,mascot,documentPaths
   if(!rect||rect.width<32||rect.height<32||!parentRect||parentRect.height<32)
     issues.push('zero-size');
   if(!validBox(view))issues.push('invalid-viewbox');
+  if(documentLoaded&&documentType==='eps'&&documentPaths===0)issues.push('empty-import');
+  if(importFailure)issues.push('import-failed');
   if(expected&&documentPaths>0&&!elementCount)issues.push('empty-svg');
   if(expected&&documentPaths>0&&elementCount&&geometryBox&&validBox(geometryBox)&&
     validBox(view)&&!boxesOverlap(view,geometryBox))issues.push('out-of-view');
   if(expected&&documentPaths>0&&geometryBox&&!validBox(geometryBox))issues.push('invalid-geometry-bounds');
   if(expected&&mascot&&!mascot.hidden)issues.push('mascot-visible');
   if(expected&&overlay&&!overlay.hidden)issues.push('overlay-visible');
-  return {ok:issues.length===0,issues,expected,documentPaths,elementCount,
+  return {ok:issues.length===0,issues,expected,documentPaths,documentType,
+    importFailure:importFailure?{source:importFailure.source,code:importFailure.code,message:importFailure.message}:null,
+    elementCount,
     canvasRect:rect,workspaceRect:parentRect,viewBox:view,
     geometryBox,canvasStyle,parentStyle,geometryStyle,
     mascotHidden:mascot?.hidden??null,overlayHidden:overlay?.hidden??null,
@@ -135,6 +139,8 @@ export function shortWorkspaceDiagnosis(health){
     'zero-size':'размер рабочего поля слишком мал или равен нулю',
     'invalid-viewbox':'неверный масштаб/viewBox',
     'empty-svg':'контуры не построены в SVG',
+    'empty-import':'EPS отмечен как загруженный, но содержит 0 объектов',
+    'import-failed':'последний импорт файла завершился ошибкой',
     'out-of-view':'контуры вне видимого поля',
     'invalid-geometry-bounds':'SVG не смог вычислить границы контуров',
     'mascot-visible':'маскот закрывает загруженный документ',
