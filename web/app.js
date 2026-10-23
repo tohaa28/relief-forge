@@ -1,15 +1,16 @@
-import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.22';
+import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.23';
 import {issueViewBox} from './issue-focus.js';
 import {visibleHealthyAnchors,circlePath} from './vector-points.js';
-import {screenUnitsPerPixel,renderIssueMarkers} from './issue-markers.js?v=0.2.0-alpha.22';
-import {exportEps} from './eps-export.js?v=0.2.0-alpha.22';
+import {screenUnitsPerPixel,renderIssueMarkers} from './issue-markers.js?v=0.2.0-alpha.23';
+import {exportEps} from './eps-export.js?v=0.2.0-alpha.23';
 import {packedInput} from './auto-repair.js';
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
-import {selectedVectorIndices,smoothAndOptimizePaths} from './curve-optimizer.js?v=0.2.0-alpha.22';
-import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.22';
-import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.22';
-import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.22';
+import {selectedVectorIndices,smoothAndOptimizePaths} from './curve-optimizer.js?v=0.2.0-alpha.23';
+import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.23';
+import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.23';
+import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.23';
+import {epsSaveCandidate,epsSaveDecision,epsSaveWarningText} from './eps-save-flow.js?v=0.2.0-alpha.23';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 const nodeCursor=symbol=>{const svg='<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26"><circle cx="13" cy="13" r="11" fill="white" stroke="#173946" stroke-width="1.7"/><text x="13" y="19" text-anchor="middle" fill="#007e79" font-family="Arial" font-weight="bold" font-size="19">'+symbol+'</text></svg>';return 'url("data:image/svg+xml,'+encodeURIComponent(svg)+'") 13 13, crosshair';};
 const plusCursor=nodeCursor('+'),minusCursor=nodeCursor('−');
@@ -247,12 +248,12 @@ function buildUnifiedPreview(){
   }catch(err){curvePreview=null;$('optimization-result').textContent=err.message;render();status('Автоисправление: '+err.message);}
 }
 function applyUnifiedChanges(){
-  if(busy||!curvePreview||!curvePreview.hasGeometryChange)return;
+  if(busy||!curvePreview||!curvePreview.hasGeometryChange)return false;
   const pv=curvePreview;
   if(Number($('smoothing-amount').value)!==pv.stats.smoothingAmount||
      Number($('optimization-tolerance').value)!==pv.stats.tolerance||
      Number($('tolerance').value)!==pv.stats.diagnosticTolerance){
-    status('Параметры изменились. Автоматический расчёт ещё не завершён.');return;
+    status('Параметры изменились. Автоматический расчёт ещё не завершён.');return false;
   }
   const baseline=clone(doc),comparison=pv.comparisonData;
   checkpoint(baseline);doc=clone(pv.result);
@@ -268,6 +269,7 @@ function applyUnifiedChanges(){
   status('Изменения применены: '+st.pointRepairs.removedNodes+' исправлений точек, '+st.pointRepairs.closedGaps+
     ' замыканий, '+st.smoothedJoints+' сглаженных стыков, '+st.removed+
     ' удалённых сегментов. Undo восстанавливает исходные кривые.');
+  return true;
 }
 function requestRecalculation(){
   clearTimeout(settingsTimeout);settingsTimeout=setTimeout(()=>{
@@ -296,6 +298,30 @@ function spawnWorker(){
     if(data.id===0){ready=!data.error;$('engine').textContent=ready?'● Rust / WASM готов':'○ WASM не собран';status(data.error||'Rust-ядро готово');render();if(ready&&doc.paths.length&&!currentComparison())calculate(0);return;}
     if(!pending||data.id!==pending.id)return;
     const task=pending;pending=null;
+    if(task.epsSavePreflight){
+      lock(false);
+      if(data.error){
+        record('eps-save-preflight-error',{message:data.error});
+        showEpsSaveWarning(epsSaveDecision({complete:false,fullScope:false,issueCount:null},task.autoApply),
+          'Rust-диагностика завершилась ошибкой: '+data.error);
+        return;
+      }
+      const report={complete:data.output.diagnosticComplete===true,fullScope:true,issueCount:data.output.issues.length};
+      const decision=epsSaveDecision(report,task.autoApply);
+      record('eps-save-preflight',{issues:report.issueCount,complete:report.complete,
+        sampledPaths:task.contours,autoApplyRequested:task.autoApply});
+      if(decision.action==='warn'){showEpsSaveWarning(decision);return;}
+      if(decision.action==='apply-and-save'){
+        const fresh=epsSaveCandidate(doc,curvePreview,readEpsSaveSettings());
+        if(!fresh.autoApply||!applyUnifiedChanges()){
+          showEpsSaveWarning(epsSaveDecision({complete:false,fullScope:false,issueCount:report.issueCount},true),
+            'Подготовленные изменения успели устареть. Требуется повторная проверка.');
+          return;
+        }
+      }
+      exportConfirmedEps({autoApplied:decision.action==='apply-and-save',verified:true,remainingIssues:0});
+      return;
+    }
     if(data.error){lock(false);record('engine-error',{error:data.error});status(data.error);return;}
     if(task.unifiedAfterDiagnostic){
       if(curvePreview&&task.preview===curvePreview){
@@ -522,7 +548,7 @@ function stopEps({destroy=false}={}){epsImportActive=false;clearTimeout(epsTimer
 function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта EPS…';record('eps-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.22',import.meta.url));
+  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.23',import.meta.url));
   const started=performance.now();
   const fail=message=>{stopEps({destroy:true});lock(false);status(message);$('import-report').textContent='Не удалось открыть EPS: '+message;record('eps-error',{name,message});updateFileHistory({status:'Ошибка открытия: '+String(message).slice(0,180)});};
   epsTimer=setTimeout(()=>fail('EPS превысил лимит 120 секунд. Импорт отменён, документ сохранён.'),120000);
@@ -563,4 +589,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();
 });
-record('session-start',{version:'0.2.0-alpha.22'});renderFileHistory();spawnWorker();fit();
+record('session-start',{version:'0.2.0-alpha.23'});renderFileHistory();spawnWorker();fit();
