@@ -93,3 +93,7 @@ Automatic post-import check and recovery for SVG layout size, CSS visibility, ma
 
 ### alpha.32 — Import-integrity EPS zero-object guard
 EPS import is only committed if importRichSvg generated >=1 editable object; blank Ghostscript/MuPDF SVG triggers an error (and falls back only to proven Corel safe outline extraction). Historical EPS with zero paths is now health=warning empty-import. Failed imports are reflected in downloadable workspace diagnostics with code and filename; previous document/Undo remains unchanged. Empty PDF page is allowed by design. Root cause of specific source EPS requires file evidence.
+
+### alpha.33 — CorelDRAW EPS c/C unpainted curves
+Fallback importer now recognizes both equivalent PostScript curveto aliases C and c with exact cubic control points and no synthetic vertices. Direct path reader recovers actual uploaded file containing 53 closed outlines; CSS and Ghostscript are not involved. Existing import-integrity rejection remains for true empty/unsupported EPS; vendor/cache URLs updated. The actual user file is not committed.
+
