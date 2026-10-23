@@ -238,7 +238,7 @@ function buildUnifiedPreview(){
     const optimized=smoothAndOptimizePaths(repaired.document,scope,smoothingAmount,optimizationTolerance);
     const merged=$('merge-overlaps').checked?
       mergeOverlappingObjects(optimized.document,{indices:scope,tolerance:diagnosticTolerance}):
-      {document:optimized.document,stats:{mergedObjects:0,weldedGroups:0,compoundGroups:0,skipped:0}};
+      {document:optimized.document,stats:{mergedObjects:0,weldedGroups:0,compoundGroups:0,skipped:0,holes:0,normalizedObjects:0,unionToleranceMm:0.005}};
     const after=merged.document;
     const st={...optimized.stats,overlaps:merged.stats,mergeOverlaps:$('merge-overlaps').checked,pointRepairs:repaired.stats,diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
       smoothingDeviation:optimized.stats.smoothingError};
@@ -393,7 +393,7 @@ async function buildLargeUnifiedPreview(indices){
     previewActive=false;
     const merged=$('merge-overlaps').checked?
       mergeOverlappingObjects(result,{indices,tolerance:tol}):
-      {document:result,stats:{mergedObjects:0,weldedGroups:0,compoundGroups:0,skipped:0}};
+      {document:result,stats:{mergedObjects:0,weldedGroups:0,compoundGroups:0,skipped:0,holes:0,normalizedObjects:0,unionToleranceMm:0.005}};
     const after=merged.document;
     stats.overlaps=merged.stats;stats.mergeOverlaps=$('merge-overlaps').checked;
     const different=JSON.stringify(doc.paths.map(worldData))!==JSON.stringify(after.paths.map(worldData));
