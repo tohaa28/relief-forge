@@ -312,3 +312,20 @@ button:has(>.approved-icon){align-items:center;gap:8px}
 button:has(>.approved-icon) kbd{margin-left:auto}
 .mascot-welcome .workspace-mascot{display:block;object-fit:contain;min-height:0;width:auto;height:min(32dvh,285px);max-width:min(100%,325px);flex:0 1 auto}
 @media(max-width:780px){.brand-appmark-icon{width:36px;height:36px;flex-basis:36px}.mascot-welcome .workspace-mascot{height:min(26dvh,190px)}}
+
+
+/* EPS export verification: clear, reversible choice, no automatic override. */
+.eps-save-warning{box-sizing:border-box;width:min(480px,calc(100vw - 32px));max-height:calc(100dvh - 36px);overflow:auto;margin:auto;padding:0;border:1px solid #c5d9e0;border-radius:16px;background:#fff;color:#173341;box-shadow:0 22px 70px #0d293b47;font:inherit}
+.eps-save-warning::backdrop{background:#102e4082;backdrop-filter:blur(3px)}
+.eps-save-warning-content{padding:24px}
+.eps-save-warning-heading{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.eps-save-warning-icon{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border-radius:10px;background:#fff2d4;color:#976000;font-size:24px;font-weight:750}
+.eps-save-warning-heading h2{margin:0;font-size:17px;font-weight:750;line-height:1.25;letter-spacing:-.25px}
+.eps-save-warning-content p{margin:0 0 14px;line-height:1.55;font-size:12px;white-space:pre-line}
+.eps-save-warning-content .eps-save-warning-detail{padding:12px 13px;border:1px solid #e0e9ec;border-radius:10px;background:#f5f9fa;color:#536d79}
+.eps-save-warning-actions{display:flex;align-items:stretch;justify-content:flex-end;flex-wrap:wrap;gap:9px;margin-top:18px}
+.eps-save-warning-actions button{min-height:40px;padding:9px 13px;font-weight:650}
+.eps-save-warning-actions #eps-save-return{background:#e2f7f8;color:#08606c;border:1px solid #84d4db}
+.eps-save-warning-actions #eps-save-anyway{border:1px solid #d2dce2;background:white}
+.eps-save-warning-actions button:focus-visible{outline:2px solid #00aab2;outline-offset:2px}
+@media(max-width:480px){.eps-save-warning-content{padding:16px}.eps-save-warning-actions{flex-direction:column}.eps-save-warning-actions button{width:100%}}
