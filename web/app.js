@@ -21,7 +21,7 @@ const names={open:'Открытый контур',coincident:'Совпадающ
 let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null;
 let doc={format:'relief-forge',version:1,width:300,height:200,paths:[]},selected=new Set(),issues=[],metrics=[],past=[],future=[],mode='select',draft=[],drag=null,pan=null,worker,ready=false,pending=null,sequence=0,busy=false;
 let epsWorker=null,epsTimer=null,epsImportActive=false;let importFonts=[];
-let diagnosticGeneration=0,readGeneration=0,readActive=false,previewGeneration=0,previewActive=false;
+let diagnosticGeneration=0,readGeneration=0,readActive=false,previewGeneration=0,previewActive=false,suppressNextDiagnostic=false;
 const historyStorage=(()=>{try{return window.localStorage}catch{return null}})();
 let fileHistory=readHistory(historyStorage),activeHistoryId=null;
 const journal=[];const clone=v=>structuredClone(v);
@@ -317,7 +317,7 @@ $('apply-changes').onclick=applyUnifiedChanges;
 function spawnWorker(){
   worker=new Worker(new URL('worker.js',import.meta.url),{type:'module'});
   worker.onmessage=({data})=>{
-    if(data.id===0){ready=!data.error;$('engine').textContent=ready?'● Rust / WASM готов':'○ WASM не собран';status(data.error||'Rust-ядро готово');render();if(ready&&doc.paths.length&&!currentComparison())calculate(0);return;}
+    if(data.id===0){ready=!data.error;$('engine').textContent=ready?'● Rust / WASM готов':'○ WASM не собран';status(data.error||'Rust-ядро готово');render();if(ready&&doc.paths.length&&!currentComparison()&&!suppressNextDiagnostic)calculate(0);suppressNextDiagnostic=false;return;}
     if(!pending||data.id!==pending.id)return;
     const task=pending;pending=null;
     if(task.largeDiagnostic){task.onResponse(data);return;}
@@ -715,7 +715,7 @@ $('toggle-info').onclick=()=>{if(busy)return;const panel=$('info-panel'),expande
 $('toggle-points').onclick=()=>{pointsVisible=!pointsVisible;record('toggle-all-anchors',{visible:pointsVisible});render();};
 $('toggle-markers').onclick=()=>{if(busy||!issues.length)return;markersVisible=!markersVisible;record('toggle-issue-markers',{visible:markersVisible});render();};
 document.querySelectorAll('[data-action]').forEach(e=>e.onclick=()=>calculate(Number(e.dataset.action)));
-$('cancel').onclick=()=>{++diagnosticGeneration;++readGeneration;++previewGeneration;if(previewActive){previewActive=false;lock(false);status('Оптимизация отменена, оригинальные кривые сохранены.');return;}if(readActive){readActive=false;lock(false);status('Чтение файла отменено.');return;}if(epsImportActive){stopEps({destroy:true});lock(false);record('eps-cancel');status('Импорт EPS отменён. Документ сохранён.');return;}worker.terminate();pending=null;ready=false;lock(false);record('engine-cancel');status('Расчёт отменён, документ сохранён.');spawnWorker();};
+$('cancel').onclick=()=>{++diagnosticGeneration;++readGeneration;++previewGeneration;if(previewActive){previewActive=false;lock(false);status('Оптимизация отменена, оригинальные кривые сохранены.');return;}if(readActive){readActive=false;lock(false);status('Чтение файла отменено.');return;}if(epsImportActive){stopEps({destroy:true});lock(false);record('eps-cancel');status('Импорт EPS отменён. Документ сохранён.');return;}worker.terminate();pending=null;ready=false;suppressNextDiagnostic=true;lock(false);record('engine-cancel');status('Расчёт отменён, документ сохранён.');spawnWorker();};
 $('undo').onclick=()=>{if(!past.length||busy)return;future.push(clone(doc));doc=past.pop();if(curveEditing())selected=new Set([...selected].filter(i=>doc.paths[i]&&doc.paths[i].kind!=='image'));else selected.clear();changed('undo');};
 $('redo').onclick=()=>{if(!future.length||busy)return;past.push(clone(doc));doc=future.pop();if(curveEditing())selected=new Set([...selected].filter(i=>doc.paths[i]&&doc.paths[i].kind!=='image'));else selected.clear();changed('redo');};
 $('delete').onclick=()=>{if(!selected.size)return;checkpoint();doc.paths=doc.paths.filter((_,i)=>!selected.has(i));selected.clear();changed('delete');};
