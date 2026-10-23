@@ -38,3 +38,11 @@
 ## Ссылки
 - [alpha.32](https://github.com/tohaa28/relief-forge/commit/4ad8efd1801be16d4c37472fda4989f9e3afbf06)
 - [состояние alpha.35 до отката](https://github.com/tohaa28/relief-forge/commit/bb56f9b11976fd75199b3b16f0f377be3df5bc18)
+
+## Итог публикации 2026-10-23
+- Restore PR #46 успешно объединён с `main`: `2dfadad1c8f342733da857b0585540dacd46c95e`.
+- PR run `39964713772` — **build SUCCESS**, 167/167 JS, 15/15 Rust, compiled WASM ABI PASS; PR deploy ожидаемо SKIPPED.
+- Main push workflow `39964842575` — **build SUCCESS**, **deploy SUCCESS**, ссылка https://tohaa28.github.io/relief-forge/.
+- После merge повторно сравнены Git blob SHA каждого файла вне документов истории с tree alpha.32: **ноль несовпадений**. Имя релиза сохранено в `package.json`, `Cargo.toml`, HTML; прежняя alpha.35 уцелела в резервной ветке.
+- Browser smoke Playwright из alpha.34/35 намеренно не использовался, так как исходный workflow alpha.32 его не содержит. Реальный клиентский Windows/Firefox тест не проведён; не объявлять его успешным без данных.
+- Новый документационный PR записывает конечную фиксацию исхода, а не функциональные изменения. Все pre-rollback failure reports остаются сохранёнными.
