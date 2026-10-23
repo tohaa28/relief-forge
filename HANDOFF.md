@@ -1,3 +1,11 @@
+# Актуальная карта документов (добавлена 2026-10-23; далее — неизменённый накопленный handoff)
+
+**Главный файл следующего чата:** [docs/NEXT_CHAT_START.md](docs/NEXT_CHAT_START.md). Полная хронология — [docs/history/RELEASE_CHRONICLE.md](docs/history/RELEASE_CHRONICLE.md); ошибки и отвергнутые способы — [docs/history/FAILURE_REGISTER.md](docs/history/FAILURE_REGISTER.md); решения и порядок обработки — [docs/history/METHODS_AND_DECISIONS.md](docs/history/METHODS_AND_DECISIONS.md); правила ведения записей — [docs/history/WORKLOG_PROTOCOL.md](docs/history/WORKLOG_PROTOCOL.md). Старая история ниже сохранена целиком. Если старый раздел противоречит NEXT_CHAT_START, актуальному main-коду или проверенному CI — сначала проверьте доказательства, **не воспроизводите устаревшие действия**.
+
+Функциональный baseline (неизменный на начало документационной ревизии): alpha.33 / main \`fee205c17a729ed246f0760f2cebd29352e73cd9\`; [PR #39](https://github.com/tohaa28/relief-forge/pull/39), [успешный build+deploy](https://github.com/tohaa28/relief-forge/actions/runs/39948169551). Работу alpha.33 на пользовательском проблемном ПК ещё требуется подтвердить. Ветку этого изменения документации следует проверять как отдельный docs PR.
+
+---
+
 # Доктор Узелков 0.2.0-alpha.33 — восстановление конкретного CorelDRAW EPS из непропечатанных Безье
 
 Дата: 2026-10-23. Базовая версия main alpha.32, коммит 4ad8efd1801be16d4c37472fda4989f9e3afbf06.

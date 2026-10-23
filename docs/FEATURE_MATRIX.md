@@ -97,3 +97,5 @@ EPS import is only committed if importRichSvg generated >=1 editable object; bla
 ### alpha.33 — CorelDRAW EPS c/C unpainted curves
 Fallback importer now recognizes both equivalent PostScript curveto aliases C and c with exact cubic control points and no synthetic vertices. Direct path reader recovers actual uploaded file containing 53 closed outlines; CSS and Ghostscript are not involved. Existing import-integrity rejection remains for true empty/unsupported EPS; vendor/cache URLs updated. The actual user file is not committed.
 
+### История и восстановление контекста (documentation checkpoint, 2026-10-23)
+Обязательные release chronology, failure register F-001–F-022, архитектурные решения, NEXT_CHAT_START и WORKLOG_PROTOCOL созданы в \`docs/history/\` и \`docs/NEXT_CHAT_START.md\`; \`AGENTS.md\` требует их обновления при каждой следующей итерации. \`tests/history-integrity.test.mjs\` проверяет соответствие актуальной версии, отсутствие дыр в нумерации ошибок и parseable action journal. Документация не доказывает runtime behavior; реальные CI/Pages и user smoke остаются отдельными статусами.
