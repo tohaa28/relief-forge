@@ -846,7 +846,7 @@ function importEps(bytes,name,historyStarted=false){
           ...data.result.metadata,warnings:data.result.warnings,logs:data.result.logs,
           outlineRecovery:data.result.outlineRecovery||null,engines:{ghostscript:'10.08.0',mupdf:'1.28.1'}};
       }
-      const durationMs=performance.now()-started;stopEps();lock(false);openValue(next,name,true);record('vector-import-time',{name,format:data.format||'eps',bytes:bytes.length,ms:Math.round(durationMs),workerMs:data.durationMs||0,fastPath:Boolean(data.fastPath),warm:Boolean(data.warm)});
+      const durationMs=performance.now()-started;stopEps();lock(false);openValue(next,name,true);record(data.format==='pdf'?'pdf-import-time':'eps-import-time',{name,format:data.format||'eps',bytes:bytes.length,ms:Math.round(durationMs),workerMs:data.durationMs||0,fastPath:Boolean(data.fastPath),warm:Boolean(data.warm)});
       if(data.format==='pdf'){
         status('PDF импортирован: страница '+data.result.metadata.pageNumber+'/'+data.result.metadata.pageCount+
           ' · '+next.paths.length+' объектов. Векторные кривые доступны для редактирования.');
