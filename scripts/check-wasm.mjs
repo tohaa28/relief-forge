@@ -61,6 +61,7 @@ if(process.env.CI){
  const {execFileSync}=await import('node:child_process');
  execFileSync(process.execPath,['scripts/verify-example.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/verify-union.mjs'],{stdio:'inherit'});
+ execFileSync(process.execPath,['scripts/verify-retraces.mjs'],{stdio:'inherit'});
  execFileSync('npx',['playwright','install','--only-shell','chromium'],{stdio:'inherit',shell:process.platform==='win32'});
  execFileSync(process.execPath,['scripts/browser-smoke.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-mode-matrix.mjs'],{stdio:'inherit'});

@@ -425,7 +425,7 @@ footer{flex-wrap:wrap;gap:8px 15px;padding-top:6px;padding-bottom:6px}
   opacity:1!important}
 #geometry .wireframe-override.selected{stroke:#079c95!important;stroke-width:1.8px!important}
 
-/* alpha.37: keep icon glyphs inside their own buttons at every breakpoint.
+/* alpha.38: keep icon glyphs inside their own buttons at every breakpoint.
    Older 36px zoom controls contained both 20px image and a literal glyph;
    old 50/50 point controls squeezed labels underneath inflexible icons. */
 #zoom-in,#zoom-out{width:42px;min-width:42px;flex:0 0 42px;min-height:40px;
