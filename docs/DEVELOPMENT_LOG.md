@@ -360,3 +360,9 @@ web/curve-edit.js работает с исходными M/L/C/Q/Z, не пол�
 
 **Важное ограничение:** сейчас документируются события по историческим журналам/PR/Actions. Там, где старые PR не имеют runtime evidence, НЕ утверждать visual QA. Бинарный EPS пользователя остаётся приватным. CI этой docs-ветки и итоговое опубликованное состояние должны быть записаны отдельной следующей entry после реального результата.
 
+### Подтверждение публикации документации (2026-10-23)
+- PR [#40](https://github.com/tohaa28/relief-forge/pull/40) **merged**; merge commit \`f1f8a71b0f8b2d3f3575c496c2d0a4d0093548b0\`.
+- [PR workflow 39951134402](https://github.com/tohaa28/relief-forge/actions/runs/39951134402): **build SUCCESS**, JS **176/176**, Rust **15/15**, WASM ABI **PASS**; deploy для PR правильно пропущен.
+- [main workflow 39951445491](https://github.com/tohaa28/relief-forge/actions/runs/39951445491): **build SUCCESS + deploy SUCCESS**. Это подтверждает публикацию документов в GitHub Pages; пользовательский Windows browser smoke не выполнялся в рамках документационной правки.
+- Для сохранения именно итогового состояния обновляется \`docs/NEXT_CHAT_START.md\` в отдельной follow-up документационной ветке. Рабочий функциональный baseline остаётся 0.2.0-alpha.33 и PR #39. Файлы EPS заказчика в GitHub не добавлены.
+
