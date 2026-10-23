@@ -1,3 +1,4 @@
+# alpha.35 cache audit: EPS Worker/pipeline deep imports still had alpha.34 keys; fixed to alpha.35. Added tests/module-cache-version.test.mjs to prevent recurrence. PR #44 source head in-progress, CI needs a fresh success and main Pages deploy.
 # alpha.35 CI environment experiment: PR 39960501240 JS/Rust/WASM green, apt install-deps slow. Next commit removes unconditional apt upgrades but RETAINS real Playwright Chromium Worker/WASM browser smoke; failure must block publication. Outcome pending.
 # alpha.35 PR #44 CI 39960304986 failed 191/192 JS on test Russian message wording; negative EPS tampering made strict, re-run pending. Rust 15/15 pass. No release until green CI+Pages. 
 # alpha.35 PR #44 CI 39960067760 FAILED 189/192 JS (RGB error wording, obsolete static After source regex, VM preview fixture missing new budget hook); fixed test code in follow-up. New CI mandatory. Alpha.35 NOT deployed. Real EPS from user still needed for bytewise reproduction.
