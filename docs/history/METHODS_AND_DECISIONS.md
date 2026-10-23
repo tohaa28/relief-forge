@@ -162,3 +162,7 @@ npm run serve
 - История исходных макетов не должна уходить в публичный GitHub, кроме специально подготовленных синтетических/очищенных тестовых данных.
 
 **Завершая новую сессию:** зафиксировать все изменения в [WORKLOG_PROTOCOL.md](WORKLOG_PROTOCOL.md) и обновить [NEXT_CHAT_START.md](../NEXT_CHAT_START.md) прежде, чем объявить завершение работы. 
+
+## 11. alpha.34: provenance and optimization postconditions
+Diagnostic windows carry source contour identity/closure/start; open-window flags are not source topology. A closed split includes the real closing edge, never a synthetic chord. Exact duplicate terminal endpoint is normalized only in a diagnostic copy; close-but-distinct ends remain real gaps. Both BEFORE/AFTER use mapDiagnosticIssue.
+Independent curve-quality validation checks real segments and sampled topology before accepting smoothing/optimization/refit, also across objects before Union. New short segments and crossings are matched by location, not paid for by removing an unrelated old issue. Failure rolls back proposed geometry, preserves Undo and reports rejection. Sampling <=0.0025 mm and 2M comparison cap are conservative operational bounds, not proof against sub-resolution tangencies. Partial diagnostic coverage still explicitly shown. Private geometry never committed.

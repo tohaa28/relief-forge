@@ -66,3 +66,8 @@
 Для следующего чата сначала читать [NEXT_CHAT_START.md](../NEXT_CHAT_START.md), затем [METHODS_AND_DECISIONS.md](METHODS_AND_DECISIONS.md), [FAILURE_REGISTER.md](FAILURE_REGISTER.md), [AGENTS.md](../../AGENTS.md), \`HANDOFF.md\` и только затем ветки/код. 
 
 Любые новые версии требуют обновления этой хронологии, \`docs/DEVELOPMENT_LOG.md\`, \`logs/actions.jsonl\`, реестра ошибок (даже если не было новых неудачных попыток — отметить «не выявлено»), нового контрольного коммита и подтверждённых CI отдельно от браузерного QA. Использовать [WORKLOG_PROTOCOL.md](WORKLOG_PROTOCOL.md).
+
+## 0.2.0-alpha.34 — closed-window diagnostics and guarded optimization
+Implementation on fix/diagnostic-topology-alpha34 from 1f21fe7; F-025 resolved on private EPS via real WASM. 712→597 segments, 0 AFTER issues with partial coverage. Browser EPS/BEFORE/AFTER/Apply/Undo passed; final CI/publication status follows in NEXT_CHAT_START. No user verification yet.
+
+alpha.34 final local verification: 184/184 JS, unchanged published WASM ABI, real Chromium private EPS and full synthetic Apply/export/Undo PASS. cb19b7c local only; push blocked by automatic approval review. No new CI, no deploy.

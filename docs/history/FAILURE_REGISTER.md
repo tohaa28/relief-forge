@@ -194,3 +194,10 @@
 \`\`\`
 
 **Никогда не удалять неудачный путь из истории только потому, что найдено решение.** См. [WORKLOG_PROTOCOL.md](WORKLOG_PROTOCOL.md) и [METHODS_AND_DECISIONS.md](METHODS_AND_DECISIONS.md).
+
+## F-025. Closed contour windows falsely reported as open
+- Confirmed on private 8049569(1).eps: 2444 sampled vertices exceeded 2000 WASM limit. Two open windows became two false open markers in AFTER; their starts correspond to screenshot.
+- Rejected approach: mark each window closed (invents chords); hide every open issue (conceals actual gaps); enlarge tolerance (changes geometry to mask bookkeeping error).
+- Fix alpha.34: explicit source provenance + common mapping for both stages, one report for genuinely open source, last→first edge retained for closed source. Exact endpoint return without Z is geometrically closed in diagnostic copy only.
+- Tests: diagnostic-topology, real WASM private EPS before/after 0 issues, partial inter-batch status preserved.
+- Independent optimizer guards reject new sampled intersections/short segments/topology changes; numeric, not analytic guarantees. Browser and CI outcomes in DEVELOPMENT_LOG.

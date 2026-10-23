@@ -44,6 +44,10 @@ jobs:
           cargo build --locked --release --target wasm32-unknown-unknown
           cp target/wasm32-unknown-unknown/release/relief_forge.wasm web/engine.wasm
           node scripts/check-wasm.mjs
+      - name: Browser smoke with real Worker and WASM
+        run: |
+          npx playwright install --with-deps chromium
+          node scripts/browser-smoke.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: relief-forge-wasm-web
