@@ -432,3 +432,6 @@ User explicitly authorized publication in the follow-up message. Previous approv
 
 ### alpha.35 PR CI #39960304986 — 191/192 JS, 15/15 Rust
 - Один FAIL: собственный тест painted RGB проверял /отличается/, а безопасный отказ экспорта выдаёт «не совпадает». Исправлен expected regex без изменения алгоритма. Также усилен негативный тест EPS tampering: вместо необязательного if теперь гарантированно вставляем лишнюю L, проверяем что байты отличаются и что контроль сохранения бросает исключение. Новое CI обязательно.
+
+### 2026-10-23 alpha.35 Chromium CI environment remedy — browser gate retained
+- PR run 39960501240: Rust + 192 JS + fresh WASM completed SUCCESS, followed by lengthy apt-download in install-deps. Previous main run 39956907984 explicitly timed out in apt at 8m while loading optional font/glib packages. New attempt skips automatic apt upgrades on Ubuntu hosted runner (no source/browser-test modifications), directly downloads the pinned Chromium headless shell and runs the real Worker/WASM browser smoke. This is a **hypothesis-based CI remedy**, not yet verified; if Chromium lacks system libraries, smoke must fail and build cannot deploy. Do not claim browser success without actual outcome.

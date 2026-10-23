@@ -46,9 +46,9 @@ jobs:
           node scripts/check-wasm.mjs
       # Keep setup separate from application smoke to identify CI download/apt
       # delays without silently skipping the actual Worker/WASM browser test.
-      - name: Install Chromium system dependencies
-        timeout-minutes: 20
-        run: npx playwright install-deps chromium
+      # Test actual Chromium on the hosted runner first. The earlier
+      # unneeded apt font upgrades repeatedly blocked CI on a slow mirror.
+      # If required native libraries are missing, Chromium launch MUST fail.
       - name: Download Chromium headless shell
         timeout-minutes: 8
         run: npx playwright install --only-shell chromium
