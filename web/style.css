@@ -354,3 +354,23 @@ button:has(>.approved-icon) kbd{margin-left:auto}
 #busy.compact{width:min(390px,calc(100% - 28px))}
 footer{flex-wrap:wrap;gap:8px 15px;padding-top:6px;padding-bottom:6px}
 @media(max-width:800px){.task-status{order:5;flex-basis:100%;}#task-stage{max-width:45vw}}
+
+
+/* Explicit EPS coloration choice; never change a user's original ink mode
+   without a visible decision at save time. */
+.eps-color-choice{box-sizing:border-box;width:min(500px,calc(100vw - 30px));max-height:calc(100dvh - 32px);overflow:auto;
+  margin:auto;border:1px solid #c5dce3;background:#fff;border-radius:15px;padding:0;box-shadow:0 22px 75px #102e4540}
+.eps-color-choice::backdrop{background:#0f2d3a77;backdrop-filter:blur(3px)}
+.eps-color-choice-content{padding:24px;color:#183442}
+.eps-color-choice-content h2{font-size:18px;margin:0 0 9px}
+.eps-color-choice-content>p{margin:0 0 17px;color:#5f7482;font-size:12px}
+.eps-color-option{display:flex;align-items:flex-start;justify-content:flex-start;gap:12px;margin:9px 0;padding:15px;
+  border:1px solid #dce8eb;border-radius:11px;background:#fbfdfe;cursor:pointer}
+.eps-color-option:has(input:checked){background:#edfbfc;border-color:#04afbb;box-shadow:inset 0 0 0 1px #04afbb44}
+.eps-color-option input{flex:0 0 18px;width:18px;height:18px;margin:2px 0;accent-color:#008f9f}
+.eps-color-option span{display:flex;flex-direction:column;gap:6px}
+.eps-color-option strong{font-size:13px;font-weight:700;color:#173644}
+.eps-color-option small{font-size:11px;line-height:1.55;color:#647986}
+.eps-color-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:19px}
+.eps-color-actions button{min-height:40px;padding:8px 15px}
+@media(max-width:500px){.eps-color-choice-content{padding:15px}.eps-color-actions{flex-direction:column}.eps-color-actions button{width:100%}}
