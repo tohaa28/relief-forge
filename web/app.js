@@ -306,7 +306,9 @@ function spawnWorker(){
           'Rust-диагностика завершилась ошибкой: '+data.error);
         return;
       }
-      const report={complete:data.output.diagnosticComplete===true,fullScope:true,issueCount:data.output.issues.length};
+      const checkedIssues=Array.isArray(data.output?.issues)?data.output.issues:null;
+      const report={complete:data.output?.diagnosticComplete===true&&checkedIssues!==null,
+        fullScope:true,issueCount:checkedIssues?.length??null};
       const decision=epsSaveDecision(report,task.autoApply);
       record('eps-save-preflight',{issues:report.issueCount,complete:report.complete,
         sampledPaths:task.contours,autoApplyRequested:task.autoApply});
@@ -638,8 +640,18 @@ function saveEpsWithPreflight(){
     if(!Number.isFinite(tolerance)||tolerance<1e-9||tolerance>1000)
       throw Error('Недопустимый допуск диагностики. Укажите число от 0.000000001 до 1000 мм.');
     const samples=[];
-    for(const path of vectors)for(const part of sampledContours(path,tolerance))samples.push(part);
+    let uncheckedContours=0;
+    for(const path of vectors){
+      const parts=sampledContours(path,tolerance);
+      if(!parts.length||parts.some(part=>!Array.isArray(part.points)||part.points.length<2))uncheckedContours++;
+      else samples.push(...parts);
+    }
     const numberOfPoints=samples.reduce((total,part)=>total+part.points.length,0);
+    if(uncheckedContours){
+      showEpsSaveWarning(epsSaveDecision({complete:false,fullScope:false,issueCount:null},candidate.autoApply),
+        'Часть векторных объектов нельзя проверить: '+uncheckedContours+'.');
+      return;
+    }
     if(!samples.length||numberOfPoints>2000){
       showEpsSaveWarning(epsSaveDecision({complete:false,fullScope:false,issueCount:null},candidate.autoApply),
         numberOfPoints>2000?'Для полной проверки более 2000 точек. Диагностика не может подтвердить отсутствие дефектов.':

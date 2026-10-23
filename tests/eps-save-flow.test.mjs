@@ -22,6 +22,9 @@ test('only a complete, full-document zero-issue scan permits automatic EPS commi
   assert.equal(epsSaveDecision({complete:false,fullScope:true,issueCount:0},true).action,'warn');
   assert.equal(epsSaveDecision({complete:true,fullScope:false,issueCount:0},true).action,'warn');
   assert.equal(epsSaveDecision({complete:true,fullScope:true,issueCount:null},true).action,'warn');
+  assert.equal(epsSaveDecision({complete:true,fullScope:true,issueCount:null},true).verified,false);
+  assert.match(epsSaveWarningText(epsSaveDecision({complete:true,fullScope:true,issueCount:21},true)),/21 замечание/);
+  assert.match(epsSaveWarningText(epsSaveDecision({complete:true,fullScope:true,issueCount:12},true)),/12 замечаний/);
   assert.match(epsSaveWarningText(epsSaveDecision({complete:true,fullScope:true,issueCount:3},true)),/3 замечания/);
   assert.match(epsSaveWarningText(epsSaveDecision({complete:false,fullScope:true,issueCount:0},true)),/Не удалось полностью проверить/);
 });
@@ -60,6 +63,8 @@ test('UI warning supports cancel, explicit override, and keeps EPS filename/hist
   assert.match(app,/epsSaveCandidate\(doc,curvePreview,readEpsSaveSettings\(\)\)/);
   assert.match(app,/if\(!fresh.autoApply\|\|!applyUnifiedChanges\(\)\)/);
   assert.match(app,/if\(!samples.length\|\|numberOfPoints>2000\)/);
+  assert.match(app,/if\(uncheckedContours\)/);
+  assert.match(app,/Array\.isArray\(data\.output\?\.issues\)/);
   assert.match(app,/scope:'all-vectors'/);
   assert.match(app,/epsResultFilename\(doc.sourceFileName\|\|doc.epsImport\?\.name\|\|'relief-forge.eps'\)/);
   assert.match(app,/record\('export-eps'/);
