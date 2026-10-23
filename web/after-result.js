@@ -6,6 +6,7 @@ export function chooseAfterSnapshot(document,preview,settings,comparison,diagnos
     if(s.diagnosticTolerance!==settings.diagnosticTolerance||
        s.smoothingAmount!==settings.smoothingAmount||
        s.tolerance!==settings.optimizationTolerance||
+       s.mergeOverlaps!==settings.mergeOverlaps||
        JSON.stringify(preview.source)!==JSON.stringify(document))
       return {valid:false,reason:'stale-preview'};
     const report=preview.comparisonData?.afterIssues;
