@@ -14,6 +14,7 @@ import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.26';
 import {planDiagnosticBatches,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.26';
 import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.26';
 import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.26';
+import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.26';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 const nodeCursor=symbol=>{const svg='<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26"><circle cx="13" cy="13" r="11" fill="white" stroke="#173946" stroke-width="1.7"/><text x="13" y="19" text-anchor="middle" fill="#007e79" font-family="Arial" font-weight="bold" font-size="19">'+symbol+'</text></svg>';return 'url("data:image/svg+xml,'+encodeURIComponent(svg)+'") 13 13, crosshair';};
 const plusCursor=nodeCursor('+'),minusCursor=nodeCursor('−');
@@ -235,12 +236,19 @@ function buildUnifiedPreview(){
     const diagnosticTolerance=Number($('tolerance').value);
     const repaired=repairVectorPoints(doc,scope,diagnosticTolerance);
     const optimized=smoothAndOptimizePaths(repaired.document,scope,smoothingAmount,optimizationTolerance);
-    const st={...optimized.stats,pointRepairs:repaired.stats,diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
+    const merged=$('merge-overlaps').checked?
+      mergeOverlappingObjects(optimized.document,{indices:scope,tolerance:diagnosticTolerance}):
+      {document:optimized.document,stats:{mergedObjects:0,weldedGroups:0,compoundGroups:0,skipped:0}};
+    const after=merged.document;
+    const st={...optimized.stats,overlaps:merged.stats,mergeOverlaps:$('merge-overlaps').checked,pointRepairs:repaired.stats,diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
       smoothingDeviation:optimized.stats.smoothingError};
-    const different=scope.some(i=>worldData(doc.paths[i])!==worldData(optimized.document.paths[i]));
+    const different=JSON.stringify(doc.paths.map(worldData))!==JSON.stringify(after.paths.map(worldData));
     const msg='Точки: убрано коротких/нулевых сегментов '+st.pointRepairs.removedNodes+
       ' · замкнуто близких концов '+st.pointRepairs.closedGaps+'.'+
-      '\nПересечения, наложения и неоднозначные соединения требуют ручного решения.'+
+      '\nНаложения: объединено объектов '+st.overlaps.mergedObjects+
+      ' · объединённых прямоугольных областей '+st.overlaps.weldedGroups+
+      ' · составных кривых '+st.overlaps.compoundGroups+
+      '. Составные кривые сохраняют Безье; внутренние пересечения не удаляются.'+
       '\nКривые: сглажено стыков '+st.smoothedJoints+
       ' · оценённое отклонение сглаживания до '+st.smoothingDeviation.toFixed(5)+' мм.'+
       '\nСегментов: '+st.original+' → '+st.result+
@@ -249,9 +257,9 @@ function buildUnifiedPreview(){
       (different?'\nДля просмотра изменений выберите ДО / ПОСЛЕ. Красный пунктир — исходная кривая, зелёный — результат.':
         '\nПри этих допусках форма не изменена.');
     $('optimization-result').textContent=msg;
-    const pv={source:clone(doc),result:optimized.document,stats:st,hasGeometryChange:different,
+    const pv={source:clone(doc),result:after,stats:st,hasGeometryChange:different,
       beforeDiagnosticComplete:diagnosticComplete,afterDiagnosed:false,comparisonData:{
-        beforeDoc:clone(doc),afterDoc:optimized.document,beforeIssues:clone(issues),afterIssues:[]
+        beforeDoc:clone(doc),afterDoc:after,beforeIssues:clone(issues),afterIssues:[]
       }};
     curvePreview=pv;compareStage='after';
     record('autoheal-curve-preview',{scope,stats:st,changed:different});
@@ -264,7 +272,8 @@ function applyUnifiedChanges(){
   const pv=curvePreview;
   if(Number($('smoothing-amount').value)!==pv.stats.smoothingAmount||
      Number($('optimization-tolerance').value)!==pv.stats.tolerance||
-     Number($('tolerance').value)!==pv.stats.diagnosticTolerance){
+     Number($('tolerance').value)!==pv.stats.diagnosticTolerance||
+     $('merge-overlaps').checked!==pv.stats.mergeOverlaps){
     status('Параметры изменились. Автоматический расчёт ещё не завершён.');return false;
   }
   const baseline=clone(doc),comparison=pv.comparisonData;
@@ -302,6 +311,7 @@ $('optimization-tolerance').onchange=()=>{
 $('smoothing-amount').onchange=requestRecalculation;
 $('tolerance').onchange=requestRecalculation;
 $('selection-only').onchange=requestRecalculation;
+$('merge-overlaps').onchange=requestRecalculation;
 $('apply-changes').onclick=applyUnifiedChanges;
 
 function spawnWorker(){
@@ -378,14 +388,19 @@ async function buildLargeUnifiedPreview(indices){
     }
     if(generation!==previewGeneration)return;
     previewActive=false;
-    const different=indices.some(i=>worldData(doc.paths[i])!==worldData(result.paths[i]));
-    const pv={source,result,stats,hasGeometryChange:different,beforeDiagnosticComplete:false,
+    const merged=$('merge-overlaps').checked?
+      mergeOverlappingObjects(result,{indices,tolerance:tol}):
+      {document:result,stats:{mergedObjects:0,weldedGroups:0,compoundGroups:0,skipped:0}};
+    const after=merged.document;
+    stats.overlaps=merged.stats;stats.mergeOverlaps=$('merge-overlaps').checked;
+    const different=JSON.stringify(doc.paths.map(worldData))!==JSON.stringify(after.paths.map(worldData));
+    const pv={source,result:after,stats,hasGeometryChange:different,beforeDiagnosticComplete:false,
       afterDiagnosed:false,afterDiagnosticComplete:false,afterScope:'unknown',
-      comparisonData:{beforeDoc:clone(source),afterDoc:result,beforeIssues:clone(issues),afterIssues:[]}};
+      comparisonData:{beforeDoc:clone(source),afterDoc:after,beforeIssues:clone(issues),afterIssues:[]}};
     curvePreview=pv;compareStage='after';
     $('optimization-result').textContent='Большой документ: обработано '+indices.length+
       ' контуров; сглажено '+stats.smoothedJoints+' стыков, удалено '+stats.removed+
-      ' сегментов. '+(different?'Результат в режиме ПОСЛЕ. Применяйте изменения вручную после просмотра.':
+      ' сегментов; слито объектов '+stats.overlaps.mergedObjects+'. '+(different?'Результат в режиме ПОСЛЕ. Применяйте изменения вручную после просмотра.':
       'Форма кривых не изменилась.')+
       '\nПолная диагностика между блоками не подтверждена; перед экспортом может появиться предупреждение.';
     record('large-preview',{paths:indices.length,stats,changed:different,afterDiagnosticComplete:false});
@@ -832,7 +847,8 @@ $('export').onclick=()=>{download('relief-forge.svg',exportDocument(doc),'image/
 function readEpsSaveSettings(){
   return {diagnosticTolerance:Number($('tolerance').value),
     smoothingAmount:Number($('smoothing-amount').value),
-    optimizationTolerance:Number($('optimization-tolerance').value)};
+    optimizationTolerance:Number($('optimization-tolerance').value),
+    mergeOverlaps:$('merge-overlaps').checked};
 }
 let epsColorMode='outline';
 function prepareEpsOutput(document){
