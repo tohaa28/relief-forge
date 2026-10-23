@@ -100,7 +100,16 @@ export async function interpretEps(input,{runGhostscript,mupdf,fonts=[],progress
       // showpage. Some producers already emitted one blank PDF page and
       // appending showpage then creates an invalid two-page EPS result.
       const recovery=hasVisibleGeometry?null:recoverUnpaintedCorelOutlines(program,metadata);
-      if(attempt===0&&!hasVisibleGeometry&&!recovery&&!/\bshowpage\b/.test(new TextDecoder('latin1').decode(program)))continue;
+      if(!hasVisibleGeometry&&!recovery){
+        const hasShowpage=/\bshowpage\b/.test(new TextDecoder('latin1').decode(program));
+        if(attempt===0&&!hasShowpage){
+          progress(70,'Повторная проверка EPS: первая попытка дала пустую страницу…');
+          continue;
+        }
+        throw Error('EPS был интерпретирован как пустая страница: ни одного видимого '+
+          'векторного контура или изображения. Импорт остановлен, файл не заменён. '+
+          'Детали Ghostscript: '+logs.slice(-3).join(' | ').slice(0,450));
+      }
       if(recovery)warnings.push(`Обнаружено ${recovery.count} непечатаемых контуров ${recovery.source==='relief-forge-outline-paths'?'Relief Forge':'CorelDRAW'}. Добавлена только видимая обводка для анализа; в исходном EPS заливки и толщины не изменены.`);
       return {...rendered,svg:recovery?.svg||rendered.svg,outlineRecovery:recovery?{source:recovery.source,count:recovery.count,previewStrokePt:recovery.previewStrokePt}:null,metadata,warnings:[...new Set(warnings)],logs};
     }
