@@ -1,20 +1,21 @@
-import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.28';
+import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.29';
 import {issueViewBox} from './issue-focus.js';
 import {visibleHealthyAnchors,circlePath} from './vector-points.js';
-import {screenUnitsPerPixel,renderIssueMarkers,issueWithinContourBounds} from './issue-markers.js?v=0.2.0-alpha.28';
-import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.28';
-import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.28';
+import {screenUnitsPerPixel,renderIssueMarkers,issueWithinContourBounds} from './issue-markers.js?v=0.2.0-alpha.29';
+import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.29';
+import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.29';
 import {packedInput} from './auto-repair.js';
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
-import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.28';
-import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.28';
-import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.28';
-import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.28';
-import {planDiagnosticBatches,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.28';
-import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.28';
-import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.28';
-import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.28';
+import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.29';
+import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.29';
+import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.29';
+import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.29';
+import {planDiagnosticBatches,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.29';
+import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.29';
+import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.29';
+import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.29';
+import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.29';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 const nodeCursor=symbol=>{const svg='<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26"><circle cx="13" cy="13" r="11" fill="white" stroke="#173946" stroke-width="1.7"/><text x="13" y="19" text-anchor="middle" fill="#007e79" font-family="Arial" font-weight="bold" font-size="19">'+symbol+'</text></svg>';return 'url("data:image/svg+xml,'+encodeURIComponent(svg)+'") 13 13, crosshair';};
 const plusCursor=nodeCursor('+'),minusCursor=nodeCursor('−');
@@ -97,7 +98,7 @@ function render(){
   document.body.classList.toggle('curve-editing',curveEditing());
   $('mascot-welcome').hidden=Boolean(doc.paths.length);
   $('curve-node-tools').hidden=!curveEditing();
-  if(curveEditing())$('optimization-result').textContent='Автоматический предпросмотр появится после нажатия «Готово». Ручные изменения уже сохраняются в документе.';
+  if(curveEditing())$('optimization-result').textContent='Редактируются реальные опорные точки команд M/L/C/Q текущей геометрии. Ручки Безье отображаются у соответствующих C-сегментов. Undo доступен.';
   $('curve-edit').classList.toggle('active',curveEditing());
   $('curve-edit').setAttribute('aria-pressed',String(curveEditing()));
   for(const tool of ['move','add','remove','handles'])$('node-'+tool).classList.toggle('active',nodeTool===tool);
@@ -239,8 +240,12 @@ function buildUnifiedPreview(){
     const merged=$('merge-overlaps').checked?
       mergeOverlappingObjects(optimized.document,{indices:scope,tolerance:diagnosticTolerance,cleanupTolerance:optimizationTolerance}):
       {document:optimized.document,stats:{mergedObjects:0,weldedGroups:0,compoundGroups:0,skipped:0,holes:0,normalizedObjects:0,unionToleranceMm:0.005,cleanup:{coincident:0,collinear:0,short:0,shortEdgesRemaining:0,reverted:0}}};
-    const after=merged.document;
-    const st={...optimized.stats,overlaps:merged.stats,mergeOverlaps:$('merge-overlaps').checked,pointRepairs:repaired.stats,diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
+    const refitted=refitBooleanUnion(merged.document,optimizationTolerance);
+    const after=refitted.document;
+    const actualCount=document=>document.paths.reduce((n,p)=>n+
+      (p.kind==='image'?0:p.commands?.filter(c=>c[0]==='M'||c[0]==='L'||c[0]==='C'||c[0]==='Q').length??p.points.length),0);
+    const st={...optimized.stats,refit:refitted.stats,
+      actualNodesBefore:actualCount(doc),actualNodesAfter:actualCount(after),overlaps:merged.stats,mergeOverlaps:$('merge-overlaps').checked,pointRepairs:repaired.stats,diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
       smoothingDeviation:optimized.stats.smoothingError};
     const different=JSON.stringify(doc.paths.map(worldData))!==JSON.stringify(after.paths.map(worldData));
     const msg='Точки: убрано коротких/нулевых сегментов '+st.pointRepairs.removedNodes+
@@ -257,6 +262,10 @@ function buildUnifiedPreview(){
         ' изменений отменено защитой топологии':'')+
       (st.overlaps.skipped?' · неподдерживаемых групп '+st.overlaps.skipped:'')+
       '. ПОСЛЕ содержит единый силуэт без внутренних наложений. Точность аппроксимации '+st.overlaps.unionToleranceMm.toFixed(5)+' мм.'+
+      '\nИтоговая оптимизация ПОСЛЕ Union: '+st.refit.originalNodes+' → '+st.refit.finalNodes+
+      ' реальных узлов (−'+st.refit.removed+'), кубических сегментов '+st.refit.cubicSegments+
+      ', проходов '+st.refit.passes+(st.refit.skipped?' · пропущено объектов '+st.refit.skipped:'')+
+      '. На экране реальных узлов: '+st.actualNodesBefore+' → '+st.actualNodesAfter+'.'+
       '\nКривые: сглажено стыков '+st.smoothedJoints+
       ' · оценённое отклонение сглаживания до '+st.smoothingDeviation.toFixed(5)+' мм.'+
       '\nСегментов: '+st.original+' → '+st.result+
@@ -399,8 +408,16 @@ async function buildLargeUnifiedPreview(indices){
     const merged=$('merge-overlaps').checked?
       mergeOverlappingObjects(result,{indices,tolerance:tol,cleanupTolerance:optimizationTolerance}):
       {document:result,stats:{mergedObjects:0,weldedGroups:0,compoundGroups:0,skipped:0,holes:0,normalizedObjects:0,unionToleranceMm:0.005,cleanup:{coincident:0,collinear:0,short:0,shortEdgesRemaining:0,reverted:0}}};
-    const after=merged.document;
-    stats.overlaps=merged.stats;stats.mergeOverlaps=$('merge-overlaps').checked;
+    progressStage('Оптимизация контуров после Union',99);
+    await yieldForUi();
+    const refitted=refitBooleanUnion(merged.document,optimizationTolerance);
+    if(generation!==previewGeneration)return;
+    const after=refitted.document;
+    stats.overlaps=merged.stats;stats.refit=refitted.stats;
+    stats.mergeOverlaps=$('merge-overlaps').checked;
+    const countReal=target=>target.paths.reduce((n,p)=>n+(p.kind==='image'?0:
+      p.commands?.filter(c=>['M','L','C','Q'].includes(c[0])).length??p.points.length),0);
+    stats.actualNodesBefore=countReal(doc);stats.actualNodesAfter=countReal(after);
     const different=JSON.stringify(doc.paths.map(worldData))!==JSON.stringify(after.paths.map(worldData));
     const pv={source,result:after,stats,hasGeometryChange:different,beforeDiagnosticComplete:false,
       afterDiagnosed:false,afterDiagnosticComplete:false,afterScope:'unknown',
@@ -413,7 +430,10 @@ async function buildLargeUnifiedPreview(indices){
       ', сохранено отверстий '+stats.overlaps.holes+
       ', очищено узлов '+(stats.overlaps.cleanup.coincident+stats.overlaps.cleanup.collinear+
         stats.overlaps.cleanup.short)+
-      (stats.overlaps.cleanup.reverted?' · защищено контуров '+stats.overlaps.cleanup.reverted:'')+'. '+(different?'Результат в режиме ПОСЛЕ. Применяйте изменения вручную после просмотра.':
+      (stats.overlaps.cleanup.reverted?' · защищено контуров '+stats.overlaps.cleanup.reverted:'')+
+      '. После Union оптимизировано узлов '+stats.refit.originalNodes+' → '+stats.refit.finalNodes+
+      ' (−'+stats.refit.removed+'), кубических сегментов '+stats.refit.cubicSegments+
+      '. Реальные узлы '+stats.actualNodesBefore+' → '+stats.actualNodesAfter+'. '+(different?'Результат в режиме ПОСЛЕ. Применяйте изменения вручную после просмотра.':
       'Форма кривых не изменилась.')+
       '\nПолная диагностика между блоками не подтверждена; перед экспортом может появиться предупреждение.';
     record('large-preview',{paths:indices.length,stats,changed:different,afterDiagnosticComplete:false});
@@ -583,10 +603,19 @@ function setMode(m){if(currentComparison()){status('Закройте режим 
 function startCurveEditor(){
   if(busy)return;
   if(curveEditing()){mode='select';activeCurveNode=null;render();requestRecalculation();return;}
-  clearTimeout(settingsTimeout);curvePreview=null;appliedComparison=null;compareStage='before';
+  // In AFTER, edit actual optimized geometry, never throw away the preview
+  // and silently return to the original dense input document.
+  if(curvePreview&&compareStage==='after'){
+    if(curvePreview.hasGeometryChange&&!applyUnifiedChanges()){
+      status('ПОСЛЕ устарел: пересчитайте изменения перед редактированием узлов.');return;
+    }
+  }
+  clearTimeout(settingsTimeout);
+  curvePreview=null;appliedComparison=null;compareStage='before';
   mode='nodes';nodeTool='move';activeCurveNode=null;draft=[];
+  selected=new Set([...selected].filter(i=>doc.paths[i]&&doc.paths[i].kind!=='image'));
   if(!selected.size){const i=doc.paths.findIndex(p=>p.kind!=='image');if(i>=0)selected=new Set([i]);}
-  render();status('Узлы: + и −, контрольные ручки, Перегиб/Сглаженное/Симметрическая. Правый клик — контекстное меню.');
+  render();status('Открыты реальные опорные узлы обработанной геометрии ПОСЛЕ. Исходник доступен через Undo.');
 }
 function changeCurveNode(path,index,operation,keep=false){
   if(busy||!doc.paths[path])return;
@@ -758,7 +787,7 @@ function stopEps({destroy=false}={}){epsImportActive=false;clearTimeout(epsTimer
 function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта EPS…';record('eps-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.28',import.meta.url));
+  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.29',import.meta.url));
   progressStage('Импорт EPS: подготовка интерпретатора',9);
   const started=performance.now();
   const fail=message=>{stopEps({destroy:true});lock(false);status(message);$('import-report').textContent='Не удалось открыть EPS: '+message;record('eps-error',{name,message});updateFileHistory({status:'Ошибка открытия: '+String(message).slice(0,180)});};
@@ -961,4 +990,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();
 });
-record('session-start',{version:'0.2.0-alpha.28'});renderFileHistory();spawnWorker();fit();
+record('session-start',{version:'0.2.0-alpha.29'});renderFileHistory();spawnWorker();fit();
