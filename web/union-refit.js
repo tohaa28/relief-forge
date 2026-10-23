@@ -1,3 +1,4 @@
+import {validateDocumentCurveChange} from './curve-quality.js';
 import {optimizeVectorPath} from './curve-optimizer.js';
 
 // Refit actual Boolean Union AFTER Clipper removes overlaps.
@@ -8,7 +9,7 @@ export function refitBooleanUnion(document,tolerance,{maxPasses=4}={}){
     throw Error('Неверный допуск итоговой оптимизации');
   const result=structuredClone(document),report={
     originalNodes:0,finalNodes:0,removed:0,refitPaths:0,cubicSegments:0,
-    maxDeviationEstimate:0,passes:0,skipped:0,details:[]
+    maxDeviationEstimate:0,passes:0,skipped:0,rejected:0,details:[]
   };
   result.paths=result.paths.map((original,index)=>{
     if(!original.unionFlattened)return original;
@@ -18,6 +19,7 @@ export function refitBooleanUnion(document,tolerance,{maxPasses=4}={}){
     try{
       for(let i=0;i<maxPasses;i++){
         const next=optimizeVectorPath(current,tolerance/maxPasses);
+        if(next.quality?.accepted===false)report.rejected++;
         if(!next.removed)break;
         // Later passes may not silently exceed tolerance by accumulation.
         passes++;errorSum+=next.maxError;
@@ -45,6 +47,15 @@ export function refitBooleanUnion(document,tolerance,{maxPasses=4}={}){
       maxDeviationEstimate:errorSum});
     return current;
   });
+  if(report.removed){
+    report.quality=validateDocumentCurveChange(document,result,{tolerance});
+    if(!report.quality.accepted){
+      report.rejected++;report.finalNodes=report.originalNodes;report.removed=0;
+      report.maxDeviationEstimate=0;report.passes=0;
+      report.details.push({rollback:true,reason:report.quality.reason});
+      return {document:structuredClone(document),stats:report};
+    }
+  }
   return {document:result,stats:report};
 }
 export function isUnchangedUnion(path){

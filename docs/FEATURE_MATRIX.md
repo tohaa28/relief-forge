@@ -135,3 +135,6 @@ alpha.34 observed verification: 184 JS PASS, local Chromium/private EPS 0 false 
 - Selected release now **0.2.0-alpha.32** (not alpha.35), byte-identical executable repo source and assets to merge PR #38.
 - PR #46 build SUCCESS: 167 JS PASS, 15 Rust PASS, WASM ABI PASS. Main Pages `39964842575` build SUCCESS/deploy SUCCESS, URL https://tohaa28.github.io/relief-forge/.
 - All post-alpha.32 feature fixes removed from deployed code by user-requested rollback; archive branch points to complete pre-rollback alpha.35. No user-device testing claim.
+
+## 0.2.0-alpha.36 — alpha.32 continuation, 2026-10-23
+Base main 8f9afb8 (user rollback to exact alpha.32). Branch fix/alpha32-verified-pipeline-alpha36. Reviewed and ported F-025 diagnostic provenance, F-027 responsive buttons, F-028 AFTER/export node budget and geometry equality, Corel lowercase curves from archived alpha.35. This is an explicit new release, not a claim that alpha.32 already had those fixes. New: batch-scoped bounds validator computes each contour box once instead of rescanning nodes for every issue. Snapshot local to each job, no stale mutable global cache. Native Rust and fresh WASM must pass CI (Cargo unavailable locally). JS/browser/private EPS checks in progress. No publication or user verification yet. Full cross-batch diagnosis remains partial. Private EPS stays ignored.

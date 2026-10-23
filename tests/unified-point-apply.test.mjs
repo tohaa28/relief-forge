@@ -6,6 +6,7 @@ import {repairVectorPoints} from '../web/point-repair.js';
 import {selectedVectorIndices,smoothAndOptimizePaths} from '../web/curve-optimizer.js';
 import {worldData} from '../web/rich-svg.js';
 import {refitBooleanUnion} from '../web/union-refit.js';
+import {protectPreviewNodeBudget,previewBudgetMessage} from '../web/preview-node-budget.js';
 import {exportEps} from '../web/eps-export.js';
 
 const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
@@ -21,7 +22,7 @@ test('the actual unified preview and Apply commit point repairs even when smooth
   const context={doc:structuredClone(source),selected:new Set(),issues:[{kind:'short'}],
     diagnosticComplete:true,busy:false,ready:false,curvePreview:null,curveEditing:()=>false,
     $:id=>elements[id],clone:structuredClone,repairVectorPoints,selectedVectorIndices,
-    smoothAndOptimizePaths,refitBooleanUnion,worldData,render:()=>{},record:()=>{},status:()=>{},
+    smoothAndOptimizePaths,refitBooleanUnion,protectPreviewNodeBudget,previewBudgetMessage,worldData,render:()=>{},record:()=>{},status:()=>{},
     checkpoint:before=>past.push(structuredClone(before)),updateFileHistory:patch=>history.push(patch)};
   context.changed=action=>{changes.push(action);context.curvePreview=null;};
   vm.createContext(context);

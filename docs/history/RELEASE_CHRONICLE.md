@@ -130,3 +130,6 @@ alpha.34 final local verification: 184/184 JS, unchanged published WASM ABI, rea
 - PR #46 merged: `2dfadad1c8f342733da857b0585540dacd46c95e`.
 - PR CI `39964713772`: 167 JS / 15 Rust / WASM PASS. Main Pages CI `39964842575`: build + deploy SUCCESS.
 - All non-document blobs on new main SHA match original alpha.32; user's old alpha.35 backed up in `archive/alpha35-before-alpha32-rollback-20261023`. Real Windows Firefox smoke not observed; old defects are intentionally restored.
+
+## 0.2.0-alpha.36 — alpha.32 continuation, 2026-10-23
+Base main 8f9afb8 (user rollback to exact alpha.32). Branch fix/alpha32-verified-pipeline-alpha36. Reviewed and ported F-025 diagnostic provenance, F-027 responsive buttons, F-028 AFTER/export node budget and geometry equality, Corel lowercase curves from archived alpha.35. This is an explicit new release, not a claim that alpha.32 already had those fixes. New: batch-scoped bounds validator computes each contour box once instead of rescanning nodes for every issue. Snapshot local to each job, no stale mutable global cache. Native Rust and fresh WASM must pass CI (Cargo unavailable locally). JS/browser/private EPS checks in progress. No publication or user verification yet. Full cross-batch diagnosis remains partial. Private EPS stays ignored.

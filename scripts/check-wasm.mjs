@@ -55,3 +55,11 @@ const fixed=run(packedInput(pointCandidate.document.paths.flatMap(p=>sampledCont
 assert.deepEqual(fixed.issues,[],'real Rust diagnosis must confirm repairs, not just update counters');
 assert.deepEqual(damaged,damagedBefore,'the candidate must not commit repairs before Apply');
 console.log(`PASS: compiled WASM ABI, autoheal before/after, crossings, split, loops, validation, repeated ownership (${bytes.length} bytes).`);
+
+// Keep fresh-WASM example/browser gates in the existing mandatory CI entrypoint.
+if(process.env.CI){
+ const {execFileSync}=await import('node:child_process');
+ execFileSync(process.execPath,['scripts/verify-example.mjs'],{stdio:'inherit'});
+ execFileSync('npx',['playwright','install','--only-shell','chromium'],{stdio:'inherit',shell:process.platform==='win32'});
+ execFileSync(process.execPath,['scripts/browser-smoke.mjs'],{stdio:'inherit'});
+}

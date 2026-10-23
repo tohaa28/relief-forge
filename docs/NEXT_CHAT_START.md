@@ -1,3 +1,8 @@
+# Active release: 0.2.0-alpha.36
+
+## 0.2.0-alpha.36 — alpha.32 continuation, 2026-10-23
+Base main 8f9afb8 (user rollback to exact alpha.32). Branch fix/alpha32-verified-pipeline-alpha36. Reviewed and ported F-025 diagnostic provenance, F-027 responsive buttons, F-028 AFTER/export node budget and geometry equality, Corel lowercase curves from archived alpha.35. This is an explicit new release, not a claim that alpha.32 already had those fixes. New: batch-scoped bounds validator computes each contour box once instead of rescanning nodes for every issue. Snapshot local to each job, no stale mutable global cache. Native Rust and fresh WASM must pass CI (Cargo unavailable locally). JS/browser/private EPS checks in progress. No publication or user verification yet. Full cross-batch diagnosis remains partial. Private EPS stays ignored.
+
 # ОПУБЛИКОВАННОЕ ТЕКУЩЕЕ СОСТОЯНИЕ — Relief Forge 0.2.0-alpha.32
 
 **Пользовательский откат выполнен 2026-10-23.** `main` после PR #46: `2dfadad1c8f342733da857b0585540dacd46c95e`. Точный исходный релизный commit alpha.32 `4ad8efd1801be16d4c37472fda4989f9e3afbf06`. Проверка Git-tree после merge: 0 различающихся файлов вне append-only документации (runtime, package/Cargo, scripts, tests and Pages workflow identical).

@@ -424,3 +424,31 @@ footer{flex-wrap:wrap;gap:8px 15px;padding-top:6px;padding-bottom:6px}
   stroke-opacity:1!important;vector-effect:non-scaling-stroke!important;
   opacity:1!important}
 #geometry .wireframe-override.selected{stroke:#079c95!important;stroke-width:1.8px!important}
+
+/* alpha.36: keep icon glyphs inside their own buttons at every breakpoint.
+   Older 36px zoom controls contained both 20px image and a literal glyph;
+   old 50/50 point controls squeezed labels underneath inflexible icons. */
+#zoom-in,#zoom-out{width:42px;min-width:42px;flex:0 0 42px;min-height:40px;
+  padding:0;gap:0;justify-content:center;align-items:center;font-size:14px}
+#zoom-in>.tool-icon,#zoom-out>.tool-icon{width:20px;height:20px;flex:0 0 20px}
+button:has(>.tool-icon){min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:1.35}
+button>.tool-icon,button>.tool-icon.approved-icon{flex-shrink:0;overflow:hidden}
+.point-controls{flex-wrap:wrap;align-items:stretch;gap:6px}
+.point-controls button{flex:1 1 100%;width:100%!important;
+  min-height:36px;padding:7px 9px!important;font-size:10.5px!important;
+  justify-content:flex-start;text-align:left;overflow-wrap:anywhere}
+.compact-section .repairs button{min-width:0;white-space:normal;overflow-wrap:anywhere}
+.compact-section .repairs button kbd{margin-left:auto}
+/* The actual source name is a compact non-editable workspace overlay, not SVG.
+   It never changes document geometry and cannot collide with DO/AFTER toolbar. */
+.workspace-file{position:absolute;left:16px;bottom:38px;z-index:7;
+  display:flex;align-items:center;gap:7px;max-width:calc(100% - 32px);
+  min-width:0;padding:7px 10px;border:1px solid #cadde3;border-radius:8px;
+  background:rgba(255,255,255,.94);box-shadow:0 2px 9px #1c405117;
+  color:#304b5c;font-size:11px;line-height:1.3;white-space:nowrap}
+.workspace-file[hidden]{display:none!important}
+.workspace-file-caption{flex:none;color:#667f8b;font-weight:600}
+#workspace-filename{display:block;min-width:0;max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:650}
+@media(max-width:480px){.workspace-file{left:9px;bottom:35px;
+  max-width:calc(100% - 18px);padding:6px 8px;font-size:10px}}

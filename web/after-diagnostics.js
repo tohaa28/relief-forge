@@ -1,7 +1,7 @@
 import {sampledContours} from './rich-svg.js';
-import {planDiagnosticBatches} from './large-file-support.js';
+import {planDiagnosticBatches,mapDiagnosticIssue} from './large-file-support.js';
 import {packedInput} from './auto-repair.js';
-import {issueWithinContourBounds} from './issue-markers.js';
+import {createIssueBoundsValidator} from './issue-markers.js';
 
 // One single source of truth for diagnostic markers on the AFTER geometry.
 // Handles split/overlapping batches without pretending full coverage.
@@ -30,6 +30,7 @@ export async function diagnoseAfterDocument(document,tolerance,{runBatch,progres
   for(let i=0;i<plan.batches.length;i++){
     if(cancelled())return null;
     const batch=plan.batches[i];
+    const issueInBounds=createIssueBoundsValidator(batch.paths,tolerance);
     progress('ПОСЛЕ: поиск оставшихся дефектов',30+69*i/plan.batches.length,
       `Блок ${i+1}/${plan.batches.length}`);
     try{
@@ -38,8 +39,9 @@ export async function diagnoseAfterDocument(document,tolerance,{runBatch,progres
       complete=complete&&out.diagnosticComplete===true;
       for(const issue of out.issues){
         if(issues.length>=10000){complete=false;break;}
-        if(!issueWithinContourBounds(issue,batch.paths,tolerance)){misplaced++;complete=false;continue;}
-        issues.push({...issue,path:batch.scope[issue.path]??-1,other:batch.scope[issue.other]??-1});
+        if(!issueInBounds(issue)){misplaced++;complete=false;continue;}
+        const mapped=mapDiagnosticIssue(issue,batch);
+        if(mapped)issues.push(mapped);
       }
     }catch(error){complete=false;}
     await yieldUi();
