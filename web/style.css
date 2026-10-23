@@ -416,3 +416,11 @@ footer{flex-wrap:wrap;gap:8px 15px;padding-top:6px;padding-bottom:6px}
 .workspace-health-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:9px}
 .workspace-health-actions button{min-height:38px}
 @media(max-width:650px){.workspace-health-actions{flex-direction:column}.workspace-health-actions button{width:100%}}
+
+/* Emergency view bypasses imported painting/filter styling, keeps original
+   vector commands intact for inspection and leaves export untouched. */
+#geometry .wireframe-override{display:inline!important;visibility:visible!important;
+  fill:none!important;stroke:#193e53!important;stroke-width:1.35px!important;
+  stroke-opacity:1!important;vector-effect:non-scaling-stroke!important;
+  opacity:1!important}
+#geometry .wireframe-override.selected{stroke:#079c95!important;stroke-width:1.8px!important}
