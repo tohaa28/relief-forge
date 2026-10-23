@@ -1,10 +1,9 @@
 import {geometryCommands} from './eps-export.js';
 import {sampledContours} from './rich-svg.js';
-// Merge only geometrically overlapping paths with identical simple appearance.
-// Original C/Q command geometry is retained exactly for compound curves.
-// For filled axis-aligned rectangles, the exterior silhouette is a true
-// boolean union. Other intersections stay as editable compound subpaths;
-// they are *not* falsely represented as a welded outer boundary.
+import {filledPathsOverlap,unionFilledPaths} from './polygon-union.js';
+// Clipper performs true area union for *closed filled* Bézier polygons,
+// including holes. Unfilled strokes retain their original cubic path data.
+// No paint-mode conversion or joining unlike-colored artwork.
 const EPS=1e-8;
 const cross=(a,b,c,d)=>(b[0]-a[0])*(d[1]-c[1])-(b[1]-a[1])*(d[0]-c[0]);
 const eq=(a,b)=>Math.abs(a[0]-b[0])<EPS&&Math.abs(a[1]-b[1])<EPS;
@@ -28,7 +27,7 @@ function contained(q,ring){
 function sampledGeometry(path,tol){
   try{
     const parts=sampledContours(path,Math.max(.002,Math.min(.1,tol)));
-    if(parts.reduce((n,p)=>n+p.points.length,0)>850)return null;
+    if(parts.reduce((n,p)=>n+p.points.length,0)>(filledEligible(path)?25000:850))return null;
     const points=parts.flatMap(x=>x.points);
     if(!points.length)return null;
     return {parts,bbox:{minX:Math.min(...points.map(p=>p[0])),
@@ -53,6 +52,12 @@ function isSimpleColor(path){
   if(path.kind==='image'||path.paint?.unsupported)return false;
   if(path.artwork&&/(?:clip-path|mask=|filter=|<image\b|fill="url\(|stroke="url\()/i.test(path.artwork))return false;
   return true;
+}
+function filledEligible(path){
+  const paint=path.paint;
+  return path.kind!=='image'&&paint&&typeof paint.fill==='string'&&
+    paint.fill.toLowerCase()!=='none'&&(!paint.stroke||paint.stroke.toLowerCase()==='none')&&
+    !paint.unsupported&&path.closed===true;
 }
 function styleKey(p){
   return JSON.stringify(p.paint||{fill:'none',stroke:'#000000',strokeWidthMm:.1});
@@ -124,18 +129,13 @@ function asCompound(group){
     if(seen.has(key)){removedExact++;continue;}
     seen.add(key);commands.push(...c);
   }
-  const rectangles=group.map(simpleRect),
-    filled=group[0].paint?.fill&&group[0].paint.fill!=='none';
-  const paintedRect=Boolean(filled&&rectangles.every(Boolean)&&
-    group.every(p=>!p.paint?.stroke||p.paint.stroke==='none'));
-  const united=paintedRect?rectangleUnionCommands(rectangles):commands;
-  const d=united.map(c=>c.join(' ')).join(' ');
-  return {path:{kind:'vector',commands:united,offset:[0,0],
-    points:united.filter(c=>c[0]!=='Z').map(c=>c.slice(-2)),
-    closed:united.at(-1)?.[0]==='Z',
+  const d=commands.map(c=>c.join(' ')).join(' ');
+  return {path:{kind:'vector',commands,offset:[0,0],
+    points:commands.filter(c=>c[0]!=='Z').map(c=>c.slice(-2)),
+    closed:commands.at(-1)?.[0]==='Z',
     paint:group[0].paint?structuredClone(group[0].paint):undefined,
     artwork:'<path d="'+d+'" fill="none" stroke="#34465b" stroke-width="0.07"/>'},
-    removedExact,welded:paintedRect};
+    removedExact,welded:false};
 }
 export function mergeOverlappingObjects(document,{tolerance=.01,indices=null}={}){
   if(!Array.isArray(document?.paths))throw Error('Документ не содержит векторных объектов');
@@ -150,24 +150,49 @@ export function mergeOverlappingObjects(document,{tolerance=.01,indices=null}={}
   for(let i=0;i<pathCount;i++)for(let j=i+1;j<pathCount;j++){
     if(!geometry[i]||!geometry[j]||styleKey(doc.paths[i])!==styleKey(doc.paths[j]))continue;
     if(++candidatePairs>25000)throw Error('Очень много сочетаний наложенных объектов');
-    if(overlaps(geometry[i],geometry[j]))join(i,j);
+    if(filledEligible(doc.paths[i])&&filledEligible(doc.paths[j])){
+      try{
+        if(filledPathsOverlap(doc.paths[i],doc.paths[j],{tolerance}))join(i,j);
+      }catch{
+        // A failed polygon evaluation never licenses an unsafe merge.
+      }
+    }else if(overlaps(geometry[i],geometry[j]))join(i,j);
   }
   const groups=new Map();
   for(let i=0;i<pathCount;i++){const id=root(i);
     if(!groups.has(id))groups.set(id,[]);groups.get(id).push(i);}
-  let mergedObjects=0,removedExact=0,weldedGroups=0,skipped=0;
+  let mergedObjects=0,removedExact=0,weldedGroups=0,skipped=0,holes=0,flattenedVertices=0;
   const replacements=new Map(),drop=new Set();
   for(const ids of groups.values()){
     if(ids.length<2)continue;
     try{
-      const out=asCompound(ids.map(i=>doc.paths[i]));
+      const group=ids.map(i=>doc.paths[i]);
+      const allFilled=group.every(filledEligible);
+      // Identical cubic geometries can be deduplicated exactly, retaining
+      // every original Bézier control point without flattening.
+      const identical=group.every(p=>JSON.stringify(geometryCommands(p))===
+        JSON.stringify(geometryCommands(group[0])));
+      let out;
+      if(allFilled&&!identical){
+        const welded=unionFilledPaths(group,{tolerance});
+        const d=welded.commands.map(c=>c.join(' ')).join(' ');
+        const paint=structuredClone(group[0].paint);
+        paint.fillRule='evenodd';
+        out={welded:true,removedExact:0,path:{
+          kind:'vector',commands:welded.commands,offset:[0,0],
+          points:welded.commands.filter(c=>c[0]!=='Z').map(c=>c.slice(-2)),
+          closed:true,paint,
+          artwork:'<path d="'+d+'" fill="none" stroke="#34465b" stroke-width="0.07" fill-rule="evenodd"/>'
+        },holes:welded.holes,vertices:welded.vertices};
+      }else out=asCompound(group);
       replacements.set(ids[0],out.path);
       for(const i of ids.slice(1))drop.add(i);
       mergedObjects+=ids.length-1;removedExact+=out.removedExact;
-      if(out.welded)weldedGroups++;
+      if(out.welded){weldedGroups++;holes+=out.holes||0;flattenedVertices+=out.vertices||0;}
     }catch{skipped++;}
   }
   doc.paths=doc.paths.flatMap((p,i)=>drop.has(i)?[]:[replacements.get(i)||p]);
   return {document:doc,stats:{before:pathCount,after:doc.paths.length,mergedObjects,removedExact,
-    weldedGroups,compoundGroups:replacements.size-weldedGroups,skipped}};
+    weldedGroups,compoundGroups:replacements.size-weldedGroups,skipped,holes,flattenedVertices,
+    booleanEngine:'Clipper 6.4.2.2',unionToleranceMm:tolerance}};
 }
