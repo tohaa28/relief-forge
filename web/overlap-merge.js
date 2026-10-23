@@ -192,7 +192,31 @@ export function mergeOverlappingObjects(document,{tolerance=.01,indices=null}={}
     }catch{skipped++;}
   }
   doc.paths=doc.paths.flatMap((p,i)=>drop.has(i)?[]:[replacements.get(i)||p]);
+  // CorelDRAW frequently exports an entire logo as ONE filled compound path
+  // with many nested/overlapping M…Z subpaths (8048531.eps is an example).
+  // Group-only merging misses these: normalize the compound itself using
+  // the same winding-aware Boolean Union, preserving holes and paint.
+  let normalizedObjects=0;
+  for(let i=0;i<doc.paths.length;i++){
+    const path=doc.paths[i];
+    if(!filledEligible(path))continue;
+    const parts=sampledGeometry(path,tolerance)?.parts;
+    if(!parts||parts.length<2||parts.some(part=>!part.closed))continue;
+    try{
+      const union=unionFilledPaths([path],{tolerance});
+      const paint=structuredClone(path.paint);
+      paint.fillRule='evenodd';
+      const commands=union.commands,d=commands.map(c=>c.join(' ')).join(' ');
+      doc.paths[i]={kind:'vector',commands,offset:[0,0],
+        points:commands.filter(c=>c[0]!=='Z').map(c=>c.slice(-2)),closed:true,
+        paint,artwork:'<path d="'+d+'" fill="none" stroke="#34465b" stroke-width="0.07" fill-rule="evenodd"/>'};
+      normalizedObjects++;holes+=union.holes;flattenedVertices+=union.vertices;
+    }catch(error){
+      skipped++;
+    }
+  }
   return {document:doc,stats:{before:pathCount,after:doc.paths.length,mergedObjects,removedExact,
-    weldedGroups,compoundGroups:replacements.size-weldedGroups,skipped,holes,flattenedVertices,
-    booleanEngine:'Clipper 6.4.2.2',unionToleranceMm:tolerance}};
+    weldedGroups,compoundGroups:replacements.size-weldedGroups,normalizedObjects,
+    skipped,holes,flattenedVertices,booleanEngine:'Clipper 6.4.2.2',
+    unionToleranceMm:Math.max(.0002,Math.min(.005,tolerance*.05))}};
 }
