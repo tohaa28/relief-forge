@@ -10,7 +10,9 @@ const square=ring=>{
   }
   return Math.abs(a)/2;
 };
-const toScale=tolerance=>Math.min(200000,Math.max(1000,Math.round(10/Math.max(0.0001,tolerance))));
+const flattenTolerance=tolerance=>Math.max(.0002,Math.min(.005,tolerance*.05));
+const toScale=tolerance=>Math.min(200000,Math.max(10000,
+  Math.round(10/flattenTolerance(tolerance))));
 const polyTree=(paths,fill=C.PolyFillType.pftNonZero)=>{
   const worker=new C.Clipper(C.Clipper.ioStrictlySimple);
   if(!worker.AddPaths(paths,C.PolyType.ptSubject,true))return null;
@@ -31,7 +33,7 @@ function treeContours(tree){
   return out;
 }
 function ringsFromPath(path,tolerance,scale){
-  const sampled=sampledContours(path,Math.max(.0001,Math.min(.02,tolerance)));
+  const sampled=sampledContours(path,flattenTolerance(tolerance));
   const out=[];
   let points=0;
   for(const part of sampled){
@@ -91,7 +93,7 @@ export function unionFilledPaths(paths,{tolerance=.01}={}){
     holes+=Number(item.hole);vertices+=ring.length;
   }
   return {commands,holes,vertices,contours:contours.length,
-    flattenToleranceMm:Math.max(.0001,Math.min(.02,tolerance)),
+    flattenToleranceMm:flattenTolerance(tolerance),
     quantizationMm:1/scale};
 }
 export function filledPathsOverlap(first,second,{tolerance=.01}={}){
