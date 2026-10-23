@@ -31,8 +31,11 @@ export function planDiagnosticBatches(contours, mapping=[],limit=MAX_DIAGNOSTIC_
     }
   });
   flush();
-  const totalPoints=contours.reduce((n,p)=>n+(p?.points?.length||0),0);
-  return {batches,totalPoints,partial:split||skipped.length>0||batches.length>1,
+  const sourcePoints=contours.reduce((n,p)=>n+(p?.points?.length||0),0);
+  // Count repeated seam vertices as work too, otherwise the progress counter
+  // can exceed 100% before the final overlapping window finishes.
+  const totalPoints=batches.reduce((n,b)=>n+b.points,0);
+  return {batches,totalPoints,sourcePoints,partial:split||skipped.length>0||batches.length>1,
     split,skipped,covered:contours.length-skipped.length};
 }
 export const isSupportedDrop=file=>
