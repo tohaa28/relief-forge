@@ -5,7 +5,7 @@
 | Файл | Содержимое | Изменения |
 |---|---|---|
 | [RELEASE_CHRONICLE.md](RELEASE_CHRONICLE.md) | Подробная история alpha.1–alpha.33, ссылки на PR, изменения методов и ограничения | Дополнять после каждой версии |
-| [FAILURE_REGISTER.md](FAILURE_REGISTER.md) | Неудачи F-001–F-022, отвергнутые способы, причины, regressions, состояние | Добавлять записи, **не удалять** провальные попытки |
+| [FAILURE_REGISTER.md](FAILURE_REGISTER.md) | Неудачи F-001–F-024, отвергнутые способы, причины, regressions, состояние | Добавлять записи, **не удалять** провальные попытки |
 | [METHODS_AND_DECISIONS.md](METHODS_AND_DECISIONS.md) | Алгоритмы и rationale: EPS/PDF, CorelDRAW, Rust, Union, real Bézier, AFTER, экспорт, тесты | Обновлять при изменении архитектуры |
 | [WORKLOG_PROTOCOL.md](WORKLOG_PROTOCOL.md) | Точный обязательный порядок работы с историей, CI, PR, checkpoints и пользовательскими файлами | Соблюдать каждый раз |
 | [HANDOFF_ALPHA1_20261022_ARCHIVE.md](HANDOFF_ALPHA1_20261022_ARCHIVE.md) | Первый архив разработки (alpha.1) | Архив; не переписывать |
