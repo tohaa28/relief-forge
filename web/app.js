@@ -1,23 +1,24 @@
-import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.31';
+import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.32';
 import {issueViewBox} from './issue-focus.js';
 import {visibleHealthyAnchors,circlePath} from './vector-points.js';
-import {screenUnitsPerPixel,renderIssueMarkers,issueWithinContourBounds} from './issue-markers.js?v=0.2.0-alpha.31';
-import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.31';
-import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.31';
+import {screenUnitsPerPixel,renderIssueMarkers,issueWithinContourBounds} from './issue-markers.js?v=0.2.0-alpha.32';
+import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.32';
+import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.32';
 import {packedInput} from './auto-repair.js';
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
-import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.31';
-import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.31';
-import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.31';
-import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.31';
-import {planDiagnosticBatches,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.31';
-import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.31';
-import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.31';
-import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.31';
-import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.31';
-import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.31';
-import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.31';
+import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.32';
+import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.32';
+import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.32';
+import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.32';
+import {planDiagnosticBatches,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.32';
+import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.32';
+import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.32';
+import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.32';
+import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.32';
+import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.32';
+import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.32';
+import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.32';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 const nodeCursor=symbol=>{const svg='<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26"><circle cx="13" cy="13" r="11" fill="white" stroke="#173946" stroke-width="1.7"/><text x="13" y="19" text-anchor="middle" fill="#007e79" font-family="Arial" font-weight="bold" font-size="19">'+symbol+'</text></svg>';return 'url("data:image/svg+xml,'+encodeURIComponent(svg)+'") 13 13, crosshair';};
 const plusCursor=nodeCursor('+'),minusCursor=nodeCursor('−');
@@ -32,6 +33,7 @@ const historyStorage=(()=>{try{return window.localStorage}catch{return null}})()
 let fileHistory=readHistory(historyStorage),activeHistoryId=null;
 const journal=[];const clone=v=>structuredClone(v);
 let workspaceHealth=null,workspaceChecks=0,workspaceCheckTimer=null,forceWireframe=false;
+let lastImportAttempt=null,lastImportFailure=null;
 const displayErrors=[];
 window.addEventListener('error',e=>{displayErrors.push(String(e.message||'Unknown error'));if(displayErrors.length>25)displayErrors.shift();});
 window.addEventListener('unhandledrejection',e=>{displayErrors.push(String(e.reason?.message||e.reason||'Unhandled rejection'));if(displayErrors.length>25)displayErrors.shift();});
@@ -101,14 +103,18 @@ function appendMarkup(parent,text){
   for(const child of parsed.documentElement.children)parent.append(document.importNode(child,true));
 }
 function workspaceScan({attemptRepair=false,manual=false}={}){
-  if(!doc.paths.length&&!doc.sourceFileName&&!doc.pdfImport&&!doc.epsImport){
+  if(!lastImportFailure&&!doc.paths.length&&!doc.sourceFileName&&!doc.pdfImport&&!doc.epsImport){
     // Initial empty canvas is not an import failure.
     if(manual)status('Документ ещё не открыт. Рабочее поле готово к импорту.');
     return null;
   }
   const parts={canvas:$('canvas'),workspace:$('drop-target'),geometry:$('geometry'),
     mascot:$('mascot-welcome'),overlay:$('drop-overlay'),
-    documentPaths:doc.paths.length,documentLoaded:true};
+    documentPaths:doc.paths.length,
+    documentLoaded:Boolean(doc.paths.length||doc.sourceFileName||doc.pdfImport||doc.epsImport),
+    documentType:doc.epsImport?'eps':doc.pdfImport?'pdf':
+      /\.svg$/i.test(doc.sourceFileName||'')?'svg':'project',
+    importFailure:lastImportFailure};
   let health=inspectWorkspace(parts),repairs=[];
   if(attemptRepair&&!health.ok){
     repairs=recoverWorkspace(health,parts);
@@ -126,7 +132,7 @@ function workspaceScan({attemptRepair=false,manual=false}={}){
   state.hidden=health.ok&&!manual;
   state.dataset.health=health.ok?'ok':'warning';
   $('workspace-health-report').value=safeWorkspaceReport(health,{
-    version:'0.2.0-alpha.31',source:doc.sourceFileName||'',
+    version:'0.2.0-alpha.32',source:lastImportFailure?.source||doc.sourceFileName||'',
     errors:displayErrors});
   record('workspace-health',{ok:health.ok,issues:health.issues,forceWireframe,attempts:repairs,
     count:health.elementCount,rect:health.canvasRect,bbox:health.geometryBox});
@@ -153,7 +159,7 @@ $('workspace-check').onclick=()=>{
   const health=workspaceScan({attemptRepair:true,manual:true});
   $('workspace-health-report').value=safeWorkspaceReport(health||{
     ok:true,issues:[],note:'Документ не открыт'},{
-    version:'0.2.0-alpha.31',source:doc.sourceFileName||'',errors:displayErrors});
+    version:'0.2.0-alpha.32',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
   $('workspace-health-dialog').showModal();
 };
 $('workspace-check-repair').onclick=()=>{
@@ -877,13 +883,19 @@ $('new').onclick=()=>{activeHistoryId=null;checkpoint();doc={format:'relief-forg
 for(const key of ['width','height'])$(key).onchange=()=>{const v=Number($(key).value);if(v>0&&v<1e6){checkpoint();doc[key]=v;changed('resize-sheet');fit();}else render();};
 $('save').onclick=()=>{record('save-project');download('doktor-uzelkov.rf.json',JSON.stringify({...doc,journal,history:{past,future}},null,2));};
 function stopEps({destroy=false}={}){const picker=$('pdf-page-picker');if(picker?.open)picker.close();epsImportActive=false;clearTimeout(epsTimer);epsTimer=null;if(epsWorker){epsWorker.onmessage=null;epsWorker.onerror=null;}if(destroy){epsWorker?.terminate();epsWorker=null;}}
-function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);openingFile=false;forceWireframe=false;syncWireframeControl();if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();scheduleWorkspaceCheck();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
+function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);openingFile=false;lastImportFailure=null;lastImportAttempt={source:name,status:'opened',objects:next.paths.length};forceWireframe=false;syncWireframeControl();if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();scheduleWorkspaceCheck();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
 function importEps(bytes,name,historyStarted=false){
-  if(busy)return;openingFile=true;updateMascot();if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта '+(/\.pdf$/i.test(name)?'PDF':'EPS')+'…';record('vector-import-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.31',import.meta.url));
+  if(busy)return;openingFile=true;lastImportFailure=null;lastImportAttempt={source:name,status:'converting',bytes:bytes.byteLength};updateMascot();if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта '+(/\.pdf$/i.test(name)?'PDF':'EPS')+'…';record('vector-import-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
+  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.32',import.meta.url));
   progressStage(/\.pdf$/i.test(name)?'Импорт PDF: подготовка MuPDF':'Импорт EPS: подготовка интерпретатора',9);
   const started=performance.now();
-  const fail=message=>{stopEps({destroy:true});openingFile=false;updateMascot();lock(false);status(message);$('import-report').textContent='Не удалось открыть '+(/\.pdf$/i.test(name)?'PDF':'EPS')+': '+message;record('vector-import-error',{name,message});updateFileHistory({status:'Ошибка открытия: '+String(message).slice(0,180)});};
+  const fail=message=>{
+    const reason=String(message||'Неизвестная ошибка импорта');
+    lastImportFailure={source:name,code:/0 контуров|пустая страница|нет векторных объектов/i.test(reason)?
+      'EPS_EMPTY_GEOMETRY':'IMPORT_FAILED',message:reason.slice(0,1100)};
+    lastImportAttempt={source:name,status:'failed',bytes:bytes.byteLength};
+    stopEps({destroy:true});openingFile=false;updateMascot();lock(false);
+    workspaceScan({manual:true});status(reason);$('import-report').textContent='Не удалось открыть '+(/\.pdf$/i.test(name)?'PDF':'EPS')+': '+message;record('vector-import-error',{name,message});updateFileHistory({status:'Ошибка открытия: '+String(message).slice(0,180)});};
   const armTimer=()=>{clearTimeout(epsTimer);epsTimer=setTimeout(()=>fail('Импорт превысил лимит 120 секунд. Исходный документ сохранён.'),120000);};
   armTimer();
   epsWorker.onerror=e=>fail('Ошибка импортера: '+e.message);
@@ -919,6 +931,9 @@ function importEps(bytes,name,historyStarted=false){
     if(data.type==='done')try{
       progressStage('Создание редактируемых кривых',92);
       const next=importRichSvg(data.result.svg,{unitsPerInch:72});
+      const integrity=assessImportedGeometry(next,{format:data.format==='pdf'?'pdf':'eps',
+        source:name,allowEmpty:data.format==='pdf',conversion:data.result});
+      record('import-integrity',{name,format:data.format||'eps',...integrity});
       let binary='';if(data.format!=='pdf'){const chunks=[];for(let i=0;i<bytes.length;i+=32768)chunks.push(String.fromCharCode(...bytes.subarray(i,i+32768)));binary=chunks.join('');}
       if(data.format==='pdf'){
         next.pdfImport={name,...data.result.metadata,engine:'MuPDF 1.28.1'};
@@ -974,7 +989,9 @@ async function importUserFile(file,origin='dialog'){
     }
   }catch(err){
     readActive=false;openingFile=false;updateMascot();lock(false);
-    endProgress();
+    lastImportFailure={source:file.name,code:'FILE_READ_FAILED',message:String(err.message).slice(0,1100)};
+    lastImportAttempt={source:file.name,status:'failed',bytes:file.size};
+    workspaceScan({manual:true});endProgress();
     status(err.message);record('import-error',{name:file.name,origin,message:err.message});
     updateFileHistory({status:'Ошибка открытия: '+String(err.message).slice(0,180)});
   }
@@ -1120,4 +1137,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();
 });
-record('session-start',{version:'0.2.0-alpha.31'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorReady='true';
+record('session-start',{version:'0.2.0-alpha.32'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorReady='true';
