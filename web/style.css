@@ -374,3 +374,24 @@ footer{flex-wrap:wrap;gap:8px 15px;padding-top:6px;padding-bottom:6px}
 .eps-color-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:19px}
 .eps-color-actions button{min-height:40px;padding:8px 15px}
 @media(max-width:500px){.eps-color-choice-content{padding:15px}.eps-color-actions{flex-direction:column}.eps-color-actions button{width:100%}}
+
+
+/* An imported PDF, EPS or SVG must always win over the welcome mascot.
+   Inline IMPORTANT is also assigned by syncWorkspaceMascot for browsers with
+   cached/late-loaded CSS; these selectors cover asynchronous image loading. */
+#mascot-welcome[hidden],.workspace[data-content-loaded="true"] #mascot-welcome,
+.workspace[data-content-loaded="true"] #mascot-welcome img{
+  display:none!important;visibility:hidden!important;pointer-events:none!important;
+}
+.pdf-page-picker{box-sizing:border-box;width:min(460px,calc(100vw - 24px));max-height:calc(100dvh - 30px);
+  margin:auto;overflow:auto;background:white;color:#223b48;padding:0;border:1px solid #c5dce3;
+  border-radius:14px;box-shadow:0 18px 70px #132f4250}
+.pdf-page-picker::backdrop{background:#122b3d79;backdrop-filter:blur(2px)}
+.pdf-page-content{padding:23px;display:flex;flex-direction:column;gap:11px}
+.pdf-page-content h2{font-size:17px;margin:0 0 5px}
+.pdf-page-content>p{font-size:12px;line-height:1.5;margin:0;color:#607583}
+.pdf-page-content label{font-size:13px;margin:8px 0;display:flex;gap:16px;align-items:center}
+#pdf-page-number{width:100%;min-width:180px;padding:9px;border-radius:8px;border:1px solid #bbcfd7;background:white;color:#203b48}
+.pdf-page-actions{display:flex;gap:10px;justify-content:flex-end}
+.pdf-page-actions button{min-height:39px;padding:9px 14px}
+@media(max-width:540px){.pdf-page-content{padding:14px}.pdf-page-actions{flex-direction:column}.pdf-page-actions button{width:100%}}

@@ -84,3 +84,6 @@ Diagnostic report and interactive colored markers are tied to every AFTER vector
 
 ### alpha.29 — финальная оптимизация кривых после Union
 После всех Boolean/cleanup результат L-полигонов оптимизируется многопроходно в реальные M/L/C/Q-узлы с пользовательским допуском; количество опорных узлов ПОСЛЕ отражает именно эту геометрию, а не предварительный отчёт. Редактор точек, открытый из ПОСЛЕ, принимает оптимизированную геометрию с Undo и показывает фактические command endpoints. Непересекающиеся оригинальные C не заменяются новыми выборками; неизменённый уже оптимизированный результат не flatten-ится повторно. Save EPS не делает повторных расчётов.
+
+### alpha.30 — PDF vector import and mascot reliability
+Direct PDF (single/multi-page page picker) vector import through bundled MuPDF with text outlines and retained embedded bitmap objects. Multi-page imports selected page only. File-open and drag/drop accept PDF. Mascot uses cross-browser state synchronization and hides during and after any successful file load, unhide only for empty document on failure/cancel. PDF export NOT added; Save EPS unchanged.
