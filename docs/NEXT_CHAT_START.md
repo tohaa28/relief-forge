@@ -1,3 +1,10 @@
+# FINAL verified alpha.34 handoff — 2026-10-23 12:52 UTC
+- Functional release: 0.2.0-alpha.34; merged PR #42; release merge SHA 1d66be8028ae706ed8d26748f24eb5f85059172a.
+- PR final CI: https://github.com/tohaa28/relief-forge/actions/runs/39956129539 — build SUCCESS; 184 JS, 15 Rust, actual compiled WASM ABI and real Chromium Worker/WASM browser smoke PASS.
+- Main production: https://github.com/tohaa28/relief-forge/actions/runs/39956322917 — build SUCCESS and deploy SUCCESS; https://tohaa28.github.io/relief-forge/ .
+- Last pre-release baseline for rollback: main 1f21fe7bda764a02c4404f6e5aaa3c947af1e6e9 (alpha.33). Documentation-only follow-up branch docs/alpha34-release-evidence does not alter functional version.
+- Test evidence: private 8049569(1).eps local 53 closed rings; curve optimization 712→597 commands at 0.046 mm, 0 false open reports in local Worker/WASM before/after; full cross-batch verification NOT supported and user Windows smoke still outstanding.
+- New first command for next chat: fetch actual main SHA/last Actions (the status above is a timestamped snapshot), then read F-025/F-026 and latest DEVELOPMENT_LOG. Preserve all history; no EPS bytes in Git.
 # CI state correction, 2026-10-23T12:48Z: PR #42 alpha.34 browser step of workflow 39954313037 remained in_progress >13m after successful Rust/JS/WASM; instrumentation follow-up separates apt, shell download, Chromium smoke. DO NOT claim deployed until green PR + main build/deploy. See DEVELOPMENT_LOG.
 # Latest active session: 0.2.0-alpha.34
 Base/main checkpoint: 1f21fe7bda764a02c4404f6e5aaa3c947af1e6e9 (PR #41, main workflow 39952034182 success).

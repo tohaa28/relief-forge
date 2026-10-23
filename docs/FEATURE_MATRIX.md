@@ -106,3 +106,9 @@ Fallback importer now recognizes both equivalent PostScript curveto aliases C an
 - Actual command reduction: private EPS 712→597; unchanged source/Apply/Undo retained. Browser smoke gates CI. Publication pending.
 
 alpha.34 observed verification: 184 JS PASS, local Chromium/private EPS 0 false open issues, export/reimport 53 rings/597 segments preserved. New native/WASM CI and publication blocked pending explicit push authorization.
+
+### alpha.34 — publication verified on GitHub Pages (2026-10-23)
+- Implemented/tested: split provenance prevents false open contours; independent geometric optimization safety guard, real command reduction; in PR #42.
+- Native: 15/15 Rust PASS. Browser-independent tests: 184/184 JS PASS. New WASM ABI PASS. Real Chromium Worker/WASM smoke PASS including import, BEFORE/AFTER, Apply, EPS download and Undo (PR workflow 39956129539).
+- Deployed: PR #42 merged 1d66be8028ae706ed8d26748f24eb5f85059172a; main workflow 39956322917 build+deploy SUCCESS.
+- User Windows smoke not yet confirmed; private EPS and unresolved inter-batch/certification limitations remain. No claim of mathematically exhaustive correctness.

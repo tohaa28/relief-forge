@@ -166,3 +166,9 @@ npm run serve
 ## 11. alpha.34: provenance and optimization postconditions
 Diagnostic windows carry source contour identity/closure/start; open-window flags are not source topology. A closed split includes the real closing edge, never a synthetic chord. Exact duplicate terminal endpoint is normalized only in a diagnostic copy; close-but-distinct ends remain real gaps. Both BEFORE/AFTER use mapDiagnosticIssue.
 Independent curve-quality validation checks real segments and sampled topology before accepting smoothing/optimization/refit, also across objects before Union. New short segments and crossings are matched by location, not paid for by removing an unrelated old issue. Failure rolls back proposed geometry, preserves Undo and reports rejection. Sampling <=0.0025 mm and 2M comparison cap are conservative operational bounds, not proof against sub-resolution tangencies. Partial diagnostic coverage still explicitly shown. Private geometry never committed.
+
+## 12. alpha.34 release and CI browser-test observability
+- Quality gates remain cargo test --locked, npm test, fresh Rust wasm32 build, scripts/check-wasm.mjs, actual Playwright Chromium with worker/WASM and UI transfer/Undo/export; PR CI alone is not production.
+- Keep Chromium dependency setup, headless-shell download and smoke in distinct timed Actions steps. During alpha.34 a combined step took 13+ minutes mainly before Chromium download, but PASSED; splitting steps improves attribution, not mathematical test strength. Evidence: PR runs 39954313037 and 39956129539.
+- The published functional merge is 1d66be8028ae706ed8d26748f24eb5f85059172a, main deployment run 39956322917 was SUCCESS. The next documentation-only follow-up cannot be treated as a new functional alpha release.
+- F-025 geometric source/window mapping plus independent sampled candidate guards remain numeric; mark inter-batch checks as partial. Do not conflate these with completely verified topological invariance.
