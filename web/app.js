@@ -11,7 +11,8 @@ import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVe
 import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.29';
 import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.29';
 import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.29';
-import {planDiagnosticBatches,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.29';
+import {planDiagnosticBatches,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.30';
+import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.30';
 import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.29';
 import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.29';
 import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.29';
@@ -25,7 +26,7 @@ const names={open:'Открытый контур',coincident:'Совпадающ
 let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null;
 let doc={format:'relief-forge',version:1,width:300,height:200,paths:[]},selected=new Set(),issues=[],metrics=[],past=[],future=[],mode='select',draft=[],drag=null,pan=null,worker,ready=false,pending=null,sequence=0,busy=false;
 let epsWorker=null,epsTimer=null,epsImportActive=false;let importFonts=[];
-let diagnosticGeneration=0,readGeneration=0,readActive=false,previewGeneration=0,previewActive=false,suppressNextDiagnostic=false,afterDiagnosticGeneration=0;
+let diagnosticGeneration=0,readGeneration=0,readActive=false,openingFile=false,previewGeneration=0,previewActive=false,suppressNextDiagnostic=false,afterDiagnosticGeneration=0;
 const historyStorage=(()=>{try{return window.localStorage}catch{return null}})();
 let fileHistory=readHistory(historyStorage),activeHistoryId=null;
 const journal=[];const clone=v=>structuredClone(v);
@@ -94,9 +95,10 @@ function appendMarkup(parent,text){
   }
   for(const child of parsed.documentElement.children)parent.append(document.importNode(child,true));
 }
+function updateMascot(){return syncWorkspaceMascot($('mascot-welcome'),$('drop-target'),{hasDocument:doc.paths.length>0,importing:openingFile});}
 function render(){
   document.body.classList.toggle('curve-editing',curveEditing());
-  $('mascot-welcome').hidden=Boolean(doc.paths.length);
+  updateMascot();
   $('curve-node-tools').hidden=!curveEditing();
   if(curveEditing())$('optimization-result').textContent='Редактируются реальные опорные точки команд M/L/C/Q текущей геометрии. Ручки Безье отображаются у соответствующих C-сегментов. Undo доступен.';
   $('curve-edit').classList.toggle('active',curveEditing());
