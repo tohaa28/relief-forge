@@ -10,7 +10,7 @@ function mockElement({x=0,y=0,width=750,height=550,display='block',visibility='v
    childElementCount:children,
    getBoundingClientRect(){const {x,y,width,height}=this.state;return {x,y,width,height};},
    getBBox(){return this.state.bbox;},
-   setAttribute(k,v){this[k]=v;if(k==='viewBox'){const a=v.split(/\s+/).map(Number);
+   setAttribute(k,v){if(k!=='viewBox')this[k]=v;if(k==='viewBox'){const a=v.split(/\s+/).map(Number);
      this.viewBox.baseVal={x:a[0],y:a[1],width:a[2],height:a[3]};}},
    viewBox:{baseVal:{x:0,y:0,width:300,height:200}}};
  return el;
