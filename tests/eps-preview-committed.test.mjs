@@ -41,7 +41,9 @@ test('EPS save checks all vectors before applying preview; Apply remains a manua
   assert.match(app,/\$\('apply-changes'\)\.onclick=applyUnifiedChanges/);
   assert.match(app,/function applyUnifiedChanges\(\)/);
   assert.match(app,/checkpoint\(baseline\);doc=clone\(pv\.result\)/);
-  assert.match(app,/\$\('export-eps'\)\.onclick=saveEpsWithPreflight/);
+  assert.match(app,/\$\('export-eps'\)\.onclick=\(\)=>\{/);
+  assert.match(app,/\$\('eps-color-confirm'\)\.onclick=\(\)=>\{/);
+  assert.match(app,/void saveEpsWithPreflight\(\)/);
   assert.match(app,/for\(let k=0;k<vectors\.length;k\+\+\)\{/);
   assert.match(app,/epsSaveCandidate\(doc,curvePreview,readEpsSaveSettings\(\)\)/);
   assert.match(app,/epsSaveDecision\(report,task.autoApply\)/);
