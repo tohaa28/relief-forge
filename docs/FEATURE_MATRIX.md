@@ -99,3 +99,10 @@ Fallback importer now recognizes both equivalent PostScript curveto aliases C an
 
 ### История и восстановление контекста (documentation checkpoint, 2026-10-23)
 Обязательные release chronology, failure register F-001–F-022, архитектурные решения, NEXT_CHAT_START и WORKLOG_PROTOCOL созданы в \`docs/history/\` и \`docs/NEXT_CHAT_START.md\`; \`AGENTS.md\` требует их обновления при каждой следующей итерации. \`tests/history-integrity.test.mjs\` проверяет соответствие актуальной версии, отсутствие дыр в нумерации ошибок и parseable action journal. Документация не доказывает runtime behavior; реальные CI/Pages и user smoke остаются отдельными статусами.
+
+## alpha.34 quality control
+- Source-aware split diagnostics, exact geometric closure: implemented; real private EPS/WASM checked, zero false opens.
+- Independent candidate rejection on new sampled intersections/short real segments/topology changes: implemented and regression tested, numeric limits apply.
+- Actual command reduction: private EPS 712→597; unchanged source/Apply/Undo retained. Browser smoke gates CI. Publication pending.
+
+alpha.34 observed verification: 184 JS PASS, local Chromium/private EPS 0 false open issues, export/reimport 53 rings/597 segments preserved. New native/WASM CI and publication blocked pending explicit push authorization.
