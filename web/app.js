@@ -20,6 +20,8 @@ import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-re
 import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.35';
 import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.35';
 import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.35';
+import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.35';
+import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.35';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 const nodeCursor=symbol=>{const svg='<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26"><circle cx="13" cy="13" r="11" fill="white" stroke="#173946" stroke-width="1.7"/><text x="13" y="19" text-anchor="middle" fill="#007e79" font-family="Arial" font-weight="bold" font-size="19">'+symbol+'</text></svg>';return 'url("data:image/svg+xml,'+encodeURIComponent(svg)+'") 13 13, crosshair';};
 const plusCursor=nodeCursor('+'),minusCursor=nodeCursor('−');
@@ -222,6 +224,8 @@ function render(){
   $('compare-status').textContent=comparison?
     (compareStage==='after'?'ПОСЛЕ':'ДО')+' · '+visibleDoc.paths.length+' контуров · '+(curvePreview?('стыков '+curvePreview.stats.smoothedJoints+' · сегменты '+(compareStage==='after'?curvePreview.stats.result:curvePreview.stats.original)+(compareStage==='after'?(curvePreview.afterDiagnosed?' · замечаний '+visibleIssues.length:' · проверка после выполняется'):' · исходные')):visibleIssues.length+' замечаний')+(curvePreview?' · автоисправление':' · применено'):
     'Сравнение после автоисправления';
+  if(comparison&&curvePreview&&compareStage==='after')$('compare-status').textContent+=
+    ' · итоговых узлов '+curvePreview.stats.actualNodesAfter;
   $('width').value=doc.width;$('height').value=doc.height;$('count').textContent=visibleDoc.paths.length;
   for(const id of ['sheet','grid-bg']){$(id).setAttribute('width',visibleDoc.width);$(id).setAttribute('height',visibleDoc.height);}
   $('geometry').replaceChildren();$('nodes').replaceChildren();$('markers').replaceChildren();$('paths').replaceChildren();
@@ -315,8 +319,8 @@ function render(){
     b.title='Перейти к X '+x.point[0].toFixed(3)+' · Y '+x.point[1].toFixed(3)+' мм';
     b.onclick=()=>focusIssue(x);$('issues').append(b);
   });
-  $('toggle-points').textContent=pointsVisible?'Скрыть здоровые точки':'Показать здоровые точки';
-  $('toggle-markers').textContent=markersVisible?'Скрыть маркеры':'Показать маркеры';
+  $('toggle-points-label').textContent=pointsVisible?'Скрыть здоровые точки':'Показать здоровые точки';
+  $('toggle-markers-label').textContent=markersVisible?'Скрыть маркеры':'Показать маркеры';
   $('apply-changes').disabled=busy||!curvePreview||!curvePreview.hasGeometryChange;
   $('auto-status').textContent=busy?'Идёт расчёт…':curveEditing()?'Редактирование узлов · Ctrl+Z — отмена.':curvePreview?'Предварительный результат рассчитан, просмотрите ПОСЛЕ.':appliedComparison?'Изменения применены. ДО / ПОСЛЕ доступны для проверки.':doc.paths.length?'Проверка и расчёт после открытия файла.':'Откройте файл для автоматической проверки.';
   $('toggle-markers').disabled=busy||!visibleIssues.length;
@@ -350,14 +354,16 @@ function buildUnifiedPreview(){
       mergeOverlappingObjects(optimized.document,{indices:scope,tolerance:diagnosticTolerance,cleanupTolerance:optimizationTolerance}):
       {document:optimized.document,stats:{mergedObjects:0,weldedGroups:0,compoundGroups:0,skipped:0,holes:0,normalizedObjects:0,unionToleranceMm:0.005,cleanup:{coincident:0,collinear:0,short:0,shortEdgesRemaining:0,reverted:0}}};
     const refitted=refitBooleanUnion(merged.document,optimizationTolerance);
-    const after=refitted.document;
+    const budget=protectPreviewNodeBudget(doc,optimized.document,refitted.document);
+    const after=budget.document;
     const actualCount=document=>document.paths.reduce((n,p)=>n+
       (p.kind==='image'?0:p.commands?.filter(c=>c[0]==='M'||c[0]==='L'||c[0]==='C'||c[0]==='Q').length??p.points.length),0);
-    const st={...optimized.stats,refit:refitted.stats,
+    const st={...optimized.stats,refit:refitted.stats,budget,
       actualNodesBefore:actualCount(doc),actualNodesAfter:actualCount(after),overlaps:merged.stats,mergeOverlaps:$('merge-overlaps').checked,pointRepairs:repaired.stats,diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
       smoothingDeviation:optimized.stats.smoothingError};
     const different=JSON.stringify(doc.paths.map(worldData))!==JSON.stringify(after.paths.map(worldData));
-    const msg='Точки: убрано коротких/нулевых сегментов '+st.pointRepairs.removedNodes+
+    const msg='ИТОГОВЫЕ реальные узлы: '+st.actualNodesBefore+' → '+st.actualNodesAfter+'.'+
+      (budget.reason?'\n'+previewBudgetMessage(budget):'')+'\nТочки: убрано коротких/нулевых сегментов '+st.pointRepairs.removedNodes+
       ' · замкнуто близких концов '+st.pointRepairs.closedGaps+'.'+
       '\nБулево объединение Clipper: слито объектов '+st.overlaps.mergedObjects+
       ', сварено заполненных групп '+st.overlaps.weldedGroups+
@@ -531,8 +537,9 @@ async function buildLargeUnifiedPreview(indices){
     await yieldForUi();
     const refitted=refitBooleanUnion(merged.document,optimizationTolerance);
     if(generation!==previewGeneration)return;
-    const after=refitted.document;
-    stats.overlaps=merged.stats;stats.refit=refitted.stats;
+    const budget=protectPreviewNodeBudget(source,result,refitted.document);
+    const after=budget.document;
+    stats.budget=budget;stats.overlaps=merged.stats;stats.refit=refitted.stats;
     stats.mergeOverlaps=$('merge-overlaps').checked;
     const countReal=target=>target.paths.reduce((n,p)=>n+(p.kind==='image'?0:
       p.commands?.filter(c=>['M','L','C','Q'].includes(c[0])).length??p.points.length),0);
@@ -542,7 +549,8 @@ async function buildLargeUnifiedPreview(indices){
       afterDiagnosed:false,afterDiagnosticComplete:false,afterScope:'unknown',
       comparisonData:{beforeDoc:clone(source),afterDoc:after,beforeIssues:clone(issues),afterIssues:[]}};
     curvePreview=pv;compareStage='after';
-    $('optimization-result').textContent='Большой документ: обработано '+indices.length+
+    $('optimization-result').textContent='ИТОГОВЫЕ реальные узлы: '+stats.actualNodesBefore+' → '+stats.actualNodesAfter+'.'+
+      (budget.reason?' '+previewBudgetMessage(budget):'')+'\nБольшой документ: обработано '+indices.length+
       ' контуров; сглажено '+stats.smoothedJoints+' стыков, удалено '+stats.removed+
       ' сегментов; слито объектов '+stats.overlaps.mergedObjects+
       ', нормализовано заливок '+stats.overlaps.normalizedObjects+
@@ -1070,6 +1078,7 @@ function exportConfirmedEps({snapshot=null,overridden=false}={}){
       appliedComparison,{issues,complete:diagnosticComplete,current:false,fullScope:false});
     if(!chosen.valid)throw Error('Результат ПОСЛЕ устарел. Повторите обработку.');
     const prepared=prepareEpsOutput(chosen.document);
+    const verifiedOutput=verifyEpsOutputGeometry(chosen.document,prepared);
     const eps=prepared.content;
     const resultName=epsResultFilename(chosen.document.sourceFileName||doc.sourceFileName||
       doc.epsImport?.name||'relief-forge.eps');
@@ -1083,7 +1092,8 @@ function exportConfirmedEps({snapshot=null,overridden=false}={}){
     record('export-eps-after',{name:resultName,source:chosen.stage,
       colorMode:epsColorMode,colorSource:prepared.source,
       bytes:eps.length,applied,overridden,issues:chosen.issues?.length??null,
-      verified:chosen.complete,diagnosticReused:true});
+      verified:chosen.complete,diagnosticReused:true,realNodes:verifiedOutput.realNodes,
+      exportGeometry:verifiedOutput.status});
     status('EPS сохранён: '+resultName+
       ' · экспортирован готовый результат '+(chosen.stage==='current'?'': 'ПОСЛЕ')+
       ' без повторной обработки'+
