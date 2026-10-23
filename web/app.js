@@ -988,6 +988,7 @@ async function importUserFile(file,origin='dialog'){
   if(!file||busy||readActive)return;
   if(!isSupportedDrop(file)){status('Поддерживаются PDF, EPS, PS, SVG и проекты JSON.');return;}
   if(file.size>64*1024*1024){status('Файл превышает 64 МБ. Импорт отклонён.');return;}
+  clearTimeout(settingsTimeout); // Import commits its own recalculation; discard the old settings job.
   beginFileHistory(file.name);
   const token=++readGeneration;
   openingFile=true;updateMascot();

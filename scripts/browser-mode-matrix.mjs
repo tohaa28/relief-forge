@@ -40,12 +40,16 @@ try{
   await page.locator('#curve-edit').click();
   assert.equal(await page.locator('#curve-node-tools').isVisible(),true);
   await page.locator('#node-done').click();
+  await page.waitForTimeout(250); // Wait for the documented editor-close debounce.
+  await page.waitForFunction(()=>document.querySelector('#busy').hidden);
   const projectDownload=page.waitForEvent('download');await page.keyboard.press('Control+Shift+s');
   const project=await projectDownload,bytes=readFileSync(await project.path()),doc=JSON.parse(bytes);
   assert.ok(doc.paths.length>0);assert.ok(doc.history.past.length>0);
-  const preview=doc.journal.filter(x=>x.action==='autoheal-curve-preview').at(-1);
+  const firstExport=doc.journal.findIndex(x=>x.action==='export-eps-after');
+  const preview=doc.journal.slice(0,firstExport).filter(x=>x.action==='autoheal-curve-preview').at(-1);
   assert.deepEqual(preview.detail.scope,selection?[2]:[0,1,2],'actual selected objects must determine the recalculated preview');
   await page.locator('#file').setInputFiles({name:'reopened.rf.json',mimeType:'application/json',buffer:bytes});
+  await page.waitForTimeout(250); // Await the async file stream and any scheduled UI update.
   await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));
   await page.waitForFunction(()=>document.querySelector('#busy').hidden);
   const againDownload=page.waitForEvent('download');await page.keyboard.press('Control+Shift+s');const again=await againDownload;
