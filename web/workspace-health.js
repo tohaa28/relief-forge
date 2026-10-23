@@ -46,7 +46,13 @@ export function inspectWorkspace({canvas,workspace,geometry,mascot,documentPaths
   const elementCount=geometry?.childElementCount||0;
   let geometryBox=null,bboxError=null;
   if(elementCount&&expected){
-    try{const box=bounding();geometryBox=snapshotRect(box);}
+    try{const box=bounding();geometryBox=snapshotRect(box);
+      // A valid open straight line may have zero height/width; allow a
+      // tiny viewing rectangle rather than diagnosing missing geometry.
+      if(geometryBox&&Number.isFinite(geometryBox.width)&&Number.isFinite(geometryBox.height)){
+        geometryBox.width=Math.max(.001,geometryBox.width);
+        geometryBox.height=Math.max(.001,geometryBox.height);
+      }}
     catch(error){bboxError=String(error?.message||error);}
   }
   if(!canvas||!geometry||!workspace)issues.push('missing-elements');
