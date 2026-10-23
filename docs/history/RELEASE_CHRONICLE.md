@@ -123,4 +123,10 @@ alpha.34 final local verification: 184/184 JS, unchanged published WASM ABI, rea
 - Original release anchor: merge PR #38 `4ad8efd1801be16d4c37472fda4989f9e3afbf06` (tree `6cd82072293720fb5810d669de8db9cd8b48b36a`). Current before rollback: main `bb56f9b11976fd75199b3b16f0f377be3df5bc18` (alpha.35).
 - Состояние до отката сохранено без изменений: `archive/alpha35-before-alpha32-rollback-20261023`.
 - Граница: исходный `src/`, `web/`, `package*.json`, `Cargo.*`, `tests/`, workflows, scripts и assets из alpha.32 побайтово; хронология и история методов сохранены более поздними версиями в docs и logs. Подробности: `docs/history/ROLLBACK_ALPHA32_20261023.md`.
-- Branch `rollback/restore-alpha32-20261023`. Статус на этапе записи: source restored, PR CI и production Pages требуют подтверждения. Поздние исправления 0.2.0-alpha.33–35 возвращены только в архив, а не в приложение. 
+- Branch `rollback/restore-alpha32-20261023`. Статус на этапе записи: source restored, PR CI и production Pages требуют подтверждения. Поздние исправления 0.2.0-alpha.33–35 возвращены только в архив, а не в приложение.
+
+### Итог rollback — 0.2.0-alpha.32 опубликована (2026-10-23)
+- Source exact: commit `4ad8efd1801be16d4c37472fda4989f9e3afbf06`, target tree `6cd82072293720fb5810d669de8db9cd8b48b36a`.
+- PR #46 merged: `2dfadad1c8f342733da857b0585540dacd46c95e`.
+- PR CI `39964713772`: 167 JS / 15 Rust / WASM PASS. Main Pages CI `39964842575`: build + deploy SUCCESS.
+- All non-document blobs on new main SHA match original alpha.32; user's old alpha.35 backed up in `archive/alpha35-before-alpha32-rollback-20261023`. Real Windows Firefox smoke not observed; old defects are intentionally restored.
