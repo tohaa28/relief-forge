@@ -204,3 +204,6 @@ Fix F-034 nearby-node false marks via incident-direction checks and topology-con
 
 ## 0.2.0-alpha.40 published and LIVE verified
 PR57/c50ef64/source7e014b3; PR40004099807 and main40004283241 build+deploySUCCESS,226JS/17Rust/freshWASM/all existing+new browser gates. Native whole-contour minima and proof-connected narrow zones replace per-node markers: LIVE dense81nodes0marks, denseparallel1true0.05mm mark, separated necks2marks; private min18original/16AFTERcomplete. Default0.1mm, pink below vectors, unchanged EPS1967exactbytes/Undo3146Redo1967.2Mwork/50kraw/3kzones explicit incomplete; old WASM cross-batch stayspartial. Immediate native neighbors/single-native self approach/stroke width remain outside scope; user external-app verification separate.
+
+## 0.2.0-alpha.41 — PDF named-layer namespace candidate
+PDF-only self-contained layer namespace fixes strict browser "Некорректный SVG" on supplied PDF. Shared SVG/EPS/repair/narrow algorithms/UI untouched except synchronized version/cache keys.3realMuPDF unit and new Worker browser layered/text/scale/paint/images/multipage/Undo/EPS/project/invalid input checks locallyPASS; actual396source anchors/unchanged optimizer245, visual20/342400pixels. All existing229JS/Rust/freshWASM modes, PR and main publication pending.

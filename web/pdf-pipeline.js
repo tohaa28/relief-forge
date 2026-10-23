@@ -50,6 +50,17 @@ export function pdfPages(bytes,mupdf){
     return pages;
   });
 }
+// MuPDF declares the layer namespace on the root SVG. The editor stores each
+// drawing object as a standalone fragment, so its containing layer must carry
+// that declaration too. PDF-only adaptation: keep layer names and all vector
+// data intact, without changing the shared SVG/EPS reader or its strict checks.
+function selfContainedPdfLayers(svg){
+  const root=svg.match(/<svg\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/)?.[0];
+  const declaration=root?.match(/\bxmlns:inkscape\s*=\s*(?:"[^"]*"|'[^']*')/)?.[0];
+  if(!declaration)return svg;
+  return svg.replace(/<g\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/g,tag=>
+    /\sinkscape:[\w.-]+\s*=/.test(tag)&&!/\sxmlns:inkscape\s*=/.test(tag)?'<g '+declaration+tag.slice(2):tag);
+}
 export function pdfPageToSvg(bytes,mupdf,pageIndex){
   if(!Number.isInteger(pageIndex)||pageIndex<0)throw Error('Неверный номер страницы PDF.');
   return withPdf(bytes,mupdf,document=>{
@@ -66,7 +77,7 @@ export function pdfPageToSvg(bytes,mupdf,pageIndex){
       device.close();device=null;
       writer.endPage();writer.close();
       return {
-        svg:buffer.asString(),
+        svg:selfContainedPdfLayers(buffer.asString()),
         widthPt:bounds[2]-bounds[0],heightPt:bounds[3]-bounds[1],
         metadata:{pageIndex,pageNumber:pageIndex+1,pageCount:count,
           widthPt:bounds[2]-bounds[0],heightPt:bounds[3]-bounds[1]},

@@ -22,7 +22,7 @@ self.onmessage=async({data})=>{
   const started=Date.now();
   try{
     if(data.kind==='pdf'||data.type==='select-pdf-page'){
-      const pdf=await import('./pdf-pipeline.js?v=0.2.0-alpha.40');
+      const pdf=await import('./pdf-pipeline.js?v=0.2.0-alpha.41');
       if(data.kind==='pdf'){
         pendingPdf=pdf.pdfProgram(new Uint8Array(data.bytes)).slice();
         send(12,'Загрузка движка MuPDF для PDF…');
@@ -48,7 +48,7 @@ self.onmessage=async({data})=>{
       self.postMessage({type:'done',result,durationMs:Date.now()-started,format:'pdf'});
       return;
     }
-    const pipeline=await import('./eps-pipeline.js?v=0.2.0-alpha.40');
+    const pipeline=await import('./eps-pipeline.js?v=0.2.0-alpha.41');
     // Path-only files never load heavyweight interpreters at all.
     const direct=pipeline.recoverOutlineOnlyEps(new Uint8Array(data.bytes));
     if(direct){
