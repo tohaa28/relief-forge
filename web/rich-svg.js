@@ -91,7 +91,7 @@ export function importRichSvg(text,{unitsPerInch=96,Parser=globalThis.DOMParser}
 }
 // Adaptive subdivision is used only for diagnostics / an explicit conversion, never for storage/rendering.
 export function sampledContours(p,tolerance=.01){
-  if(!p.artwork)return normalizeDiagnosticClosure([{points:p.points.map(q=>[...q]),closed:p.closed}]);if(p.kind==='image')return [];
+  if(!p.artwork)return [{points:p.points,closed:p.closed}];if(p.kind==='image')return [];
   const c=commands(worldData(p)),out=[];let path=null,prev=[0,0];let count=0;
   const add=q=>{if(++count>20000)throw Error('Кривая слишком сложна: увеличьте допуск или уменьшите выборку');path.points.push(q);};
   const subdivide=(a,b,c,d,depth=0)=>{
@@ -115,17 +115,6 @@ export function sampledContours(p,tolerance=.01){
       if(path.points.length>2&&last[0]===first[0]&&last[1]===first[1])path.points.pop();
       prev=first;continue;
     }prev=end;
-  }return normalizeDiagnosticClosure(out);
-}
-function normalizeDiagnosticClosure(parts){
-  for(const part of parts){
-    const first=part.points[0],last=part.points.at(-1);
-    // A return to the exact start has no geometric gap even without Z.
-    // Do not snap a merely near endpoint using the diagnostic tolerance.
-    if(part.points.length>2&&first[0]===last[0]&&first[1]===last[1]){
-      part.closed=true;part.points.pop();
-    }
-  }
-  return parts;
+  }return out;
 }
 export function exportDocument(doc){return `<svg xmlns="${NS}" xmlns:xlink="http://www.w3.org/1999/xlink" width="${doc.width}mm" height="${doc.height}mm" viewBox="0 0 ${doc.width} ${doc.height}">${doc.svgDefs||''}${doc.paths.map(p=>p.artwork?artworkMarkup(p):`<path d="${worldData(p)}" fill="none" stroke="#000" stroke-width="0.1"/>`).join('')}</svg>`;}

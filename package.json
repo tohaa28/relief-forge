@@ -1,6 +1,6 @@
 {
   "name": "relief-forge-web",
-  "version": "0.2.0-alpha.35",
+  "version": "0.2.0-alpha.32",
   "private": true,
   "type": "module",
   "scripts": {
@@ -17,7 +17,6 @@
   },
   "devDependencies": {
     "@xmldom/xmldom": "0.9.12",
-    "esbuild": "0.25.12",
-    "playwright": "1.56.1"
+    "esbuild": "0.25.12"
   }
 }

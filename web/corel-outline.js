@@ -1,13 +1,11 @@
 // Recover narrowly defined CorelDRAW and Relief Forge EPS outlines containing
 // literal path-building commands and a final N (newpath), with no paint operator.
-// CorelDRAW EPS may use either c or C; both alias curveto, with six values.
-// Preserve exact control points, do not manufacture sampled anchors.
 // Regular Ghostscript/MuPDF interpretation ALWAYS takes priority.
 // This is not a general-purpose PostScript parser.
 const NUM='[+-]?(?:\\d+\\.?\\d*|\\.\\d+)(?:[eE][+-]?\\d+)?';
 const move=new RegExp('^('+NUM+')\\s+('+NUM+')\\s+m$');
 const line=new RegExp('^('+NUM+')\\s+('+NUM+')\\s+L$');
-const curve=new RegExp('^('+NUM+')(?:\\s+('+NUM+'))(?:\\s+('+NUM+'))(?:\\s+('+NUM+'))(?:\\s+('+NUM+'))(?:\\s+('+NUM+'))\\s+[Cc]$');
+const curve=new RegExp('^('+NUM+')(?:\\s+('+NUM+'))(?:\\s+('+NUM+'))(?:\\s+('+NUM+'))(?:\\s+('+NUM+'))(?:\\s+('+NUM+'))\\s+C$');
 const valid=values=>values.every(v=>Number.isFinite(v)&&Math.abs(v)<=1e7);
 
 export function recoverUnpaintedCorelOutlines(program,metadata){

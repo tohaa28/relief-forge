@@ -44,17 +44,6 @@ jobs:
           cargo build --locked --release --target wasm32-unknown-unknown
           cp target/wasm32-unknown-unknown/release/relief_forge.wasm web/engine.wasm
           node scripts/check-wasm.mjs
-      # Keep setup separate from application smoke to identify CI download/apt
-      # delays without silently skipping the actual Worker/WASM browser test.
-      # Test actual Chromium on the hosted runner first. The earlier
-      # unneeded apt font upgrades repeatedly blocked CI on a slow mirror.
-      # If required native libraries are missing, Chromium launch MUST fail.
-      - name: Download Chromium headless shell
-        timeout-minutes: 8
-        run: npx playwright install --only-shell chromium
-      - name: Browser smoke with real Worker and WASM
-        timeout-minutes: 8
-        run: node scripts/browser-smoke.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: relief-forge-wasm-web
