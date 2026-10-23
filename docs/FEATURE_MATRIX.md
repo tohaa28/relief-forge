@@ -130,3 +130,8 @@ alpha.34 observed verification: 184 JS PASS, local Chromium/private EPS 0 false 
 - Source: source-of-truth original merge PR #38 `4ad8efd1801be16d4c37472fda4989f9e3afbf06`. SHA files under `web/`, `src/`, `tests/`, tools, manifests and workflow checked identical to old tree. No hybrid algorithm.
 - History: alpha.35 pre-rollback `bb56f9b11976fd75199b3b16f0f377be3df5bc18` archived as `archive/alpha35-before-alpha32-rollback-20261023`; latest docs retained append-only.
 - Alpha.33–35 features and protections, including F-025 and F-028 mitigations and filename badge, are NOT present. Old known issues may return. Source restored; PR CI, main build/deploy and independent Windows browser smoke are separate gates.
+
+### Alpha.32 rollback verification completed (2026-10-23)
+- Selected release now **0.2.0-alpha.32** (not alpha.35), byte-identical executable repo source and assets to merge PR #38.
+- PR #46 build SUCCESS: 167 JS PASS, 15 Rust PASS, WASM ABI PASS. Main Pages `39964842575` build SUCCESS/deploy SUCCESS, URL https://tohaa28.github.io/relief-forge/.
+- All post-alpha.32 feature fixes removed from deployed code by user-requested rollback; archive branch points to complete pre-rollback alpha.35. No user-device testing claim.
