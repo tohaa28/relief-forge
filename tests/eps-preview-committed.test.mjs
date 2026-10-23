@@ -48,7 +48,7 @@ test('EPS save checks all vectors before applying preview; Apply remains a manua
   assert.match(app,/epsSaveCandidate\(doc,curvePreview,readEpsSaveSettings\(\)\)/);
   assert.match(app,/epsSaveDecision\(report,task.autoApply\)/);
   assert.match(app,/decision.action==='apply-and-save'/);
-  assert.match(app,/exportConfirmedEps\(\{autoApplied:decision.action==='apply-and-save',verified:true,remainingIssues:0\}\)/);
+  assert.match(app,/exportConfirmedEps\(\{autoApplied:decision.action==='apply-and-save',verified:true,remainingIssues:0,precomputed\}\)/);
   assert.match(html,/id="eps-save-warning"/);
   assert.match(html,/id="eps-save-anyway"/);
   assert.match(html,/id="eps-save-return"/);
