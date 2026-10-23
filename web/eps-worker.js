@@ -20,7 +20,7 @@ async function loadEngines(){
 self.onmessage=async({data})=>{
   const started=Date.now();
   try{
-    const pipeline=await import('./eps-pipeline.js?v=0.2.0-alpha.28');
+    const pipeline=await import('./eps-pipeline.js?v=0.2.0-alpha.29');
     // Path-only files never load heavyweight interpreters at all.
     const direct=pipeline.recoverOutlineOnlyEps(new Uint8Array(data.bytes));
     if(direct){
