@@ -4,15 +4,17 @@ import {readFileSync} from 'node:fs';
 import {exportEps} from '../web/eps-export.js';
 
 const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
-test('unapplied DO/POSLE preview does not disable committed EPS saving',()=>{
-  const start=app.indexOf("$('export-eps').onclick=");
-  const end=app.indexOf("$('log').onclick=",start);
+test('unresolved preview never enters EPS without clean full-document Rust preflight',()=>{
+  const start=app.indexOf('function exportConfirmedEps('),end=app.indexOf("$('log').onclick=",start);
   assert.ok(start>=0&&end>start);
   const action=app.slice(start,end);
   assert.match(action,/exportEps\(doc\)/);
-  assert.doesNotMatch(action,/if\s*\(curvePreview\)\s*\{/);
-  assert.match(action,/currentComparison\(\)/);
-  assert.match(action,/epsResultFilename\(doc\.sourceFileName/);
+  assert.match(action,/epsResultFilename\(doc.sourceFileName/);
+  assert.match(action,/function saveEpsWithPreflight\(\)/);
+  assert.match(action,/epsSaveCandidate\(doc,curvePreview,readEpsSaveSettings\(\)\)/);
+  assert.match(action,/showEpsSaveWarning/);
+  assert.match(action,/exportConfirmedEps\(\{overridden:true,verified:false\}\)/);
+  assert.doesNotMatch(action,/exportEps\(curvePreview\.result\)/);
 });
 test('EPS export serializes only committed geometry, not smoother preview',()=>{
   const source={width:20,height:20,paths:[{closed:false,points:[[0,0],[10,0]]}]};
