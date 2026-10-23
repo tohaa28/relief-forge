@@ -1,17 +1,18 @@
-import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.24';
+import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.25';
 import {issueViewBox} from './issue-focus.js';
 import {visibleHealthyAnchors,circlePath} from './vector-points.js';
-import {screenUnitsPerPixel,renderIssueMarkers} from './issue-markers.js?v=0.2.0-alpha.24';
-import {exportEps} from './eps-export.js?v=0.2.0-alpha.24';
+import {screenUnitsPerPixel,renderIssueMarkers,issueWithinContourBounds} from './issue-markers.js?v=0.2.0-alpha.25';
+import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.25';
+import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.25';
 import {packedInput} from './auto-repair.js';
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
-import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.24';
-import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.24';
-import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.24';
-import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.24';
-import {planDiagnosticBatches,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.24';
-import {epsSaveCandidate,epsSaveDecision,epsSaveWarningText} from './eps-save-flow.js?v=0.2.0-alpha.24';
+import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.25';
+import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.25';
+import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.25';
+import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.25';
+import {planDiagnosticBatches,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.25';
+import {epsSaveCandidate,epsSaveDecision,epsSaveWarningText} from './eps-save-flow.js?v=0.2.0-alpha.25';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 const nodeCursor=symbol=>{const svg='<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26"><circle cx="13" cy="13" r="11" fill="white" stroke="#173946" stroke-width="1.7"/><text x="13" y="19" text-anchor="middle" fill="#007e79" font-family="Arial" font-weight="bold" font-size="19">'+symbol+'</text></svg>';return 'url("data:image/svg+xml,'+encodeURIComponent(svg)+'") 13 13, crosshair';};
 const plusCursor=nodeCursor('+'),minusCursor=nodeCursor('−');
@@ -180,9 +181,10 @@ function render(){
       if(healthy.length)el('path',{d:circlePath(healthy,radius),class:'healthy-anchors'},$('nodes'));
     }
   }
-  const marked=markersVisible&&!curveEditing()?renderIssueMarkers($('markers'),visibleIssues,markerUnit):0;
+  const marked=markersVisible&&!curveEditing()?renderIssueMarkers($('markers'),visibleIssues,markerUnit,
+    {x:0,y:0,width:visibleDoc.width,height:visibleDoc.height}):0;
   $('marker-status').textContent=visibleIssues.length?
-    curveEditing()?'В режиме «Узлы» цветные отметки скрыты, чтобы не мешать редактированию.':markersVisible?'На чертеже: '+marked+' цветных колец с номерами'+
+    curveEditing()?'В режиме «Узлы» цветные отметки скрыты, чтобы не мешать редактированию.':markersVisible?'На чертеже: '+marked+' пространственно распределённых цветных маркеров'+
       (visibleIssues.length>marked?' из '+visibleIssues.length:'')+'. Нажмите кольцо, чтобы приблизить.':
       'Отметки проблем скрыты. Включите их в разделе «Видимость точек».':
     'В этой стадии проблемных мест не найдено.';
@@ -337,15 +339,25 @@ function spawnWorker(){
       record('eps-save-preflight',{issues:report.issueCount,complete:report.complete,
         sampledPaths:task.contours,autoApplyRequested:task.autoApply});
       if(decision.action==='warn'){showEpsSaveWarning(decision);return;}
+      let precomputed=null;
       if(decision.action==='apply-and-save'){
         const fresh=epsSaveCandidate(doc,curvePreview,readEpsSaveSettings());
-        if(!fresh.autoApply||!applyUnifiedChanges()){
+        if(!fresh.autoApply){
           showEpsSaveWarning(epsSaveDecision({complete:false,fullScope:false,issueCount:report.issueCount},true),
             'Подготовленные изменения успели устареть. Требуется повторная проверка.');
           return;
         }
+        // Verify output encoding and colors BEFORE mutating the confirmed
+        // document. Unsupported CMYK/paint cannot consume an Undo checkpoint.
+        try{precomputed=prepareEpsOutput(fresh.document);}
+        catch(error){status('Изменения не применены: '+error.message);return;}
+        if(!applyUnifiedChanges()){
+          showEpsSaveWarning(epsSaveDecision({complete:false,fullScope:false,issueCount:report.issueCount},true),
+            'Не удалось подтвердить изменения. Сохранение отменено.');
+          return;
+        }
       }
-      exportConfirmedEps({autoApplied:decision.action==='apply-and-save',verified:true,remainingIssues:0});
+      exportConfirmedEps({autoApplied:decision.action==='apply-and-save',verified:true,remainingIssues:0,precomputed});
       return;
     }
     if(data.error){lock(false);record('engine-error',{error:data.error});status(data.error);return;}
@@ -468,7 +480,7 @@ async function runProgressiveDiagnostics(indices,tolerance){
       status('Не удалось проверить контуры: нет доступных расчётных сегментов.');
       return;
     }
-    let nextIndex=0,checked=0,complete=!plan.partial&&!unreadable.length;
+    let nextIndex=0,checked=0,complete=!plan.partial&&!unreadable.length,misplaced=0;
     const results=[],pathMetrics=doc.paths.map(()=>null);
     const dispatch=()=>{
       if(generation!==diagnosticGeneration)return;
@@ -481,13 +493,14 @@ async function runProgressiveDiagnostics(indices,tolerance){
         progressStage('Диагностика завершена',100,checked+' расчётных точек');
         record('diagnose-large',{batchCount:plan.batches.length,totalPoints:plan.totalPoints,
           checked,issues:issues.length,complete,skipped:unreadable.length+plan.skipped.length,
-          split:plan.split});
+          split:plan.split,misplaced});
         updateFileHistory({diagnosis:{count:issues.length,complete,
           selected:Boolean($('selection-only').checked)}});
         lock(false);
         status('Проверено '+checked+' расчётных точек в '+plan.batches.length+
           ' блоках; найдено '+issues.length+' замечаний.'+
-          (complete?'':' Проверка частичная: взаимодействия между блоками не исключены.'));
+          (complete?'':' Проверка частичная: взаимодействия между блоками не исключены.')+
+          (misplaced?' Исключены '+misplaced+' маркеров вне соответствующих контуров.':''));
         if(complete)buildUnifiedPreview();
         else if(!curveEditing())void buildLargeUnifiedPreview(indices);
         return;
@@ -504,6 +517,9 @@ async function runProgressiveDiagnostics(indices,tolerance){
           complete=complete&&data.output.diagnosticComplete===true;
           for(const issue of data.output.issues){
             if(results.length>=10000){complete=false;break;}
+            if(!issueWithinContourBounds(issue,batch.paths,tolerance)){
+              misplaced++;complete=false;continue;
+            }
             results.push({...issue,path:batch.scope[issue.path]??-1,
               other:batch.scope[issue.other]??-1});
           }
@@ -726,7 +742,7 @@ function stopEps({destroy=false}={}){epsImportActive=false;clearTimeout(epsTimer
 function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта EPS…';record('eps-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.24',import.meta.url));
+  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.25',import.meta.url));
   progressStage('Импорт EPS: подготовка интерпретатора',9);
   const started=performance.now();
   const fail=message=>{stopEps({destroy:true});lock(false);status(message);$('import-report').textContent='Не удалось открыть EPS: '+message;record('eps-error',{name,message});updateFileHistory({status:'Ошибка открытия: '+String(message).slice(0,180)});};
@@ -739,7 +755,7 @@ function importEps(bytes,name,historyStarted=false){
       progressStage('Создание редактируемых кривых',92);
       const next=importRichSvg(data.result.svg,{unitsPerInch:72});
       const chunks=[];for(let i=0;i<bytes.length;i+=32768)chunks.push(String.fromCharCode(...bytes.subarray(i,i+32768)));const binary=chunks.join('');
-      next.epsImport={name,originalBase64:btoa(binary),...data.result.metadata,warnings:data.result.warnings,logs:data.result.logs,outlineRecovery:data.result.outlineRecovery||null,engines:{ghostscript:'10.08.0',mupdf:'1.28.1'}};
+      next.epsImport={name,originalBase64:btoa(binary),originalGeometryStamp:geometryStamp(next),...data.result.metadata,warnings:data.result.warnings,logs:data.result.logs,outlineRecovery:data.result.outlineRecovery||null,engines:{ghostscript:'10.08.0',mupdf:'1.28.1'}};
       const durationMs=performance.now()-started;stopEps();lock(false);openValue(next,name,true);record('eps-import-time',{name,bytes:bytes.length,ms:Math.round(durationMs),workerMs:data.durationMs||0,fastPath:Boolean(data.fastPath),warm:Boolean(data.warm)});
       if(data.result.outlineRecovery){
         record('eps-outline-recovery',data.result.outlineRecovery);
@@ -830,20 +846,28 @@ function readEpsSaveSettings(){
     smoothingAmount:Number($('smoothing-amount').value),
     optimizationTolerance:Number($('optimization-tolerance').value)};
 }
-function exportConfirmedEps({autoApplied=false,verified=false,overridden=false,remainingIssues=null}={}){
+let epsColorMode='outline';
+function prepareEpsOutput(document){
+  return epsColorMode==='original'?exportColoredEps(document):{content:exportEps(document),source:'outline'};
+}
+function exportConfirmedEps({autoApplied=false,verified=false,overridden=false,remainingIssues=null,precomputed=null}={}){
   try{
-    const eps=exportEps(doc);
+    const result=precomputed||prepareEpsOutput(doc),eps=result.content;
     const resultName=epsResultFilename(doc.sourceFileName||doc.epsImport?.name||'relief-forge.eps');
     download(resultName,eps,'application/postscript');
     const suffix=overridden?' · сохранено с предупреждением':autoApplied?' · автоисправления применены':' · проверено';
-    updateFileHistory({exportName:resultName,exportAt:new Date().toISOString(),status:'EPS экспортирован'+suffix});
+    updateFileHistory({exportName:resultName,exportAt:new Date().toISOString(),
+      status:'EPS экспортирован ('+(epsColorMode==='original'?'с цветом':'без цвета')+')'+suffix});
     record('export-eps',{name:resultName,source:doc.sourceFileName||null,paths:doc.paths.length,
-      bytes:eps.length,autoApplied,verified,overridden,remainingIssues});
-    status('EPS сохранён: '+resultName+
+      bytes:eps.length,colorMode:epsColorMode,colorSource:result.source,
+      autoApplied,verified,overridden,remainingIssues});
+    status('EPS сохранён: '+resultName+' · '+(result.source==='exact-original'?'исходный PostScript сохранён точно':
+      result.source==='repainted-rgb'?'окраска в RGB по исходным заливкам':'бесцветные контуры')+
       (autoApplied?' · изменения применены автоматически, Undo доступен.':
         overridden?' · по вашему подтверждению, неприменённый предпросмотр исключён.':
         verified?' · ошибок узлов не обнаружено.':' · экспортирована подтверждённая геометрия.'));
-  }catch(error){record('eps-export-error',{message:error.message});status('Не удалось сохранить EPS: '+error.message);}
+  }catch(error){record('eps-export-error',{message:error.message,mode:epsColorMode});
+    status('Не удалось сохранить EPS: '+error.message);}
 }
 function showEpsSaveWarning(decision,extra=''){
   const dialog=$('eps-save-warning');
@@ -962,7 +986,18 @@ async function saveEpsWithPreflight(){
       'Не удалось проверить EPS: '+error.message);
   }
 }
-$('export-eps').onclick=saveEpsWithPreflight;
+$('export-eps').onclick=()=>{
+  if(busy||readActive)return;
+  $('eps-color-choice').showModal();
+};
+$('eps-color-cancel').onclick=()=>$('eps-color-choice').close();
+$('eps-color-confirm').onclick=()=>{
+  const choice=document.querySelector('input[name="eps-color-mode"]:checked');
+  epsColorMode=choice?.value==='original'?'original':'outline';
+  $('eps-color-choice').close();
+  record('eps-export-mode',{mode:epsColorMode});
+  void saveEpsWithPreflight();
+};
 $('log').onclick=()=>download('relief-forge-session.jsonl',journal.map(x=>JSON.stringify(x)).join('\n'),'application/x-ndjson');
 $('demo').onclick=()=>{activeHistoryId=null;checkpoint();doc={format:'relief-forge',version:1,width:150,height:100,paths:[{closed:true,points:[[10,10],[50,50],[10,50],[50,10]]},{closed:true,points:[[70,10],[110,10],[110,40],[70,40]]},{closed:true,points:[[110,40],[110,10],[70,10],[70,40]]},{closed:false,points:[[10,70],[30,70],[30.003,70],[50,70]]},{closed:false,points:[[50.005,70],[80,70],[80,90]]}]};selected.clear();changed('load-demo');fit();};
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
@@ -974,4 +1009,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();
 });
-record('session-start',{version:'0.2.0-alpha.24'});renderFileHistory();spawnWorker();fit();
+record('session-start',{version:'0.2.0-alpha.25'});renderFileHistory();spawnWorker();fit();

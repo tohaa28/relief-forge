@@ -8,9 +8,10 @@ test('unresolved preview never enters EPS without clean full-document Rust prefl
   const start=app.indexOf('function exportConfirmedEps('),end=app.indexOf("$('log').onclick=",start);
   assert.ok(start>=0&&end>start);
   const action=app.slice(start,end);
-  assert.match(action,/exportEps\(doc\)/);
+  assert.match(action,/prepareEpsOutput\(doc\)/);
+  assert.match(app,/return epsColorMode==='original'\?exportColoredEps\(document\):\{content:exportEps\(document\)/);
   assert.match(action,/epsResultFilename\(doc.sourceFileName/);
-  assert.match(action,/function saveEpsWithPreflight\(\)/);
+  assert.match(action,/async function saveEpsWithPreflight\(\)/);
   assert.match(action,/epsSaveCandidate\(doc,curvePreview,readEpsSaveSettings\(\)\)/);
   assert.match(action,/showEpsSaveWarning/);
   assert.match(action,/exportConfirmedEps\(\{overridden:true,verified:false\}\)/);

@@ -1,4 +1,5 @@
 import svgpath from './vendor/svgpath.mjs';
+import {paintFromArtwork} from './eps-paint.js';
 const NS='http://www.w3.org/2000/svg';
 const tags=new Set('svg g defs path image use clipPath mask pattern linearGradient radialGradient stop rect circle ellipse line polyline polygon title desc metadata'.split(' '));
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
@@ -77,7 +78,12 @@ export function importRichSvg(text,{unitsPerInch=96,Parser=globalThis.DOMParser}
     const c=commands(shape(e),[viewport,...transforms,e.getAttribute('transform')||''].join(' '));if(!c.length)return;
     const points=c.filter(s=>s[0]!=='Z').map(s=>s.slice(-2));
     const artwork=`<g transform="${viewport}"${rootStyle}>${wrappers.join('')}${serialize(e)}${'</g>'.repeat(wrappers.length)}</g>`;
-    paths.push({points,closed:c.at(-1)?.[0]==='Z',commands:c,offset:[0,0],artwork,kind:tag==='image'?'image':'vector'});
+    let paint=null;
+    if(tag!=='image'){
+      try{paint=paintFromArtwork(artwork,{scale:Math.sqrt(Math.abs(scaleX*scaleY)),Parser});}
+      catch(error){paint={unsupported:error.message};}
+    }
+    paths.push({points,closed:c.at(-1)?.[0]==='Z',commands:c,offset:[0,0],artwork,paint,kind:tag==='image'?'image':'vector'});
   }
   children(root).forEach(e=>visit(e));
   if(paths.reduce((n,p)=>n+p.points.length,0)>200000)throw Error('SVG: превышен лимит 200000 узлов');
