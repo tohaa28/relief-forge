@@ -573,14 +573,16 @@ function openValue(value,name,historyStarted=false){const next=validate(value),o
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта EPS…';record('eps-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
   epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.24',import.meta.url));
+  progressStage('Импорт EPS: подготовка интерпретатора',9);
   const started=performance.now();
   const fail=message=>{stopEps({destroy:true});lock(false);status(message);$('import-report').textContent='Не удалось открыть EPS: '+message;record('eps-error',{name,message});updateFileHistory({status:'Ошибка открытия: '+String(message).slice(0,180)});};
   epsTimer=setTimeout(()=>fail('EPS превысил лимит 120 секунд. Импорт отменён, документ сохранён.'),120000);
   epsWorker.onerror=e=>fail('Ошибка EPS: '+e.message);
   epsWorker.onmessage=({data})=>{
-    if(data.type==='progress'){$('busy-label').textContent=data.message;$('import-progress').value=data.percent;return;}
+    if(data.type==='progress'){progressStage(data.message,data.percent);return;}
     if(data.type==='error'){fail(data.message);return;}
     if(data.type==='done')try{
+      progressStage('Создание редактируемых кривых',92);
       const next=importRichSvg(data.result.svg,{unitsPerInch:72});
       const chunks=[];for(let i=0;i<bytes.length;i+=32768)chunks.push(String.fromCharCode(...bytes.subarray(i,i+32768)));const binary=chunks.join('');
       next.epsImport={name,originalBase64:btoa(binary),...data.result.metadata,warnings:data.result.warnings,logs:data.result.logs,outlineRecovery:data.result.outlineRecovery||null,engines:{ghostscript:'10.08.0',mupdf:'1.28.1'}};
@@ -593,10 +595,75 @@ function importEps(bytes,name,historyStarted=false){
   };
   const transfer=bytes.slice();epsWorker.postMessage({bytes:transfer,fonts:importFonts},[transfer.buffer]);
 }
-$('open').onclick=()=>$('file').click();$('file').onchange=async e=>{const f=e.target.files[0];if(!f)return;beginFileHistory(f.name);try{
-  if(/\.(eps|epsf|epsi|ps)$/i.test(f.name)){if(f.size>64*1024*1024)throw Error('EPS превышает 64 МБ');importEps(new Uint8Array(await f.arrayBuffer()),f.name,true);}
-  else{const text=await f.text();openValue(/\.svg$/i.test(f.name)?importRichSvg(text):JSON.parse(text),f.name,true);}
-}catch(err){status(err.message);record('import-error',{message:err.message});updateFileHistory({status:'Ошибка открытия: '+String(err.message).slice(0,180)});}e.target.value='';};
+async function importUserFile(file,origin='dialog'){
+  if(!file||busy)return;
+  if(!isSupportedDrop(file)){status('Поддерживаются EPS, PS, SVG и проекты JSON.');return;}
+  if(file.size>64*1024*1024){status('Файл превышает 64 МБ. Импорт отклонён.');return;}
+  beginFileHistory(file.name);
+  const token=++readGeneration;
+  record('open-file',{name:file.name,origin,bytes:file.size});
+  try{
+    // Stream reads expose real byte progress and avoid one big unresponsive
+    // FileReader result on large files. Keep original filename intact.
+    const parts=[];let size=0;
+    const reader=file.stream().getReader();
+    try{
+      for(;;){
+        const {value,done}=await reader.read();if(done)break;
+        if(token!==readGeneration)throw Error('Чтение отменено');
+        parts.push(value);size+=value.byteLength;
+        progressStage('Чтение файла «'+file.name+'»',Math.round(8*size/Math.max(1,file.size)),
+          (size/1024/1024).toFixed(1)+' / '+(file.size/1024/1024).toFixed(1)+' МБ');
+      }
+    }finally{reader.releaseLock();}
+    const bytes=new Uint8Array(size);let pos=0;
+    for(const part of parts){bytes.set(part,pos);pos+=part.byteLength;}
+    if(/\.(eps|epsf|epsi|ps)$/i.test(file.name))importEps(bytes,file.name,true);
+    else{
+      progressStage('Разбор документа',35);
+      const content=new TextDecoder().decode(bytes);
+      openValue(/\.svg$/i.test(file.name)?importRichSvg(content):JSON.parse(content),file.name,true);
+      endProgress();
+    }
+  }catch(err){
+    endProgress();
+    status(err.message);record('import-error',{name:file.name,origin,message:err.message});
+    updateFileHistory({status:'Ошибка открытия: '+String(err.message).slice(0,180)});
+  }
+}
+$('open').onclick=()=>$('file').click();
+$('file').onchange=e=>{const file=e.target.files?.[0];e.target.value='';if(file)void importUserFile(file);};
+let fileDragDepth=0;
+const hasFiles=e=>Array.from(e.dataTransfer?.types||[]).includes('Files');
+const showDropOverlay=on=>{
+  $('drop-overlay').hidden=!on;
+  $('drop-target').classList.toggle('is-file-dragging',on);
+};
+window.addEventListener('dragenter',e=>{
+  if(!hasFiles(e))return;
+  e.preventDefault();fileDragDepth++;
+  if(!busy)showDropOverlay(true);
+});
+window.addEventListener('dragover',e=>{
+  if(!hasFiles(e))return;
+  e.preventDefault();
+  if(e.dataTransfer)e.dataTransfer.dropEffect=busy?'none':'copy';
+});
+window.addEventListener('dragleave',e=>{
+  if(!hasFiles(e))return;
+  fileDragDepth=Math.max(0,fileDragDepth-1);
+  if(fileDragDepth===0)showDropOverlay(false);
+});
+window.addEventListener('drop',e=>{
+  if(!hasFiles(e))return;
+  e.preventDefault();fileDragDepth=0;showDropOverlay(false);
+  if(busy){status('Идёт обработка. Завершите или отмените её перед открытием другого EPS.');return;}
+  const files=droppedFiles(e);
+  if(files.length!==1||e.dataTransfer.files.length!==1){
+    status('Перетащите один EPS, PS, SVG или JSON-файл.');return;
+  }
+  void importUserFile(files[0],'drag-drop');
+});
 $('fonts').onchange=async e=>{try{const files=[...e.target.files];if(files.reduce((n,f)=>n+f.size,0)>32*1024*1024)throw Error('Шрифты: максимум 32 МБ');importFonts=await Promise.all(files.map(async f=>({name:f.name,bytes:new Uint8Array(await f.arrayBuffer())})));$('font-count').textContent=importFonts.length+' шрифтов';status('Шрифты будут использованы при следующем импорте EPS.');}catch(error){status(error.message);}};
 $('demo-eps').onclick=async()=>{try{const response=await fetch('examples/curves-text-clip.eps');if(!response.ok)throw Error('Не удалось загрузить пример');importEps(new Uint8Array(await response.arrayBuffer()),'curves-text-clip.eps');}catch(e){status(e.message);}};
 $('heal-copy').onclick=()=>{try{const ids=[...selected].filter(i=>doc.paths[i].kind!=='image');if(!ids.length)throw Error('Выделите импортированные векторы');const tol=Number($('tolerance').value);if(!Number.isFinite(tol)||tol<1e-6||tol>1000)throw Error('Укажите допуск от 0.000001 до 1000 мм');const copies=ids.flatMap(i=>sampledContours(doc.paths[i],tol));checkpoint();const start=doc.paths.length;doc.paths.push(...copies);selected=new Set(copies.map((_,i)=>start+i));changed('create-healing-copy');status(`Создано ${copies.length} полилиний, допуск ${tol} мм. Исходные кривые сохранены отдельными объектами.`);}catch(e){status(e.message);}};
