@@ -184,7 +184,7 @@ function render(){
   const marked=markersVisible&&!curveEditing()?renderIssueMarkers($('markers'),visibleIssues,markerUnit,
     {x:0,y:0,width:visibleDoc.width,height:visibleDoc.height}):0;
   $('marker-status').textContent=visibleIssues.length?
-    curveEditing()?'В режиме «Узлы» цветные отметки скрыты, чтобы не мешать редактированию.':markersVisible?'На чертеже: '+marked+' цветных колец с номерами'+
+    curveEditing()?'В режиме «Узлы» цветные отметки скрыты, чтобы не мешать редактированию.':markersVisible?'На чертеже: '+marked+' пространственно распределённых цветных маркеров'+
       (visibleIssues.length>marked?' из '+visibleIssues.length:'')+'. Нажмите кольцо, чтобы приблизить.':
       'Отметки проблем скрыты. Включите их в разделе «Видимость точек».':
     'В этой стадии проблемных мест не найдено.';
