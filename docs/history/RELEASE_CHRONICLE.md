@@ -117,3 +117,10 @@ alpha.34 final local verification: 184/184 JS, unchanged published WASM ABI, rea
 - CI history preserved: 39958428866 failed 186/188 JS due old version test/docs; 39960067760 failed 189/192 due test mock/static asserts; 39960304986 failed 191/192 due expected message wording; 39960501240 cancelled while apt downloads held runner; 39961227043 SUCCESS without unconditional slow apt, then 39961633180 final SUCCESS, main 39961788762 SUCCESS. No failures have been deleted or relabeled success.
 - Caching: alpha.35 version synchronized in HTML, manifests, JS app, EPS Worker/pipeline subimports and latest test ensures all versioned module URLs use manifest version. GitHub Pages published from main. No original private EPS or user content committed.
 - Next: have user re-open 8049569(1).eps in Windows Firefox using Ctrl+F5; compare real anchors AFTER, original, EPS filename result, then reimport _result.eps. If mismatch remains, collect exact original and result files for bytewise M/L/C vs application counts. Verify explicit disabled Union condition does not alter required intended filled unions/holes. Keep all history append-only.
+
+## 2026-10-23 — восстановление ранее выпущенной версии 0.2.0-alpha.32
+- Пользователь явно запросил откат с последней alpha.35. Это **re-deploy прежней версии**, а не alpha.36 и не исправление дефектов.
+- Original release anchor: merge PR #38 `4ad8efd1801be16d4c37472fda4989f9e3afbf06` (tree `6cd82072293720fb5810d669de8db9cd8b48b36a`). Current before rollback: main `bb56f9b11976fd75199b3b16f0f377be3df5bc18` (alpha.35).
+- Состояние до отката сохранено без изменений: `archive/alpha35-before-alpha32-rollback-20261023`.
+- Граница: исходный `src/`, `web/`, `package*.json`, `Cargo.*`, `tests/`, workflows, scripts и assets из alpha.32 побайтово; хронология и история методов сохранены более поздними версиями в docs и logs. Подробности: `docs/history/ROLLBACK_ALPHA32_20261023.md`.
+- Branch `rollback/restore-alpha32-20261023`. Статус на этапе записи: source restored, PR CI и production Pages требуют подтверждения. Поздние исправления 0.2.0-alpha.33–35 возвращены только в архив, а не в приложение. 
