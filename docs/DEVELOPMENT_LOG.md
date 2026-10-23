@@ -449,3 +449,16 @@ User explicitly authorized publication in the follow-up message. Previous approv
 - CI history preserved: 39958428866 failed 186/188 JS due old version test/docs; 39960067760 failed 189/192 due test mock/static asserts; 39960304986 failed 191/192 due expected message wording; 39960501240 cancelled while apt downloads held runner; 39961227043 SUCCESS without unconditional slow apt, then 39961633180 final SUCCESS, main 39961788762 SUCCESS. No failures have been deleted or relabeled success.
 - Caching: alpha.35 version synchronized in HTML, manifests, JS app, EPS Worker/pipeline subimports and latest test ensures all versioned module URLs use manifest version. GitHub Pages published from main. No original private EPS or user content committed.
 - Next: have user re-open 8049569(1).eps in Windows Firefox using Ctrl+F5; compare real anchors AFTER, original, EPS filename result, then reimport _result.eps. If mismatch remains, collect exact original and result files for bytewise M/L/C vs application counts. Verify explicit disabled Union condition does not alter required intended filled unions/holes. Keep all history append-only.
+
+## 2026-10-23 — пользовательский откат до 0.2.0-alpha.32
+
+- Пользователь: «откати до 0.2.0-alpha.32». Цель — вернуть **реальные исходники**, без иных доработок.
+- Найдена архивная опорная точка (PR #38): `4ad8efd1801be16d4c37472fda4989f9e3afbf06`, дерево `6cd82072293720fb5810d669de8db9cd8b48b36a`; manifest `package.json`, `Cargo.toml`, `web/index.html` действительно `0.2.0-alpha.32`.
+- Текущее предыдущее состояние `main`: `bb56f9b11976fd75199b3b16f0f377be3df5bc18` (`0.2.0-alpha.35`), его дерево `40dbe9c696a5a891990a6aae5851ac8c61e20202`. Полная контрольная архивная ветка: `archive/alpha35-before-alpha32-rollback-20261023`.
+- Принят метод non-destructive rollback: новый commit с деревом исходной `alpha.32` для runtime/source/build/tests и GitHub workflow, но сохраняем новые документы истории (`AGENTS.md`, `HANDOFF.md`, `docs/DEVELOPMENT_LOG.md`, `docs/FEATURE_MATRIX.md`, `docs/NEXT_CHAT_START.md`, `docs/history/`, `logs/actions.jsonl`).
+- Изменение исходников начато и зафиксировано commit `77b83c7b3c93a7e4e4c236540524ba759af47681` в ветке `rollback/restore-alpha32-20261023`. Отдельное описание: `docs/history/ROLLBACK_ALPHA32_20261023.md`.
+- Предосторожности: byte-exact сравнение runtime/manifest/test файлов с PR #38; проверять действительный CI нового PR, затем сборку и развёртывание Pages из `main`, отдельно пользовательский браузер.
+- Отклонённые методы: менять только строку версии; force-push/reset `main` на древний SHA с потерей доступности истории; смешивать оптимизатор или экспортер 0.2.0-alpha.35 с UI 0.2.0-alpha.32; удалять устаревшие/неудачные попытки из журналов.
+- Ограничения: при откате сознательно возвращаются старые недостатки `alpha.32` (в том числе найденные в F-025, F-028, UI). Это не корректирующий релиз. `alpha.32` CI не включает поздний Chromium smoke; успешная native/JS/WASM сборка не означает пользовательский smoke.
+- Промежуточный статус этой записи: `source-written`, дальнейшие проверки/merge/Pages документировать последующим датированным дополнением, не менять прошедшие статусы задним числом.
+

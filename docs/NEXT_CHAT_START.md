@@ -1,3 +1,15 @@
+# Актуальный статус: возвращаем Relief Forge к 0.2.0-alpha.32 (23.10.2026)
+
+- **Целевая версия: 0.2.0-alpha.32**, точный оригинальный merge PR #38: `4ad8efd1801be16d4c37472fda4989f9e3afbf06`, дерево `6cd82072293720fb5810d669de8db9cd8b48b36a`.
+- Последнее до отката main: `bb56f9b11976fd75199b3b16f0f377be3df5bc18` (alpha.35). Резерв: `archive/alpha35-before-alpha32-rollback-20261023`.
+- Код, WASM source, UI, старые тесты, lockfiles и workflow: **из настоящей alpha.32**, а не версия-подмена. Актуальные длинные журналы сохранены как документация.
+- Ветка отката: `rollback/restore-alpha32-20261023`. История метода и предостережения: `docs/history/ROLLBACK_ALPHA32_20261023.md`.
+- Обязательно проверить SHA контрольного дерева, PR CI (Rust/npm/WASM), затем merge и **main GitHub Pages build+deploy SUCCESS**. До них публикация alpha.32 НЕ подтверждена. Не делать force-push.
+- Возвращаются известные дефекты alpha.32, в том числе отсутствие поздних защит экспорта EPS и интерфейсных исправлений; не утверждать обратное.
+- Поздние заметки ниже являются архивными, их текущие «alpha.35 published» больше не означают целевую рабочую версию.
+
+---
+
 # Current verified release — 0.2.0-alpha.35 (2026-10-23 UTC)
 - Functional PR #44 merged into main, SHA aba78e90be219aae93769fc84f9e78d6022a95c2; previous alpha.34 baseline db083eb92d1abf1b1cd64f876283ae7af47828a9.
 - Final PR CI #39961633180 PASS (193 JS/15 Rust/WASM/actual Chromium browser), main Pages #39961788762 PASS build + deploy. Production URL https://tohaa28.github.io/relief-forge/ . A subsequent documentation-only PR may move main SHA; always check actual main and workflows before editing.

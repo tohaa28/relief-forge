@@ -1,3 +1,13 @@
+# Текущий запрос: восстановление Relief Forge 0.2.0-alpha.32 (2026-10-23)
+
+- Пользователь потребовал откат до версии `0.2.0-alpha.32`. Точный релизный commit: `4ad8efd1801be16d4c37472fda4989f9e3afbf06`; его tree `6cd82072293720fb5810d669de8db9cd8b48b36a`.
+- Предыдущее опубликованное main alpha.35: `bb56f9b11976fd75199b3b16f0f377be3df5bc18`. Архивная ветка для возврата: `archive/alpha35-before-alpha32-rollback-20261023`.
+- Новый commit в ветке `rollback/restore-alpha32-20261023` восстанавливает **побайтово весь runtime/build/test/workflow** alpha.32; свежие исторические документы сохранены. Независимая Git-tree-проверка показала **0 различающихся файлов вне документации** между source target и rollback branch.
+- Подробное решение и ограничения: `docs/history/ROLLBACK_ALPHA32_20261023.md`, `docs/NEXT_CHAT_START.md`. Ветка должна пройти PR CI, merge и prod Pages build+deploy. До подтверждения deploy откат не считается опубликованным.
+- Alpha.32 не включает последующие изменения alpha.33–35; все ограничения и прежние дефекты возвращаются намеренно. История работы ниже сохраняется как архив.
+
+---
+
 # Актуальная карта документов (добавлена 2026-10-23; далее — неизменённый накопленный handoff)
 
 **Главный файл следующего чата:** [docs/NEXT_CHAT_START.md](docs/NEXT_CHAT_START.md). Полная хронология — [docs/history/RELEASE_CHRONICLE.md](docs/history/RELEASE_CHRONICLE.md); ошибки и отвергнутые способы — [docs/history/FAILURE_REGISTER.md](docs/history/FAILURE_REGISTER.md); решения и порядок обработки — [docs/history/METHODS_AND_DECISIONS.md](docs/history/METHODS_AND_DECISIONS.md); правила ведения записей — [docs/history/WORKLOG_PROTOCOL.md](docs/history/WORKLOG_PROTOCOL.md). Старая история ниже сохранена целиком. Если старый раздел противоречит NEXT_CHAT_START, актуальному main-коду или проверенному CI — сначала проверьте доказательства, **не воспроизводите устаревшие действия**.

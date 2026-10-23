@@ -186,3 +186,10 @@ Independent curve-quality validation checks real segments and sampled topology b
 
 ### alpha.35 release evidence
 The final post-Union node-count budget, HTML workspace filename and direct EPS command parity gate are published in PR #44. CI #39961633180 covers real browser Worker/WASM and synthetic roundtrip, production deploy #39961788762 success. These checks are not an analytic proof that external ArtCAM/Corel importers use identical point counts. When Boolean Union would increase nodes, it is explicitly rejected rather than silently exported; retaining overlap is a disclosed limitation.
+
+## 15. Восстановление исходной версии alpha.32 (2026-10-23)
+- Применять Git-tree reconstruction от подтверждённого релизного merge commit; проверять SHA всех runtime/test/toolchain файлов, а не только номер версии. Не применять force push и не терять поздние методы.
+- Исходная контрольная точка `4ad8efd1801be16d4c37472fda4989f9e3afbf06`, исходный Git tree `6cd82072293720fb5810d669de8db9cd8b48b36a`. Before-rollback archive: `archive/alpha35-before-alpha32-rollback-20261023`.
+- Современные журналы `docs/history`, `docs/DEVELOPMENT_LOG.md`, `logs/actions.jsonl`, `HANDOFF.md`, `docs/NEXT_CHAT_START.md` сохраняются в откатной ветке; это документация, а не вмешательство в runtime. Восстановленная рабочая сборка должна полностью совпасть с alpha.32.
+- Намеренно возвращаем limitations: поздние топологические/экспортные проверки узлов, патчи интерфейса и cache busting из alpha.33–35 не входят. Это честный rollback, не дополнительная оптимизация.
+- Две отдельные проверки: original alpha.32 workflow cargo/npm/wasm и GitHub Pages deploy на новом main; старый workflow **не** выполняет современный Playwright smoke. Внешняя проверка user Windows/Firefox необходима отдельно.

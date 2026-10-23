@@ -1,4 +1,3 @@
-import {validateCurveChange,validateDocumentCurveChange} from './curve-quality.js';
 // Always resolve vector paths from the document, never a stale map callback.
 export function selectedVectorIndices(document,selected,selectionOnly=true){
   const selection=new Set(selected||[]);
@@ -188,7 +187,7 @@ function serializeSegments(paths){
   }
   return combined;
 }
-export function smoothVectorPath(path,tolerance=.01,nodeTolerance=.01){
+export function smoothVectorPath(path,tolerance=.01){
   if(!Number.isFinite(tolerance)||tolerance<0||tolerance>2)throw Error('Допуск сглаживания: от 0 до 2 мм');
   if(path.kind==='image')throw Error('Растр не является вектором');
   if(path.artwork&&/(?:clip-path|mask=|filter=|<image\b|fill="url\()/i.test(path.artwork))throw Error('Сглаживание масок и обтравки не поддерживается');
@@ -203,38 +202,31 @@ export function smoothVectorPath(path,tolerance=.01,nodeTolerance=.01){
   if(!changed)return {path:structuredClone(path),changed:0,maxError:0};
   const commands=serializeSegments(converted);
   const d=commands.map(c=>c.join(' ')).join(' ');
-  const candidate={...structuredClone(path),kind:'vector',commands,offset:[0,0],
+  return {path:{...structuredClone(path),kind:'vector',commands,offset:[0,0],
     points:commands.filter(c=>c[0]!=='Z').map(c=>c.slice(-2)),
-    artwork:'<path d="'+d+'" fill="none" stroke="#34465b" stroke-width="0.07"/>'};
-  const quality=validateCurveChange(path,candidate,{tolerance,nodeTolerance});
-  if(!quality.accepted)return {path:structuredClone(path),changed:0,maxError:0,quality};
-  return {path:candidate,changed,maxError,quality};
+    artwork:'<path d="'+d+'" fill="none" stroke="#34465b" stroke-width="0.07"/>'},
+    changed,maxError};
 }
-export function smoothAndOptimizePaths(doc,indices,smoothTolerance,optimizeTolerance,nodeTolerance=.01){
+export function smoothAndOptimizePaths(doc,indices,smoothTolerance,optimizeTolerance){
   if(!Number.isFinite(smoothTolerance)||smoothTolerance<0||smoothTolerance>2)throw Error('Неверный допуск сглаживания');
   const selection=new Set(indices),source=structuredClone(doc);
-  let smoothed=0,smoothingError=0,smoothingRejected=0;
+  let smoothed=0,smoothingError=0;
   source.paths=source.paths.map((p,i)=>{
     if(!selection.has(i))return p;
-    const result=smoothVectorPath(p,smoothTolerance,nodeTolerance);
-    smoothingRejected+=Number(result.quality?.accepted===false);smoothed+=result.changed;smoothingError=Math.max(smoothingError,result.maxError);
+    const result=smoothVectorPath(p,smoothTolerance);
+    smoothed+=result.changed;smoothingError=Math.max(smoothingError,result.maxError);
     return result.path;
   });
-  const optimized=optimizePaths(source,indices,optimizeTolerance,nodeTolerance);
-  const quality=validateDocumentCurveChange(doc,optimized.document,{tolerance:smoothTolerance+optimizeTolerance,nodeTolerance});
-  if(!quality.accepted)return {document:structuredClone(doc),stats:{...optimized.stats,
-    original:optimized.stats.original,result:optimized.stats.original,removed:0,maxError:0,
-    smoothed:0,smoothingError:0,smoothTolerance,smoothingRejected,
-    rejected:optimized.stats.rejected+1,estimateCombinedError:0,quality}};
+  const optimized=optimizePaths(source,indices,optimizeTolerance);
   // Estimate separate changes conservatively rather than presenting their
   // individual numeric estimates as a certified total Hausdorff distance.
   return {document:optimized.document,stats:{
-    ...optimized.stats,smoothed,smoothingError,smoothTolerance,smoothingRejected,quality,
+    ...optimized.stats,smoothed,smoothingError,smoothTolerance,
     estimateCombinedError:smoothingError+optimized.stats.maxError
   }};
 }
 
-export function optimizeVectorPath(path,tolerance=.01,nodeTolerance=.01){
+export function optimizeVectorPath(path,tolerance=.01){
   if(!Number.isFinite(tolerance)||tolerance<.00001||tolerance>2)throw Error('Допуск оптимизации должен быть от 0.00001 до 2 мм');
   if(path.kind==='image')throw Error('Растровый объект невозможно оптимизировать как кривую');
   if(path.artwork&&/(?:clip-path|mask=|filter=|<image\b|fill="url\()/i.test(path.artwork))throw Error('Оптимизация: маски, обтравка и растровое оформление пока не поддерживаются без потери свойств');
@@ -256,19 +248,17 @@ export function optimizeVectorPath(path,tolerance=.01,nodeTolerance=.01){
   const d=combined.map(c=>c.join(' ')).join(' ');
   const out={kind:'vector',paint:path.paint?structuredClone(path.paint):undefined,commands:combined,offset:[0,0],closed:combined.at(-1)?.[0]==='Z',
     points:pts,artwork:'<path d="'+d+'" fill="none" stroke="#34465b" stroke-width="0.07"/>'};
-  const quality=validateCurveChange(path,out,{tolerance,nodeTolerance});
-  if(!quality.accepted){const count=paths.reduce((n,p)=>n+p.segments.length,0);return {path:structuredClone(path),removed:0,before:count,after:count,maxError:0,quality};}
-  return {path:out,removed,quality,before:paths.reduce((n,p)=>n+p.segments.length,0),
+  return {path:out,removed,before:paths.reduce((n,p)=>n+p.segments.length,0),
     after:paths.reduce((n,p)=>n+p.segments.length,0)-removed,maxError};
 }
-export function optimizePaths(source,indices,tolerance,nodeTolerance=.01){
+export function optimizePaths(source,indices,tolerance){
   if(!Array.isArray(source?.paths))throw Error('Нет векторов для оптимизации');
   const set=new Set(indices);
-  let original=0,result=0,removed=0,maxError=0,rejected=0;const paths=source.paths.map((path,i)=>{
+  let original=0,result=0,removed=0,maxError=0;const paths=source.paths.map((path,i)=>{
     if(!set.has(i))return structuredClone(path);
-    const r=optimizeVectorPath(path,tolerance,nodeTolerance);
-    rejected+=Number(r.quality?.accepted===false);original+=r.before;result+=r.after;removed+=r.removed;maxError=Math.max(maxError,r.maxError);
+    const r=optimizeVectorPath(path,tolerance);
+    original+=r.before;result+=r.after;removed+=r.removed;maxError=Math.max(maxError,r.maxError);
     return r.path;
   });
-  return {document:{...structuredClone(source),paths},stats:{original,result,removed,maxError,tolerance,rejected}};
+  return {document:{...structuredClone(source),paths},stats:{original,result,removed,maxError,tolerance}};
 }

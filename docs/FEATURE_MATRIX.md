@@ -125,3 +125,8 @@ alpha.34 observed verification: 184 JS PASS, local Chromium/private EPS 0 false 
 - icon layout and committed filename: implemented + JS/browser tested + GitHub Pages published; Windows Firefox user acceptance pending.
 - EPS AFTER node-count growth protection and serialized command equality: implemented + synthetic EPS roundtrip JS/browser tested + published. Customer-specific EPS/result bytes unavailable in this session; user-verified resolution not claimed.
 - Tests: 193/193 JS; 15/15 Rust; compiled WASM ABI; Chromium actual Worker/WASM; PR CI #39961633180; production build/deploy #39961788762 SUCCESS; functional merge aba78e90be219aae93769fc84f9e78d6022a95c2.
+
+### Rollback 2026-10-23 — alpha.32 exact source and deliberate limitations
+- Source: source-of-truth original merge PR #38 `4ad8efd1801be16d4c37472fda4989f9e3afbf06`. SHA files under `web/`, `src/`, `tests/`, tools, manifests and workflow checked identical to old tree. No hybrid algorithm.
+- History: alpha.35 pre-rollback `bb56f9b11976fd75199b3b16f0f377be3df5bc18` archived as `archive/alpha35-before-alpha32-rollback-20261023`; latest docs retained append-only.
+- Alpha.33–35 features and protections, including F-025 and F-028 mitigations and filename badge, are NOT present. Old known issues may return. Source restored; PR CI, main build/deploy and independent Windows browser smoke are separate gates.

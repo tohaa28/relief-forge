@@ -1,5 +1,5 @@
 import {sampledContours} from './rich-svg.js';
-import {planDiagnosticBatches,mapDiagnosticIssue} from './large-file-support.js';
+import {planDiagnosticBatches} from './large-file-support.js';
 import {packedInput} from './auto-repair.js';
 import {issueWithinContourBounds} from './issue-markers.js';
 
@@ -39,8 +39,7 @@ export async function diagnoseAfterDocument(document,tolerance,{runBatch,progres
       for(const issue of out.issues){
         if(issues.length>=10000){complete=false;break;}
         if(!issueWithinContourBounds(issue,batch.paths,tolerance)){misplaced++;complete=false;continue;}
-        const mapped=mapDiagnosticIssue(issue,batch);
-        if(mapped)issues.push(mapped);
+        issues.push({...issue,path:batch.scope[issue.path]??-1,other:batch.scope[issue.other]??-1});
       }
     }catch(error){complete=false;}
     await yieldUi();

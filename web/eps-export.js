@@ -152,21 +152,3 @@ export function exportColoredEps(doc,{Parser=globalThis.DOMParser}={}){
   out.push('newpath','showpage','%%Trailer','%%EOF','');
   return {content:out.join('\n'),source:'repainted-rgb'};
 }
-
-// EPS must encode exactly the cached AFTER geometry, never a silently denser path.
-export function verifyEpsOutputGeometry(document,prepared){
- const realNodes=document.paths.reduce((n,p)=>n+(p.kind==='image'?0:
-   (p.commands?.filter(c=>['M','L','C','Q'].includes(c[0])).length??p.points?.length??0)),0);
- if(prepared.source==='exact-original'){
-   if(!intactOriginalEps(document))throw Error('EPS: оригинальная геометрия изменилась');
-   return {status:'exact-original',realNodes};
- }
- const ops=ps=>String(ps).split(/\r?\n/).map(x=>x.trim()).filter(x=>
-   x==='@c'||/^[-\d. ]+ (?:m|L|C)$/.test(x));
- const expected=ops(exportEps(document)),actual=ops(prepared.content);
- if(expected.length!==actual.length||expected.some((x,i)=>x!==actual[i]))
-   throw Error('EPS: результат файла не совпадает с утверждённой геометрией ПОСЛЕ.');
- if(actual.filter(x=>x!=='@c').length!==realNodes)
-   throw Error('EPS: число узлов файла отличается от предпросмотра.');
- return {status:'matching-after',realNodes};
-}
