@@ -232,3 +232,6 @@ New Rust broad phase rejects only point pairs outside tolerance and segment boxe
 
 ## F-029. Selection changes left a stale all-object AFTER candidate
 2026-10-23: list/filter handlers only rendered; preview/export settings did not fingerprint actual selected object indices. Reproduced during selected-mode matrix expansion. Fix: schedule recalculation on list/filter selection, store scope in both small/large preview stats, reject Apply/Save if current selectedVectorIndices differs. Tests: selected-scope unit plus actual browser-mode-matrix. Cross-batch diagnosis remains partial; no implicit claim of new geometric certification.
+
+### alpha.36 main publication gate failed (2026-10-23)
+PR48 merged d3e9230; main run39983346199 FAILED, deploy skipped. Native17/JS196/WASM/primary browser passed; mode matrix timed out at second project download (line51). Unlike earlier successful PR and Windows runs, editor-close debounce180ms could survive into async import/reopen and momentarily make shortcut save run while busy. Source correction cancels the prior settings debounce when starting a new import, because import already schedules its own diagnosis. Mode regression waits for editor-close debounce and async file stream before asserting download; all eight modes remain mandatory. No deployed claim; previous alpha.32 still live until successful main deploy.
