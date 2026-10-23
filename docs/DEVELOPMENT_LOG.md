@@ -429,3 +429,6 @@ User explicitly authorized publication in the follow-up message. Previous approv
 
 ### 2026-10-23 alpha.35 PR #44 CI run 39960067760 — failed tests correctly fixed
 - 192 JavaScript tests: 189 PASS, 3 FAIL. Rust 15/15 PASS. Failure #1 new EPS RGB regression expected Russian error wording /отличается/, implementation uses /не совпадает/; align test with actual explicit safe error (no functional change). Failure #2 legacy `real-after-node-refit` tested obsolete `const after=refitted.document` text, which would undo the new budget guard; replace with strong assertions `protectPreviewNodeBudget()` and `budget.document`. Failure #3 vm-extracted unified preview didn't supply the new guard module in its mock context; inject real `protectPreviewNodeBudget` and `previewBudgetMessage`. All three were test-harness drift, not a reason to weaken real geometry safeguards. New CI required.
+
+### alpha.35 PR CI #39960304986 — 191/192 JS, 15/15 Rust
+- Один FAIL: собственный тест painted RGB проверял /отличается/, а безопасный отказ экспорта выдаёт «не совпадает». Исправлен expected regex без изменения алгоритма. Также усилен негативный тест EPS tampering: вместо необязательного if теперь гарантированно вставляем лишнюю L, проверяем что байты отличаются и что контроль сохранения бросает исключение. Новое CI обязательно.
