@@ -57,11 +57,12 @@ test('Large EPS has visible stage, percent, cancellation, user-facing partial no
   assert.match(app,/function progressStage\(stage,percent,detail=''\)/);
   assert.match(app,/async function runProgressiveDiagnostics\(indices,tolerance\)/);
   assert.match(app,/async function buildLargeUnifiedPreview\(indices\)/);
-  assert.match(app,/async function saveEpsWithPreflight\(\)/);
+  assert.match(app,/function saveExistingAfterResult\(\)/);
+  assert.match(app,/diagnoseAfterDocument\(preview.result,/);
   assert.match(app,/const plan=planDiagnosticBatches\(contours,scope\)/);
   assert.match(app,/complete=!plan.partial&&!unreadable.length/);
-  assert.match(app,/if\(plan.batches.length===1&&!plan.partial\)/);
-  assert.match(app,/showEpsSaveWarning\(epsSaveDecision\(\{/);
+  assert.match(app,/mergeOverlappingObjects\(result,/);
+  assert.match(app,/showEpsSaveWarning\(decision,snapshot\)/);
   assert.match(app,/window.addEventListener\('dragover'/);
   assert.match(app,/window.addEventListener\('drop'/);
   assert.match(app,/file.stream\(\).getReader\(\)/);
