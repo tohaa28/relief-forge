@@ -135,6 +135,17 @@ pub fn duplicate(a: &Path, b: &Path, tol: f64) -> bool {
         })
     })
 }
+// Conservative broad phase only: retain the original exact predicates and issue order.
+fn near_points(a: Point, b: Point, tol: f64) -> bool {
+    (a.x-b.x).abs() <= tol && (a.y-b.y).abs() <= tol && a.distance(b) <= tol
+}
+fn edge_boxes_meet(a: Point, b: Point, c: Point, d: Point, tol: f64) -> bool {
+    // intersection() accepts a 1e-12 parametric endpoint extension. Include
+    // both edge lengths so rejecting a box cannot discard that contact.
+    let pad = tol.max(1e-12 * ((a.x-b.x).abs() + (a.y-b.y).abs() + (c.x-d.x).abs() + (c.y-d.y).abs())) + 1e-12;
+    a.x.min(b.x) <= c.x.max(d.x)+pad && c.x.min(d.x) <= a.x.max(b.x)+pad
+        && a.y.min(b.y) <= c.y.max(d.y)+pad && c.y.min(d.y) <= a.y.max(b.y)+pad
+}
 pub fn diagnose(paths: &[Path], tol: f64) -> Vec<Issue> {
     let mut out = Vec::new();
     macro_rules! emit {
@@ -161,7 +172,7 @@ pub fn diagnose(paths: &[Path], tol: f64) -> Vec<Issue> {
         }
         for a in 0..p.points.len() {
             for b in a + 1..p.points.len() {
-                if p.points[a].distance(p.points[b]) <= tol {
+                if near_points(p.points[a], p.points[b], tol) {
                     emit!(Issue {
                         kind: "coincident",
                         path: i,
@@ -200,7 +211,7 @@ pub fn diagnose(paths: &[Path], tol: f64) -> Vec<Issue> {
                 }
                 for a in 0..p.points.len() {
                     for b in 0..q.points.len() {
-                        if p.points[a].distance(q.points[b]) <= tol {
+                        if near_points(p.points[a], q.points[b], tol) {
                             emit!(Issue {
                                 kind: "coincident",
                                 path: i,
@@ -220,6 +231,7 @@ pub fn diagnose(paths: &[Path], tol: f64) -> Vec<Issue> {
                     }
                     let (x, y) = p.edge(a);
                     let (v, w) = q.edge(b);
+                    if !edge_boxes_meet(x, y, v, w, tol) { continue; }
                     // Adjacent backtracking spans still need overlap detection.
                     if let Some(point) = overlap(x, y, v, w, tol) {
                         emit!(Issue {

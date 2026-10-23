@@ -33,7 +33,7 @@ test('One enormous closed path retains adjacent edges in overlap chunks and refu
     if(prev)assert.deepEqual(prev,p[0],'adjacent original edge not lost between windows');
     prev=p.at(-1);
   }
-  assert.deepEqual(prev,[10020,10020%9]);
+  assert.deepEqual(prev,[0,0],'the actual closing edge is included');
 });
 test('Unparseable path is reported as skipped and never certified clean',()=>{
   const plan=planDiagnosticBatches([path(10),{points:[[1,2],[NaN,5]]}],[0,1]);

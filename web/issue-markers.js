@@ -52,18 +52,27 @@ export function selectIssueMarkerIndices(issues,limit=1000,bounds=null){
 // A malformed/misregistered worker issue must not be drawn at a coordinate
 // unrelated to either source contour. This conservative bounds check doesn't
 // claim point-to-segment precision or validate cross-batch interactions.
-export function issueWithinContourBounds(issue,contours,tolerance=0.01){
-  if(!Array.isArray(issue?.point)||issue.point.length!==2||!issue.point.every(Number.isFinite))return false;
+export function createIssueBoundsValidator(contours,tolerance=0.01){
   const margin=Math.max(1e-6,Math.abs(tolerance)*2);
-  for(const idx of [issue.path,issue.other]){
-    const contour=contours?.[idx];
-    if(!contour||!Array.isArray(contour.points)||!contour.points.length)continue;
+  const boxes=contours.map(contour=>{
+    if(!contour?.points?.length)return null;
     let xmin=Infinity,xmax=-Infinity,ymin=Infinity,ymax=-Infinity;
-    for(const p of contour.points){xmin=Math.min(xmin,p[0]);xmax=Math.max(xmax,p[0]);ymin=Math.min(ymin,p[1]);ymax=Math.max(ymax,p[1]);}
+    for(const [x,y] of contour.points){
+      if(!Number.isFinite(x)||!Number.isFinite(y))return null;
+      xmin=Math.min(xmin,x);xmax=Math.max(xmax,x);ymin=Math.min(ymin,y);ymax=Math.max(ymax,y);
+    }
+    return {xmin:xmin-margin,xmax:xmax+margin,ymin:ymin-margin,ymax:ymax+margin};
+  });
+  return issue=>{
+    if(!Array.isArray(issue?.point)||issue.point.length!==2||!issue.point.every(Number.isFinite))return false;
     const [x,y]=issue.point;
-    if(x>=xmin-margin&&x<=xmax+margin&&y>=ymin-margin&&y<=ymax+margin)return true;
-  }
-  return false;
+    return [issue.path,issue.other].some(index=>{
+      const b=boxes[index];return b&&x>=b.xmin&&x<=b.xmax&&y>=b.ymin&&y<=b.ymax;
+    });
+  };
+}
+export function issueWithinContourBounds(issue,contours,tolerance=0.01){
+  return createIssueBoundsValidator(contours,tolerance)(issue);
 }
 
 export function renderIssueMarkers(parent,issues,unitsPerPixel,bounds=null){

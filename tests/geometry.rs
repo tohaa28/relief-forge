@@ -115,3 +115,20 @@ fn abi_result_is_json() {
     let s = process(&[0.01, 0., 0., 1., 0., 2., 0., 0., 10., 10.]).unwrap();
     assert!(s.contains("\"kind\":\"open\""));
 }
+
+#[test]
+fn diagnostic_bounds_retain_near_parallel_overlap_and_endpoint_roundoff() {
+    let parallel = vec![p(&[(0.,0.),(10.,0.)],false), p(&[(2.,0.005),(8.,0.005)],false)];
+    assert!(diagnose(&parallel,0.01).iter().any(|i| i.kind=="overlap"));
+    let touch = vec![p(&[(0.,0.),(1e6,0.)],false),p(&[(1e6+0.0000005,-1.),(1e6+0.0000005,1.)],false)];
+    assert!(diagnose(&touch,0.000000001).iter().any(|i| i.kind=="intersection"));
+    let backtrack=vec![p(&[(0.,0.),(10.,0.),(2.,0.)],false)];
+    assert!(diagnose(&backtrack,0.01).iter().any(|i| i.kind=="overlap"));
+}
+#[test]
+fn diagnostic_point_bounds_keep_exact_tolerance_and_reject_diagonal_outside() {
+    let paths=vec![p(&[(0.,0.),(0.01,0.),(0.01,0.01)],false)];
+    let issues=diagnose(&paths,0.01);
+    assert!(issues.iter().any(|i| i.kind=="coincident" && i.a==0 && i.b==1));
+    assert!(!issues.iter().any(|i| i.kind=="coincident" && i.a==0 && i.b==2));
+}

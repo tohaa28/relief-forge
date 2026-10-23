@@ -104,3 +104,11 @@ test('disjoint and differently colored objects are never merged',()=>{
  const r=mergeOverlappingObjects(doc([a,b,c]));
  assert.equal(r.document.paths.length,3);
 });
+
+test('changing selected object scope invalidates cached AFTER before export',()=>{
+ const before=doc([rect(0,0,10,10),rect(20,0,10,10)]),after=structuredClone(before);
+ const p=preview(before,after,[]);p.stats.scope=[0];
+ assert.equal(chooseAfterSnapshot(before,p,{...settings,scope:[0]},null,null).valid,true);
+ assert.equal(chooseAfterSnapshot(before,p,{...settings,scope:[1]},null,null).valid,false);
+ assert.equal(chooseAfterSnapshot(before,p,{...settings,scope:[0,1]},null,null).valid,false);
+});
