@@ -462,3 +462,9 @@ User explicitly authorized publication in the follow-up message. Previous approv
 - Ограничения: при откате сознательно возвращаются старые недостатки `alpha.32` (в том числе найденные в F-025, F-028, UI). Это не корректирующий релиз. `alpha.32` CI не включает поздний Chromium smoke; успешная native/JS/WASM сборка не означает пользовательский smoke.
 - Промежуточный статус этой записи: `source-written`, дальнейшие проверки/merge/Pages документировать последующим датированным дополнением, не менять прошедшие статусы задним числом.
 
+### 2026-10-23 — окончательно опубликован откат на 0.2.0-alpha.32
+- PR #46 `https://github.com/tohaa28/relief-forge/pull/46` успешно объединён в main SHA `2dfadad1c8f342733da857b0585540dacd46c95e`; контрольная исходная версия `4ad8efd1801be16d4c37472fda4989f9e3afbf06`.
+- Native Rust: **15 PASS**, npm JavaScript: **167 PASS**, WASM build and ABI: **PASS** в PR workflow `39964713772`. Production GitHub Actions `39964842575` показал **build SUCCESS** и **deploy SUCCESS**, целевой сайт https://tohaa28.github.io/relief-forge/.
+- Git SHA audit выполнен повторно ПОСЛЕ merge в main: **0 mismatching blobs** во всех файлах вне исключённых исторических документов. Исходный alpha.32 сайт, JS/WASM source, CSS/HTML, npm/Cargo, workflow и тесты побайтово восстановлены. Никаких промежуточных алгоритмов из alpha.33–35 не оставлено.
+- Архивная контрольная точка `archive/alpha35-before-alpha32-rollback-20261023` указывает на `bb56f9b11976fd75199b3b16f0f377be3df5bc18`, позволяет вновь опубликовать alpha.35 новым PR при запросе.
+- Проверка реального Windows Firefox/ArtCAM интерфейса у пользователя не выполнялась, отдельный Playwright smoke поздней alpha.35 не входит в старый workflow alpha.32. Возвращённые дефекты версии считаются известными ограничениями. История и отказы сохранены полностью.

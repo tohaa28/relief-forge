@@ -1,3 +1,12 @@
+# Результат отката на 0.2.0-alpha.32 — ПОДТВЕРЖДЁН (2026-10-23)
+- Целевой runtime: оригинальный PR #38 merge `4ad8efd1801be16d4c37472fda4989f9e3afbf06`.
+- PR #46 merged to main `2dfadad1c8f342733da857b0585540dacd46c95e`.
+- PR CI `39964713772`: 167 JS, 15 Rust, WASM PASS. Production `39964842575`: build SUCCESS, deploy SUCCESS, https://tohaa28.github.io/relief-forge/.
+- SHA-аудит: 0 отличающихся файлов вне постоянной истории от оригинальной alpha.32. Старую alpha.35 можно вернуть из ветки `archive/alpha35-before-alpha32-rollback-20261023`.
+- Не утверждать user Windows/Firefox smoke; alpha.32 сознательно содержит старые дефекты. Подробности `docs/history/ROLLBACK_ALPHA32_20261023.md`.
+
+---
+
 # Текущий запрос: восстановление Relief Forge 0.2.0-alpha.32 (2026-10-23)
 
 - Пользователь потребовал откат до версии `0.2.0-alpha.32`. Точный релизный commit: `4ad8efd1801be16d4c37472fda4989f9e3afbf06`; его tree `6cd82072293720fb5810d669de8db9cd8b48b36a`.

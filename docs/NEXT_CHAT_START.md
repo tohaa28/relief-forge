@@ -1,3 +1,18 @@
+# ОПУБЛИКОВАННОЕ ТЕКУЩЕЕ СОСТОЯНИЕ — Relief Forge 0.2.0-alpha.32
+
+**Пользовательский откат выполнен 2026-10-23.** `main` после PR #46: `2dfadad1c8f342733da857b0585540dacd46c95e`. Точный исходный релизный commit alpha.32 `4ad8efd1801be16d4c37472fda4989f9e3afbf06`. Проверка Git-tree после merge: 0 различающихся файлов вне append-only документации (runtime, package/Cargo, scripts, tests and Pages workflow identical).
+
+- PR: https://github.com/tohaa28/relief-forge/pull/46
+- PR CI: https://github.com/tohaa28/relief-forge/actions/runs/39964713772 — **SUCCESS**, JS 167/167, Rust 15/15, WASM ABI PASS.
+- main production: https://github.com/tohaa28/relief-forge/actions/runs/39964842575 — **build SUCCESS и deploy SUCCESS**.
+- Сайт: https://tohaa28.github.io/relief-forge/
+- Резервная alpha.35 до отката: `archive/alpha35-before-alpha32-rollback-20261023` -> `bb56f9b11976fd75199b3b16f0f377be3df5bc18`; не удалять. Подробный протокол: `docs/history/ROLLBACK_ALPHA32_20261023.md`.
+- Старые известные недостатки alpha.32 сознательно возвращены (алгоритмы, диагностика, интерфейс, export). Chromium smoke из alpha.35 отсутствует в восстановленном alpha.32 workflow; пользовательская Windows/Firefox проверка отдельно не подтверждена.
+- Любые прежние заголовки ниже «готовится», «не опубликовано» — датированные этапы до успешного результата; не считать их нынешним статусом.
+- Этот коммит только документирует уже состоявшийся откат, исходники приложения не меняет.
+
+---
+
 # Актуальный статус: возвращаем Relief Forge к 0.2.0-alpha.32 (23.10.2026)
 
 - **Целевая версия: 0.2.0-alpha.32**, точный оригинальный merge PR #38: `4ad8efd1801be16d4c37472fda4989f9e3afbf06`, дерево `6cd82072293720fb5810d669de8db9cd8b48b36a`.
