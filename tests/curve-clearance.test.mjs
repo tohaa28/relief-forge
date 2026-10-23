@@ -48,6 +48,12 @@ test('open/closed adjacent joins suppressed, nonadjacent narrow contour retained
  assert.equal(findCurveClearances({paths:[{points:[[0,0],[1,0],[1,1],[0,1]],closed:true}]}).markers.length,0);
  assert.equal(findCurveClearances({paths:[{points:[[0,0],[1,0],[1,.05],[0,.05]],closed:true}]}).markers.length,1);
 });
+test('explicit endpoint-return closure without Z has an ordinary seam, not a defect',()=>{
+ const commands=[['M',0,0],['L',1,0],['L',1,1],['L',0,1],['L',0,0]];
+ assert.equal(findCurveClearances({paths:[native(commands)]}).markers.length,0);
+ const open=commands.map(c=>[...c]);open.at(-1)[2]=.05;
+ assert.equal(findCurveClearances({paths:[native(open)]}).markers.length,1,'a real nonzero gap remains detectable');
+});
 test('different objects with common endpoint are a real zero-distance pair; images excluded',()=>{
  assert.equal(findCurveClearances({paths:[line(0),line(0),{kind:'image'}]}).markers.length,1);
 });

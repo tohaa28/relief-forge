@@ -46,7 +46,12 @@ export function clearanceSegments(document){
   if(p.kind==='image')return;
   const commands=p.artwork?p.commands:(p.points||[]).map((v,i)=>[i?'L':'M',...v]).concat(p.closed?[['Z']]:[]),shift=p.artwork?(p.offset||[0,0]):[0,0];
   let pen,start,part=-1,local=[];
-  const finish=closed=>{local.forEach((s,i)=>Object.assign(s,{ordinal:i,count:local.length,closed}));segments.push(...local);local=[];};
+  const finish=closed=>{
+   // Some EPS paths close by an exact endpoint return, without a Z command.
+   // Exact equality only: a merely small real gap must remain measurable.
+   if(local.length>1&&distance(local[0].controls[0],local.at(-1).controls.at(-1))===0)closed=true;
+   local.forEach((s,i)=>Object.assign(s,{ordinal:i,count:local.length,closed}));segments.push(...local);local=[];
+  };
   for(const c of commands||[]){
    const type=c[0],point=c.slice(-2);
    if(type==='M'){finish(false);part++;pen=start=point;continue;}
