@@ -339,15 +339,25 @@ function spawnWorker(){
       record('eps-save-preflight',{issues:report.issueCount,complete:report.complete,
         sampledPaths:task.contours,autoApplyRequested:task.autoApply});
       if(decision.action==='warn'){showEpsSaveWarning(decision);return;}
+      let precomputed=null;
       if(decision.action==='apply-and-save'){
         const fresh=epsSaveCandidate(doc,curvePreview,readEpsSaveSettings());
-        if(!fresh.autoApply||!applyUnifiedChanges()){
+        if(!fresh.autoApply){
           showEpsSaveWarning(epsSaveDecision({complete:false,fullScope:false,issueCount:report.issueCount},true),
             'Подготовленные изменения успели устареть. Требуется повторная проверка.');
           return;
         }
+        // Verify output encoding and colors BEFORE mutating the confirmed
+        // document. Unsupported CMYK/paint cannot consume an Undo checkpoint.
+        try{precomputed=prepareEpsOutput(fresh.document);}
+        catch(error){status('Изменения не применены: '+error.message);return;}
+        if(!applyUnifiedChanges()){
+          showEpsSaveWarning(epsSaveDecision({complete:false,fullScope:false,issueCount:report.issueCount},true),
+            'Не удалось подтвердить изменения. Сохранение отменено.');
+          return;
+        }
       }
-      exportConfirmedEps({autoApplied:decision.action==='apply-and-save',verified:true,remainingIssues:0});
+      exportConfirmedEps({autoApplied:decision.action==='apply-and-save',verified:true,remainingIssues:0,precomputed});
       return;
     }
     if(data.error){lock(false);record('engine-error',{error:data.error});status(data.error);return;}
@@ -836,20 +846,28 @@ function readEpsSaveSettings(){
     smoothingAmount:Number($('smoothing-amount').value),
     optimizationTolerance:Number($('optimization-tolerance').value)};
 }
-function exportConfirmedEps({autoApplied=false,verified=false,overridden=false,remainingIssues=null}={}){
+let epsColorMode='outline';
+function prepareEpsOutput(document){
+  return epsColorMode==='original'?exportColoredEps(document):{content:exportEps(document),source:'outline'};
+}
+function exportConfirmedEps({autoApplied=false,verified=false,overridden=false,remainingIssues=null,precomputed=null}={}){
   try{
-    const eps=exportEps(doc);
+    const result=precomputed||prepareEpsOutput(doc),eps=result.content;
     const resultName=epsResultFilename(doc.sourceFileName||doc.epsImport?.name||'relief-forge.eps');
     download(resultName,eps,'application/postscript');
     const suffix=overridden?' · сохранено с предупреждением':autoApplied?' · автоисправления применены':' · проверено';
-    updateFileHistory({exportName:resultName,exportAt:new Date().toISOString(),status:'EPS экспортирован'+suffix});
+    updateFileHistory({exportName:resultName,exportAt:new Date().toISOString(),
+      status:'EPS экспортирован ('+(epsColorMode==='original'?'с цветом':'без цвета')+')'+suffix});
     record('export-eps',{name:resultName,source:doc.sourceFileName||null,paths:doc.paths.length,
-      bytes:eps.length,autoApplied,verified,overridden,remainingIssues});
-    status('EPS сохранён: '+resultName+
+      bytes:eps.length,colorMode:epsColorMode,colorSource:result.source,
+      autoApplied,verified,overridden,remainingIssues});
+    status('EPS сохранён: '+resultName+' · '+(result.source==='exact-original'?'исходный PostScript сохранён точно':
+      result.source==='repainted-rgb'?'окраска в RGB по исходным заливкам':'бесцветные контуры')+
       (autoApplied?' · изменения применены автоматически, Undo доступен.':
         overridden?' · по вашему подтверждению, неприменённый предпросмотр исключён.':
         verified?' · ошибок узлов не обнаружено.':' · экспортирована подтверждённая геометрия.'));
-  }catch(error){record('eps-export-error',{message:error.message});status('Не удалось сохранить EPS: '+error.message);}
+  }catch(error){record('eps-export-error',{message:error.message,mode:epsColorMode});
+    status('Не удалось сохранить EPS: '+error.message);}
 }
 function showEpsSaveWarning(decision,extra=''){
   const dialog=$('eps-save-warning');
@@ -968,7 +986,18 @@ async function saveEpsWithPreflight(){
       'Не удалось проверить EPS: '+error.message);
   }
 }
-$('export-eps').onclick=saveEpsWithPreflight;
+$('export-eps').onclick=()=>{
+  if(busy||readActive)return;
+  $('eps-color-choice').showModal();
+};
+$('eps-color-cancel').onclick=()=>$('eps-color-choice').close();
+$('eps-color-confirm').onclick=()=>{
+  const choice=document.querySelector('input[name="eps-color-mode"]:checked');
+  epsColorMode=choice?.value==='original'?'original':'outline';
+  $('eps-color-choice').close();
+  record('eps-export-mode',{mode:epsColorMode});
+  void saveEpsWithPreflight();
+};
 $('log').onclick=()=>download('relief-forge-session.jsonl',journal.map(x=>JSON.stringify(x)).join('\n'),'application/x-ndjson');
 $('demo').onclick=()=>{activeHistoryId=null;checkpoint();doc={format:'relief-forge',version:1,width:150,height:100,paths:[{closed:true,points:[[10,10],[50,50],[10,50],[50,10]]},{closed:true,points:[[70,10],[110,10],[110,40],[70,40]]},{closed:true,points:[[110,40],[110,10],[70,10],[70,40]]},{closed:false,points:[[10,70],[30,70],[30.003,70],[50,70]]},{closed:false,points:[[50.005,70],[80,70],[80,90]]}]};selected.clear();changed('load-demo');fit();};
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
