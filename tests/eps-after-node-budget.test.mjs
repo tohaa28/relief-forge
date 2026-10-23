@@ -45,3 +45,9 @@ test('repainted RGB EPS carries identical actual commands, never denser polys',(
   assert.equal(verifyEpsOutputGeometry(d,rgb).realNodes,3);
   assert.throws(()=>verifyEpsOutputGeometry(d,{...rgb,content:rgb.content.replace(/ C\n/, ' L\n')}),/не совпадает/);
 });
+
+test('a true Union may add cut anchors to optimized curves while staying below the original node ceiling',()=>{
+ const result=protectPreviewNodeBudget(doc(100),doc(40),doc(70));
+ assert.equal(result.reason,null);assert.equal(result.final,70);
+ assert.equal(protectPreviewNodeBudget(doc(100),doc(40),doc(101)).reason,'union-node-growth');
+});

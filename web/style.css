@@ -425,7 +425,7 @@ footer{flex-wrap:wrap;gap:8px 15px;padding-top:6px;padding-bottom:6px}
   opacity:1!important}
 #geometry .wireframe-override.selected{stroke:#079c95!important;stroke-width:1.8px!important}
 
-/* alpha.36: keep icon glyphs inside their own buttons at every breakpoint.
+/* alpha.37: keep icon glyphs inside their own buttons at every breakpoint.
    Older 36px zoom controls contained both 20px image and a literal glyph;
    old 50/50 point controls squeezed labels underneath inflexible icons. */
 #zoom-in,#zoom-out{width:42px;min-width:42px;flex:0 0 42px;min-height:40px;
@@ -452,3 +452,6 @@ button>.tool-icon,button>.tool-icon.approved-icon{flex-shrink:0;overflow:hidden}
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:650}
 @media(max-width:480px){.workspace-file{left:9px;bottom:35px;
   max-width:calc(100% - 18px);padding:6px 8px;font-size:10px}}
+
+/* Zoom controls use complete vector glyphs; approved PNG originals are untouched. */
+#zoom-in>.zoom-symbol,#zoom-out>.zoom-symbol{display:block;width:22px;height:22px;flex:0 0 22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;overflow:visible}

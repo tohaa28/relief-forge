@@ -112,3 +112,17 @@ test('changing selected object scope invalidates cached AFTER before export',()=
  assert.equal(chooseAfterSnapshot(before,p,{...settings,scope:[1]},null,null).valid,false);
  assert.equal(chooseAfterSnapshot(before,p,{...settings,scope:[0,1]},null,null).valid,false);
 });
+
+test('selected-only Union leaves an unselected filled compound byte-identical',()=>{
+ const first=rect(50,50,10,10),a=rect(0,0,10,10),b=rect(5,0,10,10);
+ const cmds=[...a.points.map((v,i)=>[i?'L':'M',...v]),['Z'],...b.points.map((v,i)=>[i?'L':'M',...v]),['Z']];
+ const compound={kind:'vector',closed:true,offset:[0,0],commands:cmds,
+  points:cmds.filter(c=>c[0]!=='Z').map(c=>c.slice(-2)),paint:{fill:'#cc0000',stroke:'none'},
+  artwork:'<path d="'+cmds.map(c=>c.join(' ')).join(' ')+'"/>'};
+ const src=doc([first,compound]),copy=structuredClone(src);
+ const selected=mergeOverlappingObjects(src,{indices:[0]});
+ assert.deepEqual(selected.document.paths[1],compound);assert.deepEqual(src,copy);
+ assert.equal(selected.stats.normalizedObjects,0);
+ const all=mergeOverlappingObjects(src);
+ assert.equal(all.stats.normalizedObjects,1);assert.notDeepEqual(all.document.paths[1].commands,compound.commands);
+});
