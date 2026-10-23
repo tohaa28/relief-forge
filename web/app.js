@@ -31,7 +31,7 @@ let diagnosticGeneration=0,readGeneration=0,readActive=false,openingFile=false,p
 const historyStorage=(()=>{try{return window.localStorage}catch{return null}})();
 let fileHistory=readHistory(historyStorage),activeHistoryId=null;
 const journal=[];const clone=v=>structuredClone(v);
-let workspaceHealth=null,workspaceChecks=0,workspaceCheckTimer=null;
+let workspaceHealth=null,workspaceChecks=0,workspaceCheckTimer=null,forceWireframe=false;
 const displayErrors=[];
 window.addEventListener('error',e=>{displayErrors.push(String(e.message||'Unknown error'));if(displayErrors.length>25)displayErrors.shift();});
 window.addEventListener('unhandledrejection',e=>{displayErrors.push(String(e.reason?.message||e.reason||'Unhandled rejection'));if(displayErrors.length>25)displayErrors.shift();});
@@ -128,12 +128,13 @@ function workspaceScan({attemptRepair=false,manual=false}={}){
   $('workspace-health-report').value=safeWorkspaceReport(health,{
     version:'0.2.0-alpha.31',source:doc.sourceFileName||'',
     errors:displayErrors});
-  record('workspace-health',{ok:health.ok,issues:health.issues,attempts:repairs,
+  record('workspace-health',{ok:health.ok,issues:health.issues,forceWireframe,attempts:repairs,
     count:health.elementCount,rect:health.canvasRect,bbox:health.geometryBox});
   if(!health.ok)status('Проверка рабочего поля: '+shortWorkspaceDiagnosis(health)+
     (repairs.length?' · выполнено: '+repairs.join(', '):'')+
     '. Откройте «Проверка рабочего поля» для отчёта.');
   else if(repairs.length)status('Отображение рабочего поля восстановлено: '+repairs.join(', '));
+  if(manual&&health.ok&&forceWireframe)status('Контурный режим включён: отображаются исходные векторные команды без оформления.');
   return health;
 }
 function scheduleWorkspaceCheck(){
@@ -165,6 +166,15 @@ $('workspace-check-copy').onclick=async()=>{
     status('Скопируйте выделенный диагностический отчёт клавишами Ctrl+C.');}
 };
 $('workspace-check-close').onclick=()=>$('workspace-health-dialog').close();
+function syncWireframeControl(){
+  $('workspace-check-wireframe').textContent=forceWireframe?'Обычное отображение':'Показать контуры';
+  $('workspace-check-wireframe').setAttribute('aria-pressed',String(forceWireframe));
+}
+$('workspace-check-wireframe').onclick=()=>{
+  forceWireframe=!forceWireframe;syncWireframeControl();render();
+  workspaceScan({attemptRepair:true,manual:true});
+  record('workspace-wireframe-mode',{enabled:forceWireframe,source:doc.sourceFileName||null});
+};
 
 function updateMascot(){return syncWorkspaceMascot($('mascot-welcome'),$('drop-target'),{hasDocument:Boolean(doc.paths.length||doc.sourceFileName||doc.epsImport||doc.pdfImport),importing:openingFile});}
 function render(){
@@ -225,11 +235,11 @@ function render(){
         el('path',{d:worldData(comparison.beforeDoc.paths[i]),class:'comparison-ghost'},$('geometry'));
       }
       el('path',{...attrs,class:'comparison-path '+(compareStage==='after'?'after':'before')},$('geometry'));
-    }else if(p.artwork){
+    }else if(p.artwork&&!forceWireframe){
       const painted=el('g',{'data-path':i,class:visibleDoc.epsImport?.outlineRecovery?'outline-artwork':'svg-artwork'},$('geometry'));
       appendMarkup(painted,artworkMarkup(p));
       if(sel)el('path',{...attrs,class:'path selected rich-selection'},$('geometry'));
-    }else el('path',{...attrs,class:'path '+(sel?'selected':'')},$('geometry'));
+    }else el('path',{...attrs,class:'path '+(sel?'selected':'')+(forceWireframe?' wireframe-override':'')},$('geometry'));
     if(!reviewing)el('path',{...attrs,class:'hit'},$('geometry'));
     if(sel&&curveEditing()&&p.kind!=='image'){
       if(activeCurveNode?.path===i){
@@ -867,7 +877,7 @@ $('new').onclick=()=>{activeHistoryId=null;checkpoint();doc={format:'relief-forg
 for(const key of ['width','height'])$(key).onchange=()=>{const v=Number($(key).value);if(v>0&&v<1e6){checkpoint();doc[key]=v;changed('resize-sheet');fit();}else render();};
 $('save').onclick=()=>{record('save-project');download('doktor-uzelkov.rf.json',JSON.stringify({...doc,journal,history:{past,future}},null,2));};
 function stopEps({destroy=false}={}){const picker=$('pdf-page-picker');if(picker?.open)picker.close();epsImportActive=false;clearTimeout(epsTimer);epsTimer=null;if(epsWorker){epsWorker.onmessage=null;epsWorker.onerror=null;}if(destroy){epsWorker?.terminate();epsWorker=null;}}
-function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);openingFile=false;if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();scheduleWorkspaceCheck();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
+function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);openingFile=false;forceWireframe=false;syncWireframeControl();if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();scheduleWorkspaceCheck();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;openingFile=true;updateMascot();if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта '+(/\.pdf$/i.test(name)?'PDF':'EPS')+'…';record('vector-import-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
   epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.31',import.meta.url));
