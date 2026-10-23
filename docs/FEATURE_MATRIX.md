@@ -195,3 +195,6 @@ Exact helper-only repair compared through independent winding-aware Clipper XOR:
 Native bounded L/Q/C pairwise minimum distance in Worker, separate default0.1mm setting, pink circles behind vectors.12unit and Chromium BEFORE/AFTER/threshold/export regression locally passed. Real min clearance97ms source/63ms optimized. Main CI/publication pending; complete status relates only to nonadjacent segment-pair search, not existing batch diagnostics. No geometry/stroke-thickness/self-within-one-segment modification or measurement.
 
 Alpha39 checkpoint:220localJS/14new tests incl F-033 exact-return seam, actual min ORIGINAL2287/AFTER136clearance; PR55 initial219test CI40000316968 SUCCESS17Rust/freshWASM/all browser, latest-head CI40000511482 pending; not published yet.
+
+## 0.2.0-alpha.39 published/live verified
+PR55/fa1d256, finalCI40000669760 and main build+deploy40000825101 SUCCESS220JS/17Rust/freshWASM/all browser. Native curve clearance default0.1mm, pink display-only disks under vectors, exact thresholds/BEFORE-AFTER/EPS exclusion live verified. Actual min ORIGINAL2287/AFTER136pair locations complete; both EPS1967/Undo3146/Redo1967. Adjacent joins/single-segment self approach/stroke thickness outside scope;2Mwork/3000markers/unsupported/precision explicit incomplete; legacy cross-batch WASM remains partial. User external-browser confirmation separate.
