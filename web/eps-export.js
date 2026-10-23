@@ -98,3 +98,57 @@ export function exportEps(doc){
   out.push('N','%%PageTrailer','%%Trailer','%%EOF','');
   return out.join('\n');
 }
+
+
+// Painted EPS. Exact original PostScript can be returned when geometry and
+// styles are unchanged; edited paths are rebuilt with their imported solid
+// fill/stroke RGB values. CMYK profiles cannot be reconstructed from SVG and
+// are never silently claimed as preserved after edits.
+import {paintFromArtwork,rgbFromPaint,intactOriginalEps,originalEpsBytes} from './eps-paint.js';
+export function exportColoredEps(doc,{Parser=globalThis.DOMParser}={}){
+  if(intactOriginalEps(doc))return {content:originalEpsBytes(doc),source:'exact-original'};
+  const w=Number(doc.width),h=Number(doc.height);
+  if(!Number.isFinite(w)||!Number.isFinite(h)||w<=0||h<=0||w>1e6||h>1e6)
+    throw Error('EPS с исходной окраской: неверный размер документа');
+  if(!Array.isArray(doc.paths)||!doc.paths.length)throw Error('Нет объектов для экспорта');
+  if(doc.paths.some(p=>p.kind==='image'))throw Error('EPS с цветом: после изменения документа растровые изображения пока нельзя сохранить без потерь. Сохраните исходный EPS или SVG.');
+  if(doc.paths.some(p=>p.artwork&&/(?:clip-path|mask=|filter=|<image\b|fill="url\(|stroke="url\()/i.test(p.artwork)))
+    throw Error('EPS с цветом: сложные заливки, маски и растровые элементы не поддерживаются после редактирования. Сохраните SVG.');
+  const wpt=w*PT_PER_MM,hpt=h*PT_PER_MM;
+  const out=['%!PS-Adobe-3.0 EPSF-3.0','%%Creator: Doktor Uzelkov',
+    '%%Title: Edited vector artwork with RGB paint',
+    '%%BoundingBox: 0 0 '+Math.ceil(wpt)+' '+Math.ceil(hpt),
+    '%%HiResBoundingBox: 0 0 '+fmt(wpt)+' '+fmt(hpt),
+    '%%LanguageLevel: 2','%%Pages: 1','%%EndComments',
+    '/m {moveto} bind def','/L {lineto} bind def',
+    '/C {curveto} bind def','/@c {closepath} bind def',
+    '%%Page: 1 1'];
+  let exported=0;
+  for(const path of doc.paths){
+    const geometry=geometryCommands(path);
+    if(!geometry.length)continue;
+    const paint=path.paint||paintFromArtwork(path.artwork,{Parser});
+    if(paint?.unsupported)throw Error(paint.unsupported);
+    if(paint.opacity!==undefined&&paint.opacity!==1)
+      throw Error('EPS с цветом: прозрачность не может быть сохранена без изменения вида');
+    const fill=rgbFromPaint(paint.fill||'none'),stroke=rgbFromPaint(paint.stroke||'none');
+    const strokeWidth=Number(paint.strokeWidthMm??0.1);
+    if(!Number.isFinite(strokeWidth)||strokeWidth<0||strokeWidth>10000)
+      throw Error('EPS с цветом: некорректная толщина линии');
+    out.push('newpath');
+    appendPath(out,geometry,h);
+    const setColor=color=>color.map(fmt).join(' ')+' setrgbcolor';
+    if(fill){
+      out.push('gsave',setColor(fill),paint.fillRule==='evenodd'?'eofill':'fill','grestore');
+    }
+    if(stroke&&strokeWidth>0){
+      out.push('gsave',setColor(stroke),pt(strokeWidth)+' setlinewidth','stroke','grestore');
+    }
+    // Keep unpainted geometry too, if that's the original SVG appearance.
+    if(!fill&&!stroke)out.push('newpath');
+    exported++;
+  }
+  if(!exported)throw Error('Нет векторных кривых для EPS');
+  out.push('newpath','showpage','%%Trailer','%%EOF','');
+  return {content:out.join('\n'),source:'repainted-rgb'};
+}
