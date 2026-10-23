@@ -22,15 +22,16 @@ export function epsSaveDecision(report,autoApply){
   if(complete&&Number.isInteger(count)&&count===0)
     return {action:autoApply?'apply-and-save':'save',count:0,verified:true};
   const known=Number.isInteger(count)&&count>=0;
-  return {action:'warn',count:known?count:null,verified:complete,
-    reason:!complete?'incomplete':count>0?'issues':'unknown'};
+  return {action:'warn',count:known?count:null,verified:complete&&known,
+    reason:!complete?'incomplete':!known?'unknown':count>0?'issues':'unknown'};
 }
 
 export function epsSaveWarningText(decision){
   if(decision.action!=='warn')return '';
   if(!decision.verified)
     return 'Не удалось полностью проверить все векторные узлы. Отсутствие ошибок не подтверждено. Автоматические изменения не будут применены.';
-  const suffix=decision.count===1?'замечание':(decision.count%10>=2&&decision.count%10<=4&&(decision.count%100<12||decision.count%100>14))?'замечания':'замечаний';
+  const n=decision.count,mod100=n%100,mod10=n%10;
+  const suffix=(mod100<11||mod100>14)&&(mod10===1?'замечание':mod10>=2&&mod10<=4?'замечания':'замечаний');
   return 'В векторных контурах осталось '+decision.count+' '+suffix+
     '. Автоматические изменения не будут применены.';
 }
