@@ -64,7 +64,7 @@ export function rgbFromPaint(value){
   throw Error('Цвет '+value+' нельзя точно перенести в EPS. Сохраните SVG или исходный EPS без изменения геометрии.');
 }
 export function geometryStamp(doc){
-  return JSON.stringify({width:doc.width,height:doc.height,
+  return JSON.stringify({width:doc.width,height:doc.height,svgDefs:doc.svgDefs,
     paths:doc.paths.map(p=>({kind:p.kind,closed:p.closed,points:p.points,commands:p.commands,
       offset:p.offset,paint:p.paint,artwork:p.artwork}))});
 }
