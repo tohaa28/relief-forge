@@ -71,3 +71,8 @@
 Implementation on fix/diagnostic-topology-alpha34 from 1f21fe7; F-025 resolved on private EPS via real WASM. 712→597 segments, 0 AFTER issues with partial coverage. Browser EPS/BEFORE/AFTER/Apply/Undo passed; final CI/publication status follows in NEXT_CHAT_START. No user verification yet.
 
 alpha.34 final local verification: 184/184 JS, unchanged published WASM ABI, real Chromium private EPS and full synthetic Apply/export/Undo PASS. cb19b7c local only; push blocked by automatic approval review. No new CI, no deploy.
+
+### 2026-10-23T12:48Z — alpha.34 CI observation and instrumentation
+- GitHub PR #42 run 39954313037: Rust, npm tests, fresh WASM ABI passed; browser step remained in_progress for more than 13 minutes, exact bottleneck unknown (combined apt/download/browser command); NOT reported as failure or success. No log yet until job completion.
+- Attempt: separate installation of Playwright Chromium system deps, headless shell download and real Worker/WASM browser test into three individually timed CI steps. Reduce browser download to headless shell, preserve actual Chromium verification (no mocking/skipping). Hypothesis only: download/install overhead; no root cause proven.
+- Source geometry, private files, test fixtures and optimizer parameters unchanged. Updated only workflow and permanent history. Retry PR CI on follow-up commit; build/deploy still pending. Preserve original run and inspect its eventual outcome instead of rewriting history.
