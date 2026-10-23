@@ -11,16 +11,20 @@ const chordError=p=>Math.max(...p.map((v,i)=>distance(v,mix(p[0],p.at(-1),i/(p.l
 function lineNearest(a,b){
  const project=(p,x,y)=>{const dx=y[0]-x[0],dy=y[1]-x[1],n=dx*dx+dy*dy;return n?Math.max(0,Math.min(1,((p[0]-x[0])*dx+(p[1]-x[1])*dy)/n)):0;};
  const candidates=[[0,project(a[0],...b)],[1,project(a[1],...b)],[project(b[0],...a),0],[project(b[1],...a),1]];
+ // Flat minima (parallel overlapping spans) need an interior witness, not a
+ // contour join merely selected by endpoint enumeration order.
+ const ax=a[1][0]-a[0][0],ay=a[1][1]-a[0][1],an=ax*ax+ay*ay;
+ if(an){const raw=b.map(p=>((p[0]-a[0][0])*ax+(p[1]-a[0][1])*ay)/an),lo=Math.max(0,Math.min(...raw)),hi=Math.min(1,Math.max(...raw));if(lo<=hi){const t=(lo+hi)/2;candidates.push([t,project(mix(...a,t),...b)]);}}
  const u=[a[1][0]-a[0][0],a[1][1]-a[0][1]],v=[b[1][0]-b[0][0],b[1][1]-b[0][1]],w=[b[0][0]-a[0][0],b[0][1]-a[0][1]],cross=(x,y)=>x[0]*y[1]-x[1]*y[0],den=cross(u,v);
  if(den){const t=cross(w,v)/den,s=cross(w,u)/den;if(t>=0&&t<=1&&s>=0&&s<=1)candidates.push([t,s]);}
- return candidates.map(([t,s])=>{const pa=mix(...a,t),pb=mix(...b,s);return {distance:distance(pa,pb),a:pa,b:pb,t,s};}).sort((x,y)=>x.distance-y.distance)[0];
+ return candidates.map(([t,s])=>{const pa=mix(...a,t),pb=mix(...b,s);return {distance:distance(pa,pb),a:pa,b:pb,t,s};}).sort((x,y)=>x.distance-y.distance||(Math.min(y.t,1-y.t)+Math.min(y.s,1-y.s))-(Math.min(x.t,1-x.t)+Math.min(x.s,1-x.s)))[0];
 }
 export function curveDistance(a,b,{threshold=.1,epsilon=1e-5,budget={remaining:20000}}={}){
  if(![a,b].every(p=>p.length>=2&&p.length<=4&&p.every(v=>v.length===2&&v.every(Number.isFinite))))throw Error('Invalid Bézier controls');
  if(!(threshold>0&&epsilon>0))throw Error('Invalid distance tolerance');
  if(a.length===2&&b.length===2){const result=lineNearest(a,b);return {...result,lower:result.distance,complete:true};}
  let best={distance:Infinity},lower=Infinity,unresolved=false;
- const update=(t,s)=>{const pa=evaluate(a,t),pb=evaluate(b,s),d=distance(pa,pb);if(d<best.distance)best={distance:d,a:pa,b:pb,t,s};};
+ const update=(t,s)=>{const pa=evaluate(a,t),pb=evaluate(b,s),d=distance(pa,pb);if(d<best.distance||d===best.distance&&Math.min(t,1-t)+Math.min(s,1-s)>Math.min(best.t,1-best.t)+Math.min(best.s,1-best.s))best={distance:d,a:pa,b:pb,t,s};};
  for(const t of [0,.5,1])for(const s of [0,.5,1])update(t,s);
  const stack=[{a,b,ta:0,tb:1,sa:0,sb:1,depth:0}];
  while(stack.length){
@@ -50,7 +54,11 @@ export function clearanceSegments(document){
    // Some EPS paths close by an exact endpoint return, without a Z command.
    // Exact equality only: a merely small real gap must remain measurable.
    if(local.length>1&&distance(local[0].controls[0],local.at(-1).controls.at(-1))===0)closed=true;
-   local.forEach((s,i)=>Object.assign(s,{ordinal:i,count:local.length,closed}));segments.push(...local);local=[];
+   local.forEach((s,i)=>{
+    const before=local[i-1]||(closed?local.at(-1):null),after=local[i+1]||(closed?local[0]:null),id=segments.length+i;
+    Object.assign(s,{ordinal:i,count:local.length,closed,id,before:before?.controls,after:after?.controls,
+     neighbors:[id,...(before?[segments.length+(i+local.length-1)%local.length]:[]),...(after?[segments.length+(i+1)%local.length]:[])]});
+   });segments.push(...local);local=[];
   };
   for(const c of commands||[]){
    const type=c[0],point=c.slice(-2);
@@ -58,7 +66,7 @@ export function clearanceSegments(document){
    if(!pen||!['L','Q','C','Z'].includes(type)){skipped++;continue;}
    const target=type==='Z'?start:point;
    if(type!=='Z'||distance(pen,target)>1e-12){const controls=[pen];for(let j=1;j<c.length;j+=2)controls.push(c.slice(j,j+2));if(type==='Z')controls.push(target);
-    if(controls.every(v=>v.length===2&&v.every(Number.isFinite))){const world=controls.map(v=>[v[0]+shift[0],v[1]+shift[1]]);local.push({controls:world,box:box(world),path,part});}else skipped++;
+    if(controls.every(v=>v.length===2&&v.every(Number.isFinite))){const world=controls.map(v=>[v[0]+shift[0],v[1]+shift[1]]);if(world.some(v=>distance(v,world[0])>0))local.push({controls:world,box:box(world),path,part});}else skipped++;
    }
    pen=target;if(type==='Z')finish(true);
   }
@@ -66,10 +74,54 @@ export function clearanceSegments(document){
  });
  return {segments,skipped};
 }
+function isContourMinimum(segment,t,point,other){
+ // At an interior segment minimum the native distance solver already checked
+ // both parameter directions. At a node also check the incident continuation.
+ const controls=t===0?[segment.controls,segment.before?.toReversed()]:t===1?[segment.controls.toReversed(),segment.after]:[];
+ const slack=Number.EPSILON*128*Math.max(1,...point.map(Math.abs),...other.map(Math.abs));
+ for(const p of controls){
+  if(!p)continue;
+  const target=p.slice(1).find(v=>distance(v,p[0])>slack);if(!target)continue;
+  const dx=target[0]-p[0][0],dy=target[1]-p[0][1],len=Math.hypot(dx,dy);
+  if(((point[0]-other[0])*dx+(point[1]-other[1])*dy)/len < -slack)return false;
+ }
+ return true;
+}
+const pairKey=(a,b)=>a<b?a+':'+b:b+':'+a;
+const markerOnly=({segment,otherSegment,...marker})=>marker;
+function sharedNodes(a,b){return [a.controls[0],a.controls.at(-1)].filter(p=>[b.controls[0],b.controls.at(-1)].some(q=>distance(p,q)===0));}
+function minimumZones(candidates,budget,threshold){
+ const remaining=new Map(candidates.map(c=>[pairKey(c.segment.id,c.otherSegment.id),c])),zones=[];let complete=true;
+ const fallback=()=>({markers:candidates.map(markerOnly),complete:false});
+ if(budget.remaining<=0&&candidates.length)return fallback();
+ for(const [key,first] of remaining){
+  remaining.delete(key);const queue=[first],group=[];
+  while(queue.length){
+   const c=queue.pop();group.push(c);
+   for(const a of c.segment.neighbors)for(const b of c.otherSegment.neighbors){
+    if(--budget.remaining<0)return fallback();
+    const k=pairKey(a,b),next=remaining.get(k);if(!next)continue;
+    const na=next.segment.id===a?next.segment:next.otherSegment,nb=next.segment.id===b?next.segment:next.otherSegment;
+    const ja=c.segment.id===na.id?null:sharedNodes(c.segment,na),jb=c.otherSegment.id===nb.id?null:sharedNodes(c.otherSegment,nb);
+    let connected=false;
+    if(ja&&jb)connected=ja.some(p=>jb.some(q=>distance(p,q)<threshold));
+    else if(ja||jb){
+     const joints=ja||jb,controls=ja?c.otherSegment.controls:c.segment.controls;
+     for(const p of joints){const r=curveDistance(controls,[p,p],{threshold,budget});complete=complete&&r.complete;if(r.distance<threshold){connected=true;break;}}
+    }
+    if(connected){remaining.delete(k);queue.push(next);}
+   }
+  }
+  const minimum=group.reduce((n,c)=>Math.min(n,c.distance),Infinity),closest=group.filter(c=>c.distance===minimum),center=group.reduce((sum,c)=>[sum[0]+c.point[0]/group.length,sum[1]+c.point[1]/group.length],[0,0]);
+  const best=closest.reduce((a,b)=>distance(a.point,center)<=distance(b.point,center)?a:b),{segment,otherSegment,...marker}=best;
+  zones.push(marker);
+ }
+ return {markers:zones,complete};
+}
 export function findCurveClearances(document,{threshold=.1,maxWork=2000000,maxMarkers=3000}={}){
  if(!Number.isFinite(threshold)||threshold<=0||threshold>1000)throw Error('Расстояние должно быть больше 0 и не больше 1000 мм');
- const {segments,skipped}=clearanceSegments(document),sorted=segments.sort((a,b)=>a.box[0]-b.box[0]),budget={remaining:maxWork},markers=[];
- let complete=skipped===0,comparisons=0,uncertain=0;
+ const {segments,skipped}=clearanceSegments(document),sorted=segments.sort((a,b)=>a.box[0]-b.box[0]),budget={remaining:maxWork},candidates=[];
+ let complete=skipped===0,comparisons=0,uncertain=0,rejectedContinuations=0;
  outer:for(let i=0;i<sorted.length;i++)for(let j=i+1;j<sorted.length;j++){
   const a=sorted[i],b=sorted[j];if(b.box[0]-a.box[2]>=threshold)break;
   if(--budget.remaining<0){complete=false;break outer;}
@@ -78,7 +130,12 @@ export function findCurveClearances(document,{threshold=.1,maxWork=2000000,maxMa
   comparisons++;
   const result=curveDistance(a.controls,b.controls,{threshold,epsilon:Math.min(1e-5,threshold*1e-4),budget});
   if(!result.complete){complete=false;uncertain++;}
-  if(result.distance<threshold){markers.push({point:mix(result.a,result.b),distance:result.distance,lower:result.lower,path:a.path,other:b.path,a:result.a,b:result.b});if(markers.length>=maxMarkers){complete=false;break outer;}}
+  if(result.distance<threshold){
+   if(!isContourMinimum(a,result.t,result.a,result.b)||!isContourMinimum(b,result.s,result.b,result.a)){rejectedContinuations++;continue;}
+   candidates.push({point:mix(result.a,result.b),distance:result.distance,lower:result.lower,path:a.path,other:b.path,a:result.a,b:result.b,segment:a,otherSegment:b});
+   if(candidates.length>=50000){complete=false;break outer;}
+  }
  }
- return {markers,complete,uncertain,skipped,comparisons,work:maxWork-budget.remaining,threshold,segments:segments.length};
+ const zones=minimumZones(candidates,budget,threshold);complete=complete&&zones.complete&&zones.markers.length<=maxMarkers;
+ return {markers:zones.markers.slice(0,maxMarkers),complete,uncertain,skipped,comparisons,rejectedContinuations,candidateMinima:candidates.length,work:maxWork-budget.remaining,threshold,segments:segments.length};
 }

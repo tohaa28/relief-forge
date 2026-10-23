@@ -1,4 +1,4 @@
-import {pruneCoveredRetraces} from './covered-retraces.js?v=0.2.0-alpha.39';
+import {pruneCoveredRetraces} from './covered-retraces.js?v=0.2.0-alpha.40';
 const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
 const end=c=>c.slice(-2);
 
