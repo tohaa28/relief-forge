@@ -1,7 +1,7 @@
 // Save the *existing* optimization result, never run a new Rust diagnostic
 // at export time. The diagnosis belongs to the exact AFTER document.
 export function chooseAfterSnapshot(document,preview,settings,comparison,diagnostic){
-  if(preview?.hasGeometryChange){
+  if(preview?.result){
     const s=preview.stats||{};
     if(s.diagnosticTolerance!==settings.diagnosticTolerance||
        s.smoothingAmount!==settings.smoothingAmount||
@@ -9,7 +9,7 @@ export function chooseAfterSnapshot(document,preview,settings,comparison,diagnos
        JSON.stringify(preview.source)!==JSON.stringify(document))
       return {valid:false,reason:'stale-preview'};
     const report=preview.comparisonData?.afterIssues;
-    return {valid:true,document:preview.result,preview,
+    return {valid:true,document:preview.result,preview:preview.hasGeometryChange?preview:null,
       stage:'after',issues:preview.afterDiagnosed&&Array.isArray(report)?report:null,
       complete:preview.afterDiagnosed===true&&preview.afterDiagnosticComplete===true&&preview.afterScope==='full'};
   }
