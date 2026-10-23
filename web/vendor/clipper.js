@@ -91,8 +91,8 @@
 	var navigator_appName;
 	if (!isNode)
 	{
-		var nav = navigator.userAgent.toString().toLowerCase();
-		navigator_appName = navigator.appName;
+		var nav = typeof navigator !== 'undefined' ? String(navigator.userAgent || 'chrome').toLowerCase() : 'chrome';
+		navigator_appName = typeof navigator !== 'undefined' ? (navigator.appName || 'Netscape') : 'Netscape';
 	}
 	else
 	{
