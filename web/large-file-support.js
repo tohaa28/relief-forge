@@ -39,7 +39,7 @@ export function planDiagnosticBatches(contours, mapping=[],limit=MAX_DIAGNOSTIC_
     split,skipped,covered:contours.length-skipped.length};
 }
 export const isSupportedDrop=file=>
-  !!file&&/\.(eps|epsf|epsi|ps|svg|json)$/i.test(String(file.name||''));
+  !!file&&/\.(pdf|eps|epsf|epsi|ps|svg|json)$/i.test(String(file.name||''));
 export function droppedFiles(event){
   const f=event?.dataTransfer?.files;
   return f?.length?[...f].filter(isSupportedDrop):[];
