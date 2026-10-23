@@ -36,7 +36,7 @@
 1. [AGENTS.md](../AGENTS.md) — обязательные правила.
 2. **Этот файл** — моментальный актуальный handoff, команды продолжения.
 3. [История релизов alpha.1–alpha.33](history/RELEASE_CHRONICLE.md) — что было сделано по версиям/PR.
-4. [Реестр неудач F-001–F-022](history/FAILURE_REGISTER.md) — симптомы, неверные методы, первопричины и проверки.
+4. [Реестр неудач F-001–F-024](history/FAILURE_REGISTER.md) — симптомы, неверные методы, первопричины и проверки.
 5. [Алгоритмы и технические решения](history/METHODS_AND_DECISIONS.md) — границы, order of operations, safe guards, Known limits.
 6. [Протокол ведения журнала](history/WORKLOG_PROTOCOL.md) — обязательный процесс для всех будущих PR.
 7. [Полный исторический HANDOFF.md](../HANDOFF.md) и [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md) — первичная накопленная хронология (старые разделы не равны актуальной версии).
