@@ -61,7 +61,9 @@ test('UI warning supports cancel, explicit override, and keeps EPS filename/hist
   assert.match(html,/Сохранить EPS всё равно/);
   assert.match(app,/if\(decision.action==='warn'\)\{showEpsSaveWarning\(decision\);return;\}/);
   assert.match(app,/epsSaveCandidate\(doc,curvePreview,readEpsSaveSettings\(\)\)/);
-  assert.match(app,/if\(!fresh.autoApply\|\|!applyUnifiedChanges\(\)\)/);
+  assert.match(app,/if\(!fresh.autoApply\)/);
+  assert.match(app,/precomputed=prepareEpsOutput\(fresh.document\)/);
+  assert.match(app,/if\(!applyUnifiedChanges\(\)\)/);
   assert.match(app,/planDiagnosticBatches\(samples,samples\.map/);
   assert.match(app,/plan\.batches\.length===1&&!plan\.partial/);
   assert.match(app,/if\(!plan\.batches\.length\|\|uncheckedContours\|\|plan\.skipped\.length\)/);
