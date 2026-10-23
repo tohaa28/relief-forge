@@ -142,6 +142,7 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
   if(!Array.isArray(document?.paths))throw Error('Документ не содержит векторных объектов');
   const doc=structuredClone(document),pathCount=doc.paths.length;
   const selected=indices?new Set(indices):null;
+  const normalizationCandidates=new Set(doc.paths.filter((_,i)=>!selected||selected.has(i)));
   const geometry=doc.paths.map((p,i)=>isSimpleColor(p)&&(!selected||selected.has(i))?
     sampledGeometry(p,tolerance):null);
   const parent=doc.paths.map((_,i)=>i);
@@ -189,7 +190,7 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
           artwork:'<path d="'+d+'" fill="none" stroke="#34465b" stroke-width="0.07" fill-rule="evenodd"/>'
         },holes:welded.holes,vertices:welded.vertices};
       }else out=asCompound(group);
-      replacements.set(ids[0],out.path);
+      replacements.set(ids[0],out.path);normalizationCandidates.add(out.path);
       for(const i of ids.slice(1))drop.add(i);
       mergedObjects+=ids.length-1;removedExact+=out.removedExact;
       if(out.welded){weldedGroups++;holes+=out.holes||0;flattenedVertices+=out.vertices||0;}
@@ -203,7 +204,7 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
   let normalizedObjects=0;
   for(let i=0;i<doc.paths.length;i++){
     const path=doc.paths[i];
-    if(!filledEligible(path)||isUnchangedUnion(path))continue;
+    if(!normalizationCandidates.has(path)||!filledEligible(path)||isUnchangedUnion(path))continue;
     const parts=sampledGeometry(path,tolerance)?.parts;
     if(!parts||parts.length<2||parts.some(part=>!part.closed))continue;
     try{

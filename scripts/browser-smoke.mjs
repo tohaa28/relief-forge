@@ -12,11 +12,13 @@ try{
   await page.goto('http://localhost:'+(process.env.PORT||8080));
   await page.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
   // Actual EPS worker -> Ghostscript/MuPDF or recognised recovery -> UI/WASM.
+  const importStarted=performance.now();
   await page.locator('#file').setInputFiles(process.env.SMOKE_EPS||'tests/fixtures/eps/corel-unpainted.eps');
   await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'),{},{timeout:120000});
   await page.waitForFunction(()=>document.querySelector('#busy').hidden);
   assert.ok(await page.locator('#geometry [data-path]').count());
   assert.equal(await page.locator('#mascot-welcome').isVisible(),false);
+  console.log(JSON.stringify({epsImportAndProcessingMs:Math.round(performance.now()-importStarted)}));
   console.log('EPS import status:',await page.locator('#status').textContent());
   if(process.env.SMOKE_EPS){
     assert.ok(!(await page.locator('#issues').textContent()).includes('Открытый контур'));
@@ -75,6 +77,18 @@ try{
     assert.deepEqual(bad,[],'toolbar geometry at width '+width);
   }
   await page.setViewportSize({width:1440,height:1000});
+  for(const [id,expected] of [['zoom-in','M5 12h14 M12 5v14'],['zoom-out','M5 12h14']]){
+    const icon=page.locator('#'+id+' > svg.zoom-symbol');
+    assert.equal(await icon.count(),1);assert.equal(await icon.locator('path').getAttribute('d'),expected);
+    assert.equal(await page.locator('#'+id+' img').count(),0);
+  }
+  const zoomWidth=await page.locator('#canvas').getAttribute('viewBox');
+  await page.locator('#zoom-in').click();
+  assert.notEqual(await page.locator('#canvas').getAttribute('viewBox'),zoomWidth);
+  await page.locator('#zoom-out').click();
+  const restored=(await page.locator('#canvas').getAttribute('viewBox')).split(/\s+/).map(Number),original=zoomWidth.split(/\s+/).map(Number);
+  restored.forEach((n,i)=>assert.ok(Math.abs(n-original[i])<=Math.max(1,Math.abs(original[i]))*2e-6,'zoom +/- restores view'));
+  console.log('PASS complete vector +/- signs and real zoom inverse controls');
   // Source-owned large closed contour forces batch splitting, without private artwork.
   const points=Array.from({length:2444},(_,i)=>[110+100*Math.cos(i*2*Math.PI/2444),110+100*Math.sin(i*2*Math.PI/2444)]);
   const svg='<svg xmlns="http://www.w3.org/2000/svg" width="220mm" height="220mm" viewBox="0 0 220 220"><path fill="none" stroke="black" d="M '+points.map(p=>p.join(' ')).join(' L ')+' Z"/></svg>';

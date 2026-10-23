@@ -5,14 +5,16 @@ const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
 const css=readFileSync(new URL('../web/style.css',import.meta.url),'utf8');
 const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
 
-test('zoom buttons have exactly one visible icon and retain accessible labels',()=>{
- for(const [id,name] of [['zoom-in','zoom_plus.png'],['zoom-out','zoom_minus.png']]){
-  const tag=html.match(new RegExp('<button id="'+id+'"[^>]*>[^<]*<img[^>]+></button>'))?.[0];
-  assert.ok(tag,'single icon-only button '+id);assert.ok(tag.includes(name));
-  assert.match(tag,/aria-label="[^"]+"/);
+test('zoom buttons use complete centered vector signs rather than truncated raster crops',()=>{
+ for(const [id,d] of [['zoom-in','M5 12h14 M12 5v14'],['zoom-out','M5 12h14']]){
+  const tag=html.match(new RegExp('<button id="'+id+'"[\\s\\S]*?</button>'))?.[0];
+  assert.ok(tag,'zoom button '+id);assert.match(tag,/aria-label="[^"]+"/);
+  assert.match(tag,/viewBox="0 0 24 24"/);assert.ok(tag.includes('d="'+d+'"'));
+  assert.doesNotMatch(tag,/<img|zoom_plus\.png|zoom_minus\.png/);
  }
  assert.match(css,/#zoom-in,#zoom-out\{width:42px;min-width:42px/);
 });
+
 test('information button retains icon when disclosure label changes',()=>{
  assert.match(html,/id="toggle-info"[^>]*><svg class="tool-icon"[^>]*>/);
  assert.match(html,/id="toggle-info-label"/);
