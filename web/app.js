@@ -577,7 +577,88 @@ $('fonts').onchange=async e=>{try{const files=[...e.target.files];if(files.reduc
 $('demo-eps').onclick=async()=>{try{const response=await fetch('examples/curves-text-clip.eps');if(!response.ok)throw Error('Не удалось загрузить пример');importEps(new Uint8Array(await response.arrayBuffer()),'curves-text-clip.eps');}catch(e){status(e.message);}};
 $('heal-copy').onclick=()=>{try{const ids=[...selected].filter(i=>doc.paths[i].kind!=='image');if(!ids.length)throw Error('Выделите импортированные векторы');const tol=Number($('tolerance').value);if(!Number.isFinite(tol)||tol<1e-6||tol>1000)throw Error('Укажите допуск от 0.000001 до 1000 мм');const copies=ids.flatMap(i=>sampledContours(doc.paths[i],tol));checkpoint();const start=doc.paths.length;doc.paths.push(...copies);selected=new Set(copies.map((_,i)=>start+i));changed('create-healing-copy');status(`Создано ${copies.length} полилиний, допуск ${tol} мм. Исходные кривые сохранены отдельными объектами.`);}catch(e){status(e.message);}};
 $('export').onclick=()=>{download('relief-forge.svg',exportDocument(doc),'image/svg+xml');record('export-svg');};
-$('export-eps').onclick=()=>{try{const eps=exportEps(doc);const resultName=epsResultFilename(doc.sourceFileName||doc.epsImport?.name||'relief-forge.eps');download(resultName,eps,'application/postscript');updateFileHistory({exportName:resultName,exportAt:new Date().toISOString()});record('export-eps',{name:resultName,source:doc.sourceFileName||null,paths:doc.paths.length,bytes:eps.length});status('EPS сохранён: подтверждённые бесцветные кривые'+(curvePreview?' (неприменённый предпросмотр не экспортирован)':currentComparison()?' (применённые изменения включены)':'')+'. Для импорта откройте в ArtCAM.');}catch(e){status(e.message);record('eps-export-error',{message:e.message});}};
+function readEpsSaveSettings(){
+  return {diagnosticTolerance:Number($('tolerance').value),
+    smoothingAmount:Number($('smoothing-amount').value),
+    optimizationTolerance:Number($('optimization-tolerance').value)};
+}
+function exportConfirmedEps({autoApplied=false,verified=false,overridden=false,remainingIssues=null}={}){
+  try{
+    const eps=exportEps(doc);
+    const resultName=epsResultFilename(doc.sourceFileName||doc.epsImport?.name||'relief-forge.eps');
+    download(resultName,eps,'application/postscript');
+    const suffix=overridden?' · сохранено с предупреждением':autoApplied?' · автоисправления применены':' · проверено';
+    updateFileHistory({exportName:resultName,exportAt:new Date().toISOString(),status:'EPS экспортирован'+suffix});
+    record('export-eps',{name:resultName,source:doc.sourceFileName||null,paths:doc.paths.length,
+      bytes:eps.length,autoApplied,verified,overridden,remainingIssues});
+    status('EPS сохранён: '+resultName+
+      (autoApplied?' · изменения применены автоматически, Undo доступен.':
+        overridden?' · по вашему подтверждению, неприменённый предпросмотр исключён.':
+        verified?' · ошибок узлов не обнаружено.':' · экспортирована подтверждённая геометрия.'));
+  }catch(error){record('eps-export-error',{message:error.message});status('Не удалось сохранить EPS: '+error.message);}
+}
+function showEpsSaveWarning(decision,extra=''){
+  const dialog=$('eps-save-warning');
+  $('eps-save-warning-message').textContent=epsSaveWarningText(decision)+(extra?'\n'+extra:'')+
+    '\nСохранить EPS с текущими узлами или вернуться к редактированию?';
+  record('eps-save-warning',{count:decision.count,complete:decision.verified,reason:decision.reason});
+  if(!dialog.open)dialog.showModal();
+  $('eps-save-return').focus();
+}
+$('eps-save-return').onclick=()=>{
+  $('eps-save-warning').close();
+  record('eps-save-return');status('Сохранение отменено. Продолжите редактировать точки и повторите проверку.');
+};
+$('eps-save-anyway').onclick=()=>{
+  if(!$('eps-save-warning').open)return;
+  $('eps-save-warning').close();
+  record('eps-save-confirmed-with-warnings');
+  exportConfirmedEps({overridden:true,verified:false});
+};
+$('eps-save-warning').addEventListener('cancel',()=>{
+  record('eps-save-return');status('Сохранение отменено.');
+});
+function saveEpsWithPreflight(){
+  if(busy||$('eps-save-warning').open)return;
+  clearTimeout(settingsTimeout);
+  if(!ready){
+    showEpsSaveWarning(epsSaveDecision({complete:false,fullScope:false,issueCount:null},false),
+      'Движок диагностики ещё не готов.');return;
+  }
+  if(drag||draft.length){status('Завершите редактирование текущего сегмента перед сохранением EPS.');return;}
+  const candidate=epsSaveCandidate(doc,curvePreview,readEpsSaveSettings());
+  const vectors=candidate.document.paths.filter(p=>p.kind!=='image');
+  if(!vectors.length){
+    showEpsSaveWarning(epsSaveDecision({complete:false,fullScope:false,issueCount:null},false),
+      'В документе нет векторных контуров для проверки.');
+    return;
+  }
+  try{
+    const tolerance=Number($('tolerance').value);
+    if(!Number.isFinite(tolerance)||tolerance<1e-9||tolerance>1000)
+      throw Error('Недопустимый допуск диагностики. Укажите число от 0.000000001 до 1000 мм.');
+    const samples=[];
+    for(const path of vectors)for(const part of sampledContours(path,tolerance))samples.push(part);
+    const numberOfPoints=samples.reduce((total,part)=>total+part.points.length,0);
+    if(!samples.length||numberOfPoints>2000){
+      showEpsSaveWarning(epsSaveDecision({complete:false,fullScope:false,issueCount:null},candidate.autoApply),
+        numberOfPoints>2000?'Для полной проверки более 2000 точек. Диагностика не может подтвердить отсутствие дефектов.':
+          'Векторные контуры не удалось подготовить к проверке.');
+      return;
+    }
+    const id=++sequence,input=packedInput(samples,tolerance,0);
+    pending={id,epsSavePreflight:true,autoApply:candidate.autoApply,contours:samples.length};
+    record('eps-save-preflight-start',{contours:samples.length,nodes:numberOfPoints,
+      autoApplyCandidate:candidate.autoApply,scope:'all-vectors'});
+    lock(true,{coverCanvas:false});
+    $('busy-label').textContent='Проверка всех точек перед сохранением EPS…';
+    worker.postMessage({id,input});
+  }catch(error){
+    showEpsSaveWarning(epsSaveDecision({complete:false,fullScope:false,issueCount:null},candidate.autoApply),
+      'Не удалось проверить EPS: '+error.message);
+  }
+}
+$('export-eps').onclick=saveEpsWithPreflight;
 $('log').onclick=()=>download('relief-forge-session.jsonl',journal.map(x=>JSON.stringify(x)).join('\n'),'application/x-ndjson');
 $('demo').onclick=()=>{activeHistoryId=null;checkpoint();doc={format:'relief-forge',version:1,width:150,height:100,paths:[{closed:true,points:[[10,10],[50,50],[10,50],[50,10]]},{closed:true,points:[[70,10],[110,10],[110,40],[70,40]]},{closed:true,points:[[110,40],[110,10],[70,10],[70,40]]},{closed:false,points:[[10,70],[30,70],[30.003,70],[50,70]]},{closed:false,points:[[50.005,70],[80,70],[80,90]]}]};selected.clear();changed('load-demo');fit();};
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
