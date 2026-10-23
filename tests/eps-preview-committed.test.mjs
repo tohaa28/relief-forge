@@ -36,14 +36,21 @@ test('smoothing changes Bezier control handles even without deleting an anchor, 
   assert.doesNotMatch(exportEps(preview.document),forbidden,'applied EPS also remains paintless');
 });
 
-test('automatic preview has exactly one geometry commit button and EPS export does not auto-commit',()=>{
+test('EPS save checks all vectors before applying preview; Apply remains a manual alternative',()=>{
   assert.match(html,/<button id="apply-changes" class="primary" disabled>[^]*?Применить изменения<\/button>/);
   assert.match(app,/\$\('apply-changes'\)\.onclick=applyUnifiedChanges/);
   assert.match(app,/function applyUnifiedChanges\(\)/);
   assert.match(app,/checkpoint\(baseline\);doc=clone\(pv\.result\)/);
-  const exportHandler=app.slice(app.indexOf("$('export-eps').onclick="),app.indexOf("$('log').onclick="));
-  assert.ok(exportHandler.startsWith("$('export-eps').onclick=()=>{try{const eps=exportEps(doc);"),
-    'EPS export must operate on committed doc, never block on preview or use curvePreview.result');
-  assert.ok(!exportHandler.includes('curvePreview.result')&&!exportHandler.includes('pv.result'));
-  assert.ok(!exportHandler.includes('Примените или отмените')&&!exportHandler.includes('Сначала примените'));
+  assert.match(app,/\$\('export-eps'\)\.onclick=saveEpsWithPreflight/);
+  assert.match(app,/for\(const path of vectors\)for\(const part of sampledContours\(path,tolerance\)\)/);
+  assert.match(app,/epsSaveCandidate\(doc,curvePreview,readEpsSaveSettings\(\)\)/);
+  assert.match(app,/epsSaveDecision\(report,task.autoApply\)/);
+  assert.match(app,/decision.action==='apply-and-save'/);
+  assert.match(app,/exportConfirmedEps\(\{autoApplied:decision.action==='apply-and-save',verified:true,remainingIssues:0\}\)/);
+  assert.match(html,/id="eps-save-warning"/);
+  assert.match(html,/id="eps-save-anyway"/);
+  assert.match(html,/id="eps-save-return"/);
+  assert.match(app,/exportConfirmedEps\(\{overridden:true,verified:false\}\)/);
+  assert.doesNotMatch(app,/exportEps\(curvePreview\.result\)/,
+    'export after a pending preview must pass through a validated commit or save the original');
 });
