@@ -1,6 +1,7 @@
 import {geometryCommands} from './eps-export.js';
 import {sampledContours} from './rich-svg.js';
 import {filledPathsOverlap,unionFilledPaths} from './polygon-union.js';
+import {isUnchangedUnion} from './union-refit.js';
 // Clipper performs true area union for *closed filled* Bézier polygons,
 // including holes. Unfilled strokes retain their original cubic path data.
 // No paint-mode conversion or joining unlike-colored artwork.
@@ -182,7 +183,7 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
         const paint=structuredClone(group[0].paint);
         paint.fillRule='evenodd';
         out={welded:true,removedExact:0,path:{
-          kind:'vector',commands:welded.commands,offset:[0,0],
+          kind:'vector',unionFlattened:true,commands:welded.commands,offset:[0,0],
           points:welded.commands.filter(c=>c[0]!=='Z').map(c=>c.slice(-2)),
           closed:true,paint,
           artwork:'<path d="'+d+'" fill="none" stroke="#34465b" stroke-width="0.07" fill-rule="evenodd"/>'
@@ -202,7 +203,7 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
   let normalizedObjects=0;
   for(let i=0;i<doc.paths.length;i++){
     const path=doc.paths[i];
-    if(!filledEligible(path))continue;
+    if(!filledEligible(path)||isUnchangedUnion(path))continue;
     const parts=sampledGeometry(path,tolerance)?.parts;
     if(!parts||parts.length<2||parts.some(part=>!part.closed))continue;
     try{
@@ -211,7 +212,7 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
       const paint=structuredClone(path.paint);
       paint.fillRule='evenodd';
       const commands=union.commands,d=commands.map(c=>c.join(' ')).join(' ');
-      doc.paths[i]={kind:'vector',commands,offset:[0,0],
+      doc.paths[i]={kind:'vector',unionFlattened:true,commands,offset:[0,0],
         points:commands.filter(c=>c[0]!=='Z').map(c=>c.slice(-2)),closed:true,
         paint,artwork:'<path d="'+d+'" fill="none" stroke="#34465b" stroke-width="0.07" fill-rule="evenodd"/>'};
       normalizedObjects++;holes+=union.holes;flattenedVertices+=union.vertices;
