@@ -1,0 +1,104 @@
+import './vendor/clipper.js';
+import {sampledContours} from './rich-svg.js';
+const C=globalThis.ClipperLib;
+if(!C?.Clipper)throw Error('Clipper 6.4.2.2 is not available');
+
+const square=ring=>{
+  let a=0;
+  for(let i=0;i<ring.length;i++){
+    const p=ring[i],q=ring[(i+1)%ring.length];a+=p.X*q.Y-q.X*p.Y;
+  }
+  return Math.abs(a)/2;
+};
+const flattenTolerance=tolerance=>Math.max(.0002,Math.min(.005,tolerance*.05));
+const toScale=tolerance=>Math.min(200000,Math.max(10000,
+  Math.round(10/flattenTolerance(tolerance))));
+const polyTree=(paths,fill=C.PolyFillType.pftNonZero)=>{
+  const worker=new C.Clipper(C.Clipper.ioStrictlySimple);
+  if(!worker.AddPaths(paths,C.PolyType.ptSubject,true))return null;
+  const result=new C.PolyTree();
+  if(!worker.Execute(C.ClipType.ctUnion,result,fill,fill))return null;
+  return result;
+};
+function treeContours(tree){
+  const out=[];
+  function visit(node){
+    for(const child of node.Childs()){
+      const ring=child.Contour();
+      if(ring.length>=3)out.push({points:ring,hole:child.IsHole()});
+      visit(child);
+    }
+  }
+  visit(tree);
+  return out;
+}
+function ringsFromPath(path,tolerance,scale){
+  const sampled=sampledContours(path,flattenTolerance(tolerance));
+  const out=[];
+  let points=0;
+  for(const part of sampled){
+    if(!part.closed)throw Error('Объединение требует замкнутых контуров');
+    const quantized=[];
+    for(const vertex of part.points){
+      if(!Array.isArray(vertex)||!Number.isFinite(vertex[0])||!Number.isFinite(vertex[1]))
+        throw Error('Объединение: неверная точка кривой');
+      const X=Math.round(vertex[0]*scale),Y=Math.round(vertex[1]*scale);
+      if(Math.max(Math.abs(X),Math.abs(Y))>1e12)throw Error('Координаты слишком велики для точного объединения');
+      if(!quantized.length||X!==quantized.at(-1).X||Y!==quantized.at(-1).Y)
+        quantized.push({X,Y});
+      if(++points>35000)throw Error('Контур слишком сложен для булева объединения');
+    }
+    if(quantized.length>1&&quantized[0].X===quantized.at(-1).X&&
+       quantized[0].Y===quantized.at(-1).Y)quantized.pop();
+    if(quantized.length>=3&&square(quantized)>1)out.push(quantized);
+  }
+  return out;
+}
+function normalizePath(path,tolerance,scale){
+  const rings=ringsFromPath(path,tolerance,scale);
+  if(!rings.length)throw Error('Нечего объединять: замкнутые области пусты');
+  const rule=path.paint?.fillRule==='evenodd'?C.PolyFillType.pftEvenOdd:C.PolyFillType.pftNonZero;
+  const result=polyTree(rings,rule);
+  if(!result)throw Error('Не удалось нормализовать заливки или отверстия');
+  return treeContours(result).map(p=>p.points);
+}
+function runUnion(polys,fill=C.PolyFillType.pftNonZero){
+  const tree=polyTree(polys,fill);
+  if(!tree)throw Error('Clipper: объединение не построено');
+  return treeContours(tree);
+}
+function positiveIntersection(normalizedA,normalizedB){
+  const c=new C.Clipper();
+  c.AddPaths(normalizedA,C.PolyType.ptSubject,true);
+  c.AddPaths(normalizedB,C.PolyType.ptClip,true);
+  const tree=new C.PolyTree();
+  if(!c.Execute(C.ClipType.ctIntersection,tree,
+      C.PolyFillType.pftNonZero,C.PolyFillType.pftNonZero))return false;
+  return treeContours(tree).some(({points,hole})=>!hole&&square(points)>2);
+}
+export function unionFilledPaths(paths,{tolerance=.01}={}){
+  if(!Array.isArray(paths)||!paths.length)throw Error('Нет объектов для булева объединения');
+  const scale=toScale(tolerance);
+  const normalized=paths.map(p=>normalizePath(p,tolerance,scale));
+  const polys=normalized.flat();
+  if(polys.reduce((n,p)=>n+p.length,0)>80000)throw Error('Слишком много точек для безопасного Union');
+  const contours=runUnion(polys);
+  if(!contours.length)throw Error('Объединение дало пустой контур');
+  let commands=[],holes=0,vertices=0;
+  for(const item of contours){
+    const ring=item.points;
+    if(ring.length<3)continue;
+    const world=ring.map(p=>[p.X/scale,p.Y/scale]);
+    commands.push(['M',...world[0]],...world.slice(1).map(p=>['L',...p]),['Z']);
+    holes+=Number(item.hole);vertices+=ring.length;
+  }
+  return {commands,holes,vertices,contours:contours.length,
+    flattenToleranceMm:flattenTolerance(tolerance),
+    quantizationMm:1/scale};
+}
+export function filledPathsOverlap(first,second,{tolerance=.01}={}){
+  const scale=toScale(tolerance);
+  return positiveIntersection(normalizePath(first,tolerance,scale),
+    normalizePath(second,tolerance,scale));
+}
+export const polygonUnionEngine='Clipper 6.4.2.2';
