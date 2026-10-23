@@ -120,3 +120,8 @@ alpha.34 observed verification: 184 JS PASS, local Chromium/private EPS 0 false 
 
 ### alpha.35 node inflation block (implemented, not yet published)
 - Guard real editable nodes after Union; rollback optional Boolean result if it increases node count, explicit status. EPS output numerical commands checked against cached AFTER before download. Source user EPS not presently uploaded; real-specific import/export roundtrip verification remains outstanding.
+
+### 2026-10-23 alpha.35 observed release states
+- icon layout and committed filename: implemented + JS/browser tested + GitHub Pages published; Windows Firefox user acceptance pending.
+- EPS AFTER node-count growth protection and serialized command equality: implemented + synthetic EPS roundtrip JS/browser tested + published. Customer-specific EPS/result bytes unavailable in this session; user-verified resolution not claimed.
+- Tests: 193/193 JS; 15/15 Rust; compiled WASM ABI; Chromium actual Worker/WASM; PR CI #39961633180; production build/deploy #39961788762 SUCCESS; functional merge aba78e90be219aae93769fc84f9e78d6022a95c2.

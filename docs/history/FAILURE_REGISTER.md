@@ -222,3 +222,6 @@
 
 ### F-026 incident 2026-10-23: Ubuntu apt mirror delay
 - Main CI #39956907984 failed at Playwright install-deps after 8 minutes, while downloading Ubuntu fonts/glib packages. Confirmed action timeout, not application browser failure. The dependency timeout has been increased to 20m; no test skipped. New PR CI must verify this workaround.
+
+### F-028 final alpha.35 status (2026-10-23)
+- PR #44 merged, CI #39961633180 passed 193 JS, 15 Rust, WASM, real Chromium smoke; main build/deploy #39961788762 SUCCESS. This verifies synthetic and application smoke paths, not the absent private customer EPS output. If user still sees extra nodes, require exact pair before changing interpolation again; other importers may translate PostScript paths differently.
