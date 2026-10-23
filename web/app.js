@@ -1,22 +1,23 @@
-import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.30';
+import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.31';
 import {issueViewBox} from './issue-focus.js';
 import {visibleHealthyAnchors,circlePath} from './vector-points.js';
-import {screenUnitsPerPixel,renderIssueMarkers,issueWithinContourBounds} from './issue-markers.js?v=0.2.0-alpha.30';
-import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.30';
-import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.30';
+import {screenUnitsPerPixel,renderIssueMarkers,issueWithinContourBounds} from './issue-markers.js?v=0.2.0-alpha.31';
+import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.31';
+import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.31';
 import {packedInput} from './auto-repair.js';
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
-import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.30';
-import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.30';
-import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.30';
-import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.30';
-import {planDiagnosticBatches,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.30';
-import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.30';
-import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.30';
-import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.30';
-import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.30';
-import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.30';
+import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.31';
+import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.31';
+import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.31';
+import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.31';
+import {planDiagnosticBatches,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.31';
+import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.31';
+import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.31';
+import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.31';
+import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.31';
+import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.31';
+import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.31';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 const nodeCursor=symbol=>{const svg='<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26"><circle cx="13" cy="13" r="11" fill="white" stroke="#173946" stroke-width="1.7"/><text x="13" y="19" text-anchor="middle" fill="#007e79" font-family="Arial" font-weight="bold" font-size="19">'+symbol+'</text></svg>';return 'url("data:image/svg+xml,'+encodeURIComponent(svg)+'") 13 13, crosshair';};
 const plusCursor=nodeCursor('+'),minusCursor=nodeCursor('−');
@@ -30,6 +31,10 @@ let diagnosticGeneration=0,readGeneration=0,readActive=false,openingFile=false,p
 const historyStorage=(()=>{try{return window.localStorage}catch{return null}})();
 let fileHistory=readHistory(historyStorage),activeHistoryId=null;
 const journal=[];const clone=v=>structuredClone(v);
+let workspaceHealth=null,workspaceChecks=0,workspaceCheckTimer=null;
+const displayErrors=[];
+window.addEventListener('error',e=>{displayErrors.push(String(e.message||'Unknown error'));if(displayErrors.length>25)displayErrors.shift();});
+window.addEventListener('unhandledrejection',e=>{displayErrors.push(String(e.reason?.message||e.reason||'Unhandled rejection'));if(displayErrors.length>25)displayErrors.shift();});
 function record(action,detail={}){journal.push({at:new Date().toISOString(),action,detail});}
 function status(s){$('status').textContent=String(s).split('\n')[0];$('status').title=s;}
 function progressStage(stage,percent,detail=''){
@@ -95,6 +100,72 @@ function appendMarkup(parent,text){
   }
   for(const child of parsed.documentElement.children)parent.append(document.importNode(child,true));
 }
+function workspaceScan({attemptRepair=false,manual=false}={}){
+  if(!doc.paths.length&&!doc.sourceFileName&&!doc.pdfImport&&!doc.epsImport){
+    // Initial empty canvas is not an import failure.
+    if(manual)status('Документ ещё не открыт. Рабочее поле готово к импорту.');
+    return null;
+  }
+  const parts={canvas:$('canvas'),workspace:$('drop-target'),geometry:$('geometry'),
+    mascot:$('mascot-welcome'),overlay:$('drop-overlay'),
+    documentPaths:doc.paths.length,documentLoaded:true};
+  let health=inspectWorkspace(parts),repairs=[];
+  if(attemptRepair&&!health.ok){
+    repairs=recoverWorkspace(health,parts);
+    if(health.issues.includes('empty-svg')||health.issues.includes('invalid-geometry-bounds')){
+      // Rebuild only from existing document geometry, never re-import.
+      render();
+      repairs.push('redraw');
+    }
+    health=inspectWorkspace(parts);
+  }
+  workspaceHealth=health;
+  workspaceChecks++;
+  const state=$('workspace-health-state');
+  state.textContent=health.ok?'Рабочее поле: проверено':'Рабочее поле: '+shortWorkspaceDiagnosis(health);
+  state.hidden=health.ok&&!manual;
+  state.dataset.health=health.ok?'ok':'warning';
+  $('workspace-health-report').value=safeWorkspaceReport(health,{
+    version:'0.2.0-alpha.31',source:doc.sourceFileName||'',
+    errors:displayErrors});
+  record('workspace-health',{ok:health.ok,issues:health.issues,attempts:repairs,
+    count:health.elementCount,rect:health.canvasRect,bbox:health.geometryBox});
+  if(!health.ok)status('Проверка рабочего поля: '+shortWorkspaceDiagnosis(health)+
+    (repairs.length?' · выполнено: '+repairs.join(', '):'')+
+    '. Откройте «Проверка рабочего поля» для отчёта.');
+  else if(repairs.length)status('Отображение рабочего поля восстановлено: '+repairs.join(', '));
+  return health;
+}
+function scheduleWorkspaceCheck(){
+  clearTimeout(workspaceCheckTimer);
+  // Styles and images can settle after the first layout; check again once.
+  workspaceCheckTimer=setTimeout(()=>{
+    if(openingFile||readActive||epsImportActive)return;
+    const result=workspaceScan({attemptRepair:true});
+    if(result&&!result.ok)workspaceCheckTimer=setTimeout(()=>{
+      if(!openingFile&&!readActive&&!epsImportActive)
+        workspaceScan({attemptRepair:true});
+    },850);
+  },160);
+}
+$('workspace-check').onclick=()=>{
+  const health=workspaceScan({attemptRepair:true,manual:true});
+  $('workspace-health-report').value=safeWorkspaceReport(health||{
+    ok:true,issues:[],note:'Документ не открыт'},{
+    version:'0.2.0-alpha.31',source:doc.sourceFileName||'',errors:displayErrors});
+  $('workspace-health-dialog').showModal();
+};
+$('workspace-check-repair').onclick=()=>{
+  workspaceScan({attemptRepair:true,manual:true});
+};
+$('workspace-check-copy').onclick=async()=>{
+  const value=$('workspace-health-report').value;
+  try{await navigator.clipboard.writeText(value);status('Отчёт о рабочем поле скопирован.');}
+  catch{ $('workspace-health-report').focus();$('workspace-health-report').select();
+    status('Скопируйте выделенный диагностический отчёт клавишами Ctrl+C.');}
+};
+$('workspace-check-close').onclick=()=>$('workspace-health-dialog').close();
+
 function updateMascot(){return syncWorkspaceMascot($('mascot-welcome'),$('drop-target'),{hasDocument:Boolean(doc.paths.length||doc.sourceFileName||doc.epsImport||doc.pdfImport),importing:openingFile});}
 function render(){
   document.body.classList.toggle('curve-editing',curveEditing());
@@ -796,10 +867,10 @@ $('new').onclick=()=>{activeHistoryId=null;checkpoint();doc={format:'relief-forg
 for(const key of ['width','height'])$(key).onchange=()=>{const v=Number($(key).value);if(v>0&&v<1e6){checkpoint();doc[key]=v;changed('resize-sheet');fit();}else render();};
 $('save').onclick=()=>{record('save-project');download('doktor-uzelkov.rf.json',JSON.stringify({...doc,journal,history:{past,future}},null,2));};
 function stopEps({destroy=false}={}){const picker=$('pdf-page-picker');if(picker?.open)picker.close();epsImportActive=false;clearTimeout(epsTimer);epsTimer=null;if(epsWorker){epsWorker.onmessage=null;epsWorker.onerror=null;}if(destroy){epsWorker?.terminate();epsWorker=null;}}
-function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);openingFile=false;if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
+function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);openingFile=false;if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();scheduleWorkspaceCheck();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;openingFile=true;updateMascot();if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта '+(/\.pdf$/i.test(name)?'PDF':'EPS')+'…';record('vector-import-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.30',import.meta.url));
+  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.31',import.meta.url));
   progressStage(/\.pdf$/i.test(name)?'Импорт PDF: подготовка MuPDF':'Импорт EPS: подготовка интерпретатора',9);
   const started=performance.now();
   const fail=message=>{stopEps({destroy:true});openingFile=false;updateMascot();lock(false);status(message);$('import-report').textContent='Не удалось открыть '+(/\.pdf$/i.test(name)?'PDF':'EPS')+': '+message;record('vector-import-error',{name,message});updateFileHistory({status:'Ошибка открытия: '+String(message).slice(0,180)});};
@@ -1039,4 +1110,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();
 });
-record('session-start',{version:'0.2.0-alpha.30'});renderFileHistory();spawnWorker();fit();
+record('session-start',{version:'0.2.0-alpha.31'});renderFileHistory();spawnWorker();fit();
