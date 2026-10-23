@@ -322,6 +322,7 @@ function spawnWorker(){
     const task=pending;pending=null;
     if(task.largeDiagnostic){task.onResponse(data);return;}
     if(task.epsSavePreflight){
+      progressStage('Сохранение: проверка завершена',100);
       lock(false);
       if(data.error){
         record('eps-save-preflight-error',{message:data.error});
@@ -865,8 +866,8 @@ $('eps-save-anyway').onclick=()=>{
 $('eps-save-warning').addEventListener('cancel',()=>{
   record('eps-save-return');status('Сохранение отменено.');
 });
-function saveEpsWithPreflight(){
-  if(busy||$('eps-save-warning').open)return;
+async function saveEpsWithPreflight(){
+  if(busy||readActive||$('eps-save-warning').open)return;
   clearTimeout(settingsTimeout);
   if(!ready){
     showEpsSaveWarning(epsSaveDecision({complete:false,fullScope:false,issueCount:null},false),
@@ -877,40 +878,86 @@ function saveEpsWithPreflight(){
   const vectors=candidate.document.paths.filter(p=>p.kind!=='image');
   if(!vectors.length){
     showEpsSaveWarning(epsSaveDecision({complete:false,fullScope:false,issueCount:null},false),
-      'В документе нет векторных контуров для проверки.');
-    return;
+      'В документе нет векторных контуров для проверки.');return;
   }
+  const generation=++diagnosticGeneration;
+  lock(true,{coverCanvas:false});
   try{
     const tolerance=Number($('tolerance').value);
     if(!Number.isFinite(tolerance)||tolerance<1e-9||tolerance>1000)
       throw Error('Недопустимый допуск диагностики. Укажите число от 0.000000001 до 1000 мм.');
     const samples=[];
     let uncheckedContours=0;
-    for(const path of vectors){
-      const parts=sampledContours(path,tolerance);
-      if(!parts.length||parts.some(part=>!Array.isArray(part.points)||part.points.length<2))uncheckedContours++;
-      else samples.push(...parts);
+    for(let k=0;k<vectors.length;k++){
+      if(generation!==diagnosticGeneration)return;
+      try{
+        const parts=sampledContours(vectors[k],tolerance);
+        if(!parts.length||parts.some(part=>!Array.isArray(part.points)||part.points.length<2))
+          uncheckedContours++;
+        else samples.push(...parts);
+      }catch(error){
+        uncheckedContours++;record('eps-save-unreadable-path',{path:k,message:error.message});
+      }
+      if((k+1)%4===0||k===vectors.length-1){
+        progressStage('Подготовка EPS перед сохранением',5+30*(k+1)/vectors.length,
+          (k+1)+' / '+vectors.length+' объектов');
+        await yieldForUi();
+      }
     }
-    const numberOfPoints=samples.reduce((total,part)=>total+part.points.length,0);
-    if(uncheckedContours){
+    if(generation!==diagnosticGeneration)return;
+    const plan=planDiagnosticBatches(samples,samples.map((_,i)=>i));
+    if(!plan.batches.length||uncheckedContours||plan.skipped.length){
+      lock(false);
       showEpsSaveWarning(epsSaveDecision({complete:false,fullScope:false,issueCount:null},candidate.autoApply),
-        'Часть векторных объектов нельзя проверить: '+uncheckedContours+'.');
+        'Часть объектов не удалось проверить: '+(uncheckedContours+plan.skipped.length)+'.');
       return;
     }
-    if(!samples.length||numberOfPoints>2000){
-      showEpsSaveWarning(epsSaveDecision({complete:false,fullScope:false,issueCount:null},candidate.autoApply),
-        numberOfPoints>2000?'Для полной проверки более 2000 точек. Диагностика не может подтвердить отсутствие дефектов.':
-          'Векторные контуры не удалось подготовить к проверке.');
+    record('eps-save-preflight-start',{contours:samples.length,nodes:plan.totalPoints,
+      batches:plan.batches.length,autoApplyCandidate:candidate.autoApply,scope:'all-vectors'});
+    if(plan.batches.length===1&&!plan.partial){
+      const batch=plan.batches[0],id=++sequence;
+      pending={id,epsSavePreflight:true,autoApply:candidate.autoApply,contours:samples.length};
+      progressStage('Проверка всех точек перед сохранением EPS',65,
+        batch.points.toLocaleString('ru-RU')+' точек');
+      worker.postMessage({id,input:packedInput(batch.paths,tolerance,0)});
       return;
     }
-    const id=++sequence,input=packedInput(samples,tolerance,0);
-    pending={id,epsSavePreflight:true,autoApply:candidate.autoApply,contours:samples.length};
-    record('eps-save-preflight-start',{contours:samples.length,nodes:numberOfPoints,
-      autoApplyCandidate:candidate.autoApply,scope:'all-vectors'});
-    lock(true,{coverCanvas:false});
-    $('busy-label').textContent='Проверка всех точек перед сохранением EPS…';
-    worker.postMessage({id,input});
+    // Large documents require multiple independent Rust runs. They find
+    // local errors, but cannot certify crossings between the blocks.
+    let next=0,found=0,failed=false;
+    const dispatch=()=>{
+      if(generation!==diagnosticGeneration)return;
+      if(next===plan.batches.length){
+        lock(false);
+        record('eps-save-partial',{batches:next,nodes:plan.totalPoints,issues:found,failed});
+        showEpsSaveWarning(epsSaveDecision({
+          complete:false,fullScope:false,issueCount:failed?null:found
+        },candidate.autoApply),
+          'Проверено '+next+' блоков и '+plan.totalPoints.toLocaleString('ru-RU')+
+          ' точек. '+(failed?'Часть блоков завершилась ошибкой.':
+            'Найдено минимум '+found+' замечаний. Межблочные пересечения не исключены.'));
+        return;
+      }
+      const batch=plan.batches[next],index=next++,id=++sequence;
+      progressStage('Проверка EPS · блок '+next+' / '+plan.batches.length,
+        35+64*index/plan.batches.length,
+        (plan.batches.slice(0,index).reduce((n,x)=>n+x.points,0)).toLocaleString('ru-RU')+
+        ' / '+plan.totalPoints.toLocaleString('ru-RU')+' точек');
+      pending={id,largeDiagnostic:true,onResponse:data=>{
+        if(generation!==diagnosticGeneration)return;
+        if(data.error||!Array.isArray(data.output?.issues))failed=true;
+        else found+=data.output.issues.length;
+        progressStage('Проверка EPS · блок '+next+' / '+plan.batches.length,
+          35+64*next/plan.batches.length,
+          found+' выявленных замечаний');
+        setTimeout(dispatch,0);
+      }};
+      worker.postMessage({id,input:packedInput(batch.paths,tolerance,0)});
+    };
+    dispatch();
   }catch(error){
+    if(generation!==diagnosticGeneration)return;
+    lock(false);
     showEpsSaveWarning(epsSaveDecision({complete:false,fullScope:false,issueCount:null},candidate.autoApply),
       'Не удалось проверить EPS: '+error.message);
   }
