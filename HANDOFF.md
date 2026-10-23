@@ -1,3 +1,6 @@
+# Active candidate 0.2.0-alpha.39 — curve clearance (not published)
+Base main4557963b514ef46364a47a943026c8fd143ede3c. Branch feat/curve-clearance-alpha39. New independent0.1mm threshold, native L/Q/C world-distance branch/bound + cross-document sweep in cancellable Worker, actual-point witnesses, pink circles under geometry. Adjacent same-subpath joins excluded; one location per native segment pair; same-segment self approach/stroke width not measured. 2Mwork/3000markers/unsupported/ambiguous threshold explicitly incomplete. Existing partial Rust diagnostic/export guards unchanged. Local12unit and actual Chromium clearance threshold/layer/BEFORE-AFTER/EPS regression PASS; real min native clearance97ms source/63ms prior optimized. Full npm/Rust/freshWASM/all browsers CI pending; do not claim published until main build+deploy. Follow docs/DEVELOPMENT_LOG newest entry and preserve original geometry, exact AFTER/EPS, Undo, source-owned fixtures/private file policy.
+
 # CURRENT PUBLISHED: 0.2.0-alpha.38
 
 ## 0.2.0-alpha.38 — covered segment retraces PUBLISHED and LIVE verified (2026-10-23)

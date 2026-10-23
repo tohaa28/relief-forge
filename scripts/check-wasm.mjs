@@ -65,4 +65,5 @@ if(process.env.CI){
  execFileSync('npx',['playwright','install','--only-shell','chromium'],{stdio:'inherit',shell:process.platform==='win32'});
  execFileSync(process.execPath,['scripts/browser-smoke.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-mode-matrix.mjs'],{stdio:'inherit'});
+ execFileSync(process.execPath,['scripts/browser-clearance.mjs'],{stdio:'inherit'});
 }

@@ -104,5 +104,6 @@ test('plain JS startup watchdog reports failure even when app ES modules never i
  assert.match(source,/dataset\.doctorReady==='true'/);
  assert.match(source,/Не удалось завершить загрузку рабочего поля/);
  assert.match(app,/document\.documentElement\.dataset\.doctorReady='true'/);
- assert.match(html,/bootstrap-watchdog\.js\?v=0\.2\.0-alpha\.38/);
+ const version=JSON.parse(readFileSync(new URL('../package.json',import.meta.url),'utf8')).version;
+ assert.ok(html.includes('bootstrap-watchdog.js?v='+version));
 });

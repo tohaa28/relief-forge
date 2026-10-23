@@ -1,0 +1,36 @@
+import {chromium} from 'playwright';
+import {spawn} from 'node:child_process';
+import assert from 'node:assert/strict';
+const port=process.env.CLEARANCE_PORT||'8084',server=spawn(process.execPath,['scripts/serve.mjs'],{env:{...process.env,PORT:port},stdio:['ignore','pipe','inherit']});
+await new Promise((resolve,reject)=>{server.stdout.once('data',resolve);server.once('error',reject);});
+let browser;
+try{
+ browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(process.env.CLEARANCE_URL||'http://localhost:'+port);
+ await page.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
+ assert.equal(await page.locator('#clearance-threshold').inputValue(),'0.1');
+ await page.evaluate(()=>{document.querySelector('#smoothing-amount').value=0;document.querySelector('#optimization-tolerance').value=.001;document.querySelector('#merge-overlaps').checked=false;});
+ const svg='<svg xmlns="http://www.w3.org/2000/svg" width="20mm" height="10mm" viewBox="0 0 20 10"><path fill="none" stroke="black" stroke-width=".01" d="M 1 2 Q 5 .1 9 2"/><path fill="none" stroke="black" stroke-width=".01" d="M 0 1 L 10 1"/></svg>';
+ await page.locator('#file').setInputFiles({name:'clearance.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
+ await page.waitForFunction(()=>document.querySelector('#clearance-status').textContent.includes('проверка завершена'));
+ assert.equal(await page.locator('#clearance-markers circle').count(),1);
+ const geometry=await page.locator('#geometry').innerHTML();
+ assert.equal(await page.evaluate(()=>{const a=document.querySelector('#clearance-markers'),b=document.querySelector('#geometry');return Boolean(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING);}),true);
+ assert.equal(await page.locator('#clearance-markers').getAttribute('pointer-events'),'none');
+ assert.equal(await page.locator('#clearance-markers circle').getAttribute('fill'),'#ff79bb');
+ const value=Number(await page.locator('#clearance-markers circle').getAttribute('data-distance-mm'));assert.ok(Math.abs(value-.05)<1e-7);
+ if(process.env.CLEARANCE_SCREENSHOT)await page.screenshot({path:process.env.CLEARANCE_SCREENSHOT});
+ await page.locator('#clearance-threshold').fill('0.04');await page.locator('#clearance-threshold').dispatchEvent('change');
+ await page.waitForFunction(()=>document.querySelector('#clearance-status').textContent.includes('Сближения < 0.04 мм: 0'));
+ assert.equal(await page.locator('#clearance-markers circle').count(),0);assert.equal(await page.locator('#geometry').innerHTML(),geometry,'measurement must not change vectors');
+ await page.locator('#clearance-threshold').fill('0.06');await page.locator('#clearance-threshold').dispatchEvent('change');
+ await page.waitForFunction(()=>document.querySelector('#clearance-markers circle'));
+ await page.locator('#compare-after').click();await page.waitForFunction(()=>document.querySelector('#clearance-status').textContent.includes('проверка завершена'));
+ assert.equal(await page.locator('#clearance-markers circle').count(),1);
+ await page.locator('#compare-before').click();await page.waitForFunction(()=>document.querySelector('#clearance-status').textContent.includes('проверка завершена'));
+ const pending=page.waitForEvent('download');await page.locator('#export-eps').click();await page.locator('#eps-color-confirm').click();
+ if(await page.locator('#eps-save-warning').isVisible())await page.locator('#eps-save-anyway').click();
+ const download=await pending,stream=await download.createReadStream(),chunks=[];for await(const c of stream)chunks.push(c);const eps=Buffer.concat(chunks).toString();
+ assert.ok(eps.includes('curveto')||eps.includes(' c'));assert.equal(/ff79bb|clearance-markers|data-distance-mm/.test(eps),false);
+ assert.deepEqual(errors,[]);console.log('PASS: native Q clearance .05mm, default/threshold invalidation, background layer, real BEFORE/AFTER, actual EPS excludes markers, no browser errors');
+}finally{await browser?.close();server.kill();}
