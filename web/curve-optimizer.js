@@ -246,7 +246,7 @@ export function optimizeVectorPath(path,tolerance=.01){
   // neutral editor-only outline, EPS export stays paintless.
   const pts=combined.filter(c=>c[0]!=='Z').map(c=>c.slice(-2));
   const d=combined.map(c=>c.join(' ')).join(' ');
-  const out={kind:'vector',commands:combined,offset:[0,0],closed:combined.at(-1)?.[0]==='Z',
+  const out={kind:'vector',paint:path.paint?structuredClone(path.paint):undefined,commands:combined,offset:[0,0],closed:combined.at(-1)?.[0]==='Z',
     points:pts,artwork:'<path d="'+d+'" fill="none" stroke="#34465b" stroke-width="0.07"/>'};
   return {path:out,removed,before:paths.reduce((n,p)=>n+p.segments.length,0),
     after:paths.reduce((n,p)=>n+p.segments.length,0)-removed,maxError};
