@@ -47,7 +47,7 @@ jobs:
       # Keep setup separate from application smoke to identify CI download/apt
       # delays without silently skipping the actual Worker/WASM browser test.
       - name: Install Chromium system dependencies
-        timeout-minutes: 8
+        timeout-minutes: 20
         run: npx playwright install-deps chromium
       - name: Download Chromium headless shell
         timeout-minutes: 8

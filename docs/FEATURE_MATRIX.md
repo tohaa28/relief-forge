@@ -117,3 +117,6 @@ alpha.34 observed verification: 184 JS PASS, local Chromium/private EPS 0 false 
 - Icons: 42px icon-only zoom buttons, preserved info-toggle SVG, wrapping right-panel controls; regression tests + multi-viewport real Chromium check added.
 - Filename: workspace overlay bound to successfully committed document; original basename, tooltip for long names; Undo/Redo and New synchronize without exporting filename into vector.
 - Scope: CSS/HTML/UI only; Rust/WASM, curve quality, privacy/color and EPS export invariants retained. Publication NOT yet verified in this checkpoint.
+
+### alpha.35 node inflation block (implemented, not yet published)
+- Guard real editable nodes after Union; rollback optional Boolean result if it increases node count, explicit status. EPS output numerical commands checked against cached AFTER before download. Source user EPS not presently uploaded; real-specific import/export roundtrip verification remains outstanding.

@@ -1,3 +1,4 @@
+# CURRENT alpha.35 (0.2.0-alpha.35): PR #44, head commits 5b02ead then 9cf559; source guard for excessive EPS real nodes F-028. Original main baseline db083eb92d1abf1b1cd64f876283ae7af47828a9. CI first run 39958428866 FAILED 186/188 JS due stale version test and missing release-version in NEXT_CHAT_START, 15 Rust PASS. Previous main push run 39956907984 FAILED due slow apt download exceeding 8m; apt timeout increased to 20m (smoke retained). NO publication of alpha.35 until PR/main CI SUCCESS. Latest CI/PR SHA must be rechecked on continuation.
 # Active change: alpha.35 UI controls and filename (SOURCE WRITTEN; PR/CI/DEPLOY PENDING)
 Base main (rollback): db083eb92d1abf1b1cd64f876283ae7af47828a9; branch fix/toolbar-file-badge-alpha35.
 Task: fix zoom icon/plus duplication and lost info-button SVG, make narrow buttons wrap, show confirmed input filename within workspace without affecting EPS/SVG geometry. F-027 + DEVELOPMENT_LOG details.
@@ -132,3 +133,6 @@ Windows: \`BUILD_WINDOWS.bat\` или \`powershell -NoProfile -ExecutionPolicy B
 ## 9. Текст для первого сообщения следующего чата
 
 > Продолжи разработку «Доктора Узелкова» в \`tohaa28/relief-forge\`. Начни с \`AGENTS.md\`, \`docs/NEXT_CHAT_START.md\`, \`docs/history/FAILURE_REGISTER.md\`, \`docs/history/METHODS_AND_DECISIONS.md\`, \`docs/history/RELEASE_CHRONICLE.md\`, \`HANDOFF.md\` и журналов. Получи фактический latest main SHA, PR и CI GitHub. Сохраняй все удачные и неудачные попытки подробно, включая ограничения и контрпримеры. Не заменяй реальные Безье sampled points, не запускай лечение повторно при Save EPS. Для очередной задачи создай feature branch, тесты, контрольную точку, PR и обнови NEXT_CHAT_START перед завершением.
+
+### Upcoming EPS-specific guards
+- Node-budget check after Clipper/refit compares real M/L/C/Q AFTER with pre-Union optimized commands; fallback if increased. UI displays the actual final count, not only optimizer's intermediate number. Export parses and compares every numeric PostScript command with cached AFTER before download; synthetic and browser regression tests added. User's actual failed output file not supplied: do not assert byte-for-byte reproduction.
