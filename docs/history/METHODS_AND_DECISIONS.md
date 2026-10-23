@@ -172,3 +172,10 @@ Independent curve-quality validation checks real segments and sampled topology b
 - Keep Chromium dependency setup, headless-shell download and smoke in distinct timed Actions steps. During alpha.34 a combined step took 13+ minutes mainly before Chromium download, but PASSED; splitting steps improves attribution, not mathematical test strength. Evidence: PR runs 39954313037 and 39956129539.
 - The published functional merge is 1d66be8028ae706ed8d26748f24eb5f85059172a, main deployment run 39956322917 was SUCCESS. The next documentation-only follow-up cannot be treated as a new functional alpha release.
 - F-025 geometric source/window mapping plus independent sampled candidate guards remain numeric; mark inter-batch checks as partial. Do not conflate these with completely verified topological invariance.
+
+## 13. Alpha.35 — адаптивные icon controls и метаданные файла в рабочем поле
+- Логическая иконка zoom должна быть единственным визуальным содержимым zoom-кнопки, доступное имя хранить в aria-label. Фиксированная ширина должна включать и иконку, и padding, поэтому не оставлять анонимные +/− text nodes рядом с ней.
+- Текст изменения состояния панели обновлять внутри выделенного span label; никогда не заменять textContent родительской кнопки, иначе теряется вложенная SVG use пиктограмма.
+- При недостатке ширины вертикально переносить отдельные button elements; иконки держать flex:none, подписи допускать к многострочности, hotkey kbd не накладывать на иконки. Не изменять поставляемые PNG assets.
+- Filename overlay — HTML внутри workspace, вне SVG #canvas; используется basename подтверждённого doc, textContent вместо innerHTML. Его состояние следует Undo/Redo/New и не зависит от начатого/ошибочного импорта. Max-width/ellipsis/title не изменяет физические размеры документа.
+- После статических тестов обязателен браузерный bbox/layout smoke нескольких ширин в том же Actions workflow. Пользовательская визуальная проверка Firefox Windows — отдельный статус.

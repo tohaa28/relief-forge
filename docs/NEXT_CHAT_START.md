@@ -1,3 +1,9 @@
+# Active change: alpha.35 UI controls and filename (SOURCE WRITTEN; PR/CI/DEPLOY PENDING)
+Base main (rollback): db083eb92d1abf1b1cd64f876283ae7af47828a9; branch fix/toolbar-file-badge-alpha35.
+Task: fix zoom icon/plus duplication and lost info-button SVG, make narrow buttons wrap, show confirmed input filename within workspace without affecting EPS/SVG geometry. F-027 + DEVELOPMENT_LOG details.
+Tests added: toolbar-filename.test.mjs; browser-smoke.mjs checks 1440/1024/820/390px, info toggle, EPS/SVG filename. No CI evidence yet for alpha.35; do not claim published until merged PR plus main Pages success.
+Previous published functional release alpha.34, PR #42 merge 1d66be8028ae706ed8d26748f24eb5f85059172a, CI 39956322917 SUCCESS. Previous docs PR #43 main db083eb92d1abf1b1cd64f876283ae7af47828a9.
+Next: open PR, verify JS/Rust/WASM/Chromium; merge and check main build/deploy; then append actual final evidence rather than overwrite history. User Windows Firefox verification remains separate.
 # FINAL verified alpha.34 handoff — 2026-10-23 12:52 UTC
 - Functional release: 0.2.0-alpha.34; merged PR #42; release merge SHA 1d66be8028ae706ed8d26748f24eb5f85059172a.
 - PR final CI: https://github.com/tohaa28/relief-forge/actions/runs/39956129539 — build SUCCESS; 184 JS, 15 Rust, actual compiled WASM ABI and real Chromium Worker/WASM browser smoke PASS.

@@ -1,6 +1,6 @@
 [package]
 name = "relief-forge"
-version = "0.2.0-alpha.34"
+version = "0.2.0-alpha.35"
 edition = "2021"
 description = "Independent vector preparation engine for a browser CAD/CAM workbench"
 license = "MIT"
