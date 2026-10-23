@@ -62,8 +62,9 @@ test('UI warning supports cancel, explicit override, and keeps EPS filename/hist
   assert.match(app,/if\(decision.action==='warn'\)\{showEpsSaveWarning\(decision\);return;\}/);
   assert.match(app,/epsSaveCandidate\(doc,curvePreview,readEpsSaveSettings\(\)\)/);
   assert.match(app,/if\(!fresh.autoApply\|\|!applyUnifiedChanges\(\)\)/);
-  assert.match(app,/if\(!samples.length\|\|numberOfPoints>2000\)/);
-  assert.match(app,/if\(uncheckedContours\)/);
+  assert.match(app,/planDiagnosticBatches\(samples,samples\.map/);
+  assert.match(app,/plan\.batches\.length===1&&!plan\.partial/);
+  assert.match(app,/if\(!plan\.batches\.length\|\|uncheckedContours\|\|plan\.skipped\.length\)/);
   assert.match(app,/Array\.isArray\(data\.output\?\.issues\)/);
   assert.match(app,/scope:'all-vectors'/);
   assert.match(app,/epsResultFilename\(doc.sourceFileName\|\|doc.epsImport\?\.name\|\|'relief-forge.eps'\)/);
