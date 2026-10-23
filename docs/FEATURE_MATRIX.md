@@ -91,3 +91,5 @@ Direct PDF (single/multi-page page picker) vector import through bundled MuPDF w
 ### alpha.31 — Workspace Health
 Automatic post-import check and recovery for SVG layout size, CSS visibility, mascot/drop overlays and artwork outside viewBox, independent backup wireframe rendering, one-click JSON diagnostics and plain script startup watchdog when the main module itself fails. No document mutation, no auto-zoom on ordinary manual navigation. Intended for browser-/machine-dependent blank workspaces.
 
+### alpha.32 — Import-integrity EPS zero-object guard
+EPS import is only committed if importRichSvg generated >=1 editable object; blank Ghostscript/MuPDF SVG triggers an error (and falls back only to proven Corel safe outline extraction). Historical EPS with zero paths is now health=warning empty-import. Failed imports are reflected in downloadable workspace diagnostics with code and filename; previous document/Undo remains unchanged. Empty PDF page is allowed by design. Root cause of specific source EPS requires file evidence.
