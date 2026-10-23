@@ -207,3 +207,6 @@ PR57/c50ef64/source7e014b3; PR40004099807 and main40004283241 build+deploySUCCES
 
 ## 0.2.0-alpha.41 — PDF named-layer namespace candidate
 PDF-only self-contained layer namespace fixes strict browser "Некорректный SVG" on supplied PDF. Shared SVG/EPS/repair/narrow algorithms/UI untouched except synchronized version/cache keys.3realMuPDF unit and new Worker browser layered/text/scale/paint/images/multipage/Undo/EPS/project/invalid input checks locallyPASS; actual396source anchors/unchanged optimizer245, visual20/342400pixels. All existing229JS/Rust/freshWASM modes, PR and main publication pending.
+
+## 0.2.0-alpha.41 published / LIVE verified
+PDF-only named-layer namespace fix, all old non-PDF logic identical after version/cache normalization. PR59/6a0557f, PR40013897510/main40014070205 build+deploySUCCESS229JS/17Rust/freshWASM/all old+new browser. SuppliedPDF396source/49.789856x26.65857mm, valid paint/C, visual20/342400pixels; existing optimizer245, exact UndoRedo/EPS/project; real Unicode/layers/font/text/multipage/cancel/image/invalid input tests. Old neck LIVE0/1/2cases and minEPS18/16zones/1967exact output unchanged. F-036 first manual coldEPS120s timeout preserved, causeUNKNOWN; samebuild traced retry8072msPASS with no failed requests, no code change. SourcePDF/privategeometry not committed; user confirmation separate.
