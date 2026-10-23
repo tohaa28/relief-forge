@@ -64,7 +64,7 @@ test('UI asks a real save mode and retains marker original source-index mapping'
   assert.match(html,/id="eps-color-choice"/);
   assert.match(html,/name="eps-color-mode" value="outline"/);
   assert.match(html,/name="eps-color-mode" value="original"/);
-  assert.match(app,/precomputed=prepareEpsOutput\(fresh.document\)/);
+  assert.match(app,/const prepared=prepareEpsOutput\(chosen.document\)/);
   assert.match(app,/originalGeometryStamp:geometryStamp\(next\)/);
   assert.match(app,/issueWithinContourBounds\(issue,batch.paths,tolerance\)/);
   assert.match(app,/renderIssueMarkers\(\$\('markers'\),visibleIssues,markerUnit,/);

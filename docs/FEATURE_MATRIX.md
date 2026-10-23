@@ -73,3 +73,6 @@
 ### alpha.25 — цветной EPS и обзор точек
 При Ctrl+S пользователь выбирает (1) бесцветный EPS из подтверждённых кривых, (2) исходную окраску. Если EPS не менялся, возвращается исходный PostScript byte-for-byte (включая CMYK); после правок экспортер использует доступные сплошные RGB-цвета заливки и обводки, не обещает восстановления CMYK или сложных эффектов. Нельзя применять неподтверждённые геометрические изменения для неэкспортируемого цветного рисунка. Отображение 1000 дефектов распределяется по сетке всего изделия с сохранением привязки к индексам, без тысяч надписей. Ошибочные координаты вне просчитанных контуров не визуализируются и делают пакетный результат неполным.
 
+### alpha.26 — residual AFTER / cached export / shape overlap
+Diagnostic report and interactive colored markers are tied to every AFTER vector path, regardless of >2000 sampling split; certification remains incomplete across independent batches. Save EPS reuses the result without rerunning repair/diagnostics. Saving with warnings exports the treated result, never the unoptimized original. Auto merge of equal-style real overlaps: rectangle-fill Boolean union, exact duplicate deduplication, compound Bézier ownership preservation for other curves (NOT a boolean silhouette union), explicit opt-out. Unsupported paint and complicated geometry are left unchanged.
+

@@ -61,7 +61,7 @@ test('file history presents date / original filename / result in a closed sectio
   assert.doesNotMatch(html,/<details id="file-history-panel"[^>]*\bopen\b/);
   assert.match(app,/function renderFileHistory\(\)/);
   assert.match(app,/updateFileHistory\(\{diagnosis:/);
-  assert.match(app,/epsResultFilename\(doc\.sourceFileName/);
+  assert.match(app,/epsResultFilename\(chosen\.document\.sourceFileName/);
   assert.match(app,/sourceFileName:basename\(value\.sourceFileName\)/);
   assert.match(css,/\.file-history-table/);
 });
@@ -84,7 +84,7 @@ test('unified autoheal has one Apply action, problems and both smoothing/optimiz
  assert.match(app,/function applyUnifiedChanges\(\)/);
  assert.match(app,/repairVectorPoints\(doc,scope,diagnosticTolerance\)/);
  assert.match(app,/smoothAndOptimizePaths\(repaired.document,scope,smoothingAmount,optimizationTolerance\)/);
- assert.match(app,/const different=scope\.some\(i=>worldData/);
+ assert.match(app,/const different=JSON\.stringify\(doc\.paths\.map\(worldData\)\)/);
  assert.match(app,/task\.action===0\)buildUnifiedPreview\(\)/);
  assert.match(app,/if\(!action\.startsWith\('import-'\)&&action!=='unified-apply'\)requestRecalculation\(\)/);
  assert.match(app,/if\(ready&&doc\.paths\.some\(p=>p\.kind!=='image'\)\)calculate\(0\)/);

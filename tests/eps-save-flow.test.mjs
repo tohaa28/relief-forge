@@ -53,22 +53,16 @@ test('save anyway always exports confirmed original geometry, not unchecked prev
   assert.match(exportEps(before),/%!PS-Adobe/);
 });
 
-test('UI warning supports cancel, explicit override, and keeps EPS filename/history',()=>{
+test('save prompt uses cached AFTER report and preserves source filename',()=>{
   const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
   const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
   assert.match(html,/id="eps-save-warning" class="eps-save-warning"/);
   assert.match(html,/Вернуться к редактированию/);
-  assert.match(html,/Сохранить EPS всё равно/);
-  assert.match(app,/if\(decision.action==='warn'\)\{showEpsSaveWarning\(decision\);return;\}/);
-  assert.match(app,/epsSaveCandidate\(doc,curvePreview,readEpsSaveSettings\(\)\)/);
-  assert.match(app,/if\(!fresh.autoApply\)/);
-  assert.match(app,/precomputed=prepareEpsOutput\(fresh.document\)/);
-  assert.match(app,/if\(!applyUnifiedChanges\(\)\)/);
-  assert.match(app,/planDiagnosticBatches\(samples,samples\.map/);
-  assert.match(app,/plan\.batches\.length===1&&!plan\.partial/);
-  assert.match(app,/if\(!plan\.batches\.length\|\|uncheckedContours\|\|plan\.skipped\.length\)/);
-  assert.match(app,/Array\.isArray\(data\.output\?\.issues\)/);
-  assert.match(app,/scope:'all-vectors'/);
-  assert.match(app,/epsResultFilename\(doc.sourceFileName\|\|doc.epsImport\?\.name\|\|'relief-forge.eps'\)/);
-  assert.match(app,/record\('export-eps'/);
+  assert.match(html,/Сохранить результат ПОСЛЕ/);
+  assert.match(app,/afterSaveDecision\(snapshot\)/);
+  assert.match(app,/showEpsSaveWarning\(decision,snapshot\)/);
+  assert.match(app,/exportConfirmedEps\(\{snapshot,overridden:true\}\)/);
+  assert.match(app,/epsResultFilename\(chosen.document.sourceFileName/);
+  assert.match(app,/record\('export-eps-after'/);
+  assert.doesNotMatch(app,/pending=\{id,epsSavePreflight/);
 });
