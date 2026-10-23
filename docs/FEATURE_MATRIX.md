@@ -112,3 +112,11 @@ alpha.34 observed verification: 184 JS PASS, local Chromium/private EPS 0 false 
 - Native: 15/15 Rust PASS. Browser-independent tests: 184/184 JS PASS. New WASM ABI PASS. Real Chromium Worker/WASM smoke PASS including import, BEFORE/AFTER, Apply, EPS download and Undo (PR workflow 39956129539).
 - Deployed: PR #42 merged 1d66be8028ae706ed8d26748f24eb5f85059172a; main workflow 39956322917 build+deploy SUCCESS.
 - User Windows smoke not yet confirmed; private EPS and unresolved inter-batch/certification limitations remain. No claim of mathematically exhaustive correctness.
+
+### 0.2.0-alpha.35 — responsive UI and filename (source-written, CI pending)
+- Icons: 42px icon-only zoom buttons, preserved info-toggle SVG, wrapping right-panel controls; regression tests + multi-viewport real Chromium check added.
+- Filename: workspace overlay bound to successfully committed document; original basename, tooltip for long names; Undo/Redo and New synchronize without exporting filename into vector.
+- Scope: CSS/HTML/UI only; Rust/WASM, curve quality, privacy/color and EPS export invariants retained. Publication NOT yet verified in this checkpoint.
+
+### alpha.35 node inflation block (implemented, not yet published)
+- Guard real editable nodes after Union; rollback optional Boolean result if it increases node count, explicit status. EPS output numerical commands checked against cached AFTER before download. Source user EPS not presently uploaded; real-specific import/export roundtrip verification remains outstanding.

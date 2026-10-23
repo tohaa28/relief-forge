@@ -208,3 +208,17 @@
 - First intervention: split 'install-deps chromium' (8m budget), 'install --only-shell chromium' (8m), and 'node scripts/browser-smoke.mjs' (8m). Outcome: new PR run 39956129539 SUCCESS; retain all required real browser tests, do not replace with mocks.
 - Rejected: bypassing smoke to merge; declaring in_progress a CI failure; deploying from an untested newer commit. Private EPS remains excluded.
 - Future regression guard: record timing per CI stage; if runner lacks Chromium shared libraries, dependency setup must fail explicitly and be investigated. Never infer user Windows success from CI Linux Chromium success.
+
+## F-027. Пиктограмма и подпись кнопки выходят за её границы / исчезают при изменении надписи
+- Симптом: у кнопок масштабирования одновременно картинка 20px и literal знак плюс/минус в фиксированных 36px; содержимое перекрывается. При раскрытии панели Сведения присвоение textContent стирает SVG child. Тесные пунктовые действия с flex:1 min-width:0 потенциально выдавливают иконки в соседний текст.
+- Подтверждено чтением web/index.html, web/style.css, web/app.js alpha.34. Визуальный браузерный smoke после исправления выполняется в PR CI; пользовательский Firefox Windows пока не проверен.
+- Неудачные/отвергнутые методы: единое overflow:hidden для всей кнопки скрывает функциональную подпись, изменение изображений теряет утверждённые оригиналы, дополнительный SVG overlay внутри canvas попадал бы в сохранённую геометрию; вместо этого компоновка и семантика.
+- Alpha.35: icon-only zoom, текст только в отдельном span toggle-info-label, flex-wrap для узких панелей, display:text ellipsis для имени загруженного документа вне SVG; новый тест layout в Chromium на разных ширинах.
+- Повторная проверка: реальная навигация и значки при ширинах 1440/1024/820/390px, имя после успешного импорта/отмены, Ctrl+F5 на Firefox пользователя, никакой модификации EPS/SVG геометрии.
+
+## F-028. EPS after Boolean Union can contain more editable nodes than BEFORE/AFTER summary
+- Customer observed excessive new nodes in exported result; exact bytes not uploaded in this session. Source-level root cause: pre-Union optimization statistics advertised while Clipper flattened filled Bézier geometry into more L commands. Safe refit may reject simplification and leave the inflated commands. No final real-command budget existed before EPS serialization.
+- Rejected: merely changing status numbers, loosening topology criteria, exporting sampled points or a raster screenshot. Implemented: source/preUnion/postRefit budget with rollback of node-growing Union, explicit UI warning; serialized M/L/C/@c compared with cached After snapshot before download; color and Undo preserved. Synthetic and Chromium regressions required; external Corel and user's private files unverified.
+
+### F-026 incident 2026-10-23: Ubuntu apt mirror delay
+- Main CI #39956907984 failed at Playwright install-deps after 8 minutes, while downloading Ubuntu fonts/glib packages. Confirmed action timeout, not application browser failure. The dependency timeout has been increased to 20m; no test skipped. New PR CI must verify this workaround.

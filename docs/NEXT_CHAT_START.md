@@ -1,3 +1,14 @@
+# alpha.35 cache audit: EPS Worker/pipeline deep imports still had alpha.34 keys; fixed to alpha.35. Added tests/module-cache-version.test.mjs to prevent recurrence. PR #44 source head in-progress, CI needs a fresh success and main Pages deploy.
+# alpha.35 CI environment experiment: PR 39960501240 JS/Rust/WASM green, apt install-deps slow. Next commit removes unconditional apt upgrades but RETAINS real Playwright Chromium Worker/WASM browser smoke; failure must block publication. Outcome pending.
+# alpha.35 PR #44 CI 39960304986 failed 191/192 JS on test Russian message wording; negative EPS tampering made strict, re-run pending. Rust 15/15 pass. No release until green CI+Pages. 
+# alpha.35 PR #44 CI 39960067760 FAILED 189/192 JS (RGB error wording, obsolete static After source regex, VM preview fixture missing new budget hook); fixed test code in follow-up. New CI mandatory. Alpha.35 NOT deployed. Real EPS from user still needed for bytewise reproduction.
+# CURRENT alpha.35 (0.2.0-alpha.35): PR #44, head commits 5b02ead then 9cf559; source guard for excessive EPS real nodes F-028. Original main baseline db083eb92d1abf1b1cd64f876283ae7af47828a9. CI first run 39958428866 FAILED 186/188 JS due stale version test and missing release-version in NEXT_CHAT_START, 15 Rust PASS. Previous main push run 39956907984 FAILED due slow apt download exceeding 8m; apt timeout increased to 20m (smoke retained). NO publication of alpha.35 until PR/main CI SUCCESS. Latest CI/PR SHA must be rechecked on continuation.
+# Active change: alpha.35 UI controls and filename (SOURCE WRITTEN; PR/CI/DEPLOY PENDING)
+Base main (rollback): db083eb92d1abf1b1cd64f876283ae7af47828a9; branch fix/toolbar-file-badge-alpha35.
+Task: fix zoom icon/plus duplication and lost info-button SVG, make narrow buttons wrap, show confirmed input filename within workspace without affecting EPS/SVG geometry. F-027 + DEVELOPMENT_LOG details.
+Tests added: toolbar-filename.test.mjs; browser-smoke.mjs checks 1440/1024/820/390px, info toggle, EPS/SVG filename. No CI evidence yet for alpha.35; do not claim published until merged PR plus main Pages success.
+Previous published functional release alpha.34, PR #42 merge 1d66be8028ae706ed8d26748f24eb5f85059172a, CI 39956322917 SUCCESS. Previous docs PR #43 main db083eb92d1abf1b1cd64f876283ae7af47828a9.
+Next: open PR, verify JS/Rust/WASM/Chromium; merge and check main build/deploy; then append actual final evidence rather than overwrite history. User Windows Firefox verification remains separate.
 # FINAL verified alpha.34 handoff — 2026-10-23 12:52 UTC
 - Functional release: 0.2.0-alpha.34; merged PR #42; release merge SHA 1d66be8028ae706ed8d26748f24eb5f85059172a.
 - PR final CI: https://github.com/tohaa28/relief-forge/actions/runs/39956129539 — build SUCCESS; 184 JS, 15 Rust, actual compiled WASM ABI and real Chromium Worker/WASM browser smoke PASS.
@@ -126,3 +137,6 @@ Windows: \`BUILD_WINDOWS.bat\` или \`powershell -NoProfile -ExecutionPolicy B
 ## 9. Текст для первого сообщения следующего чата
 
 > Продолжи разработку «Доктора Узелкова» в \`tohaa28/relief-forge\`. Начни с \`AGENTS.md\`, \`docs/NEXT_CHAT_START.md\`, \`docs/history/FAILURE_REGISTER.md\`, \`docs/history/METHODS_AND_DECISIONS.md\`, \`docs/history/RELEASE_CHRONICLE.md\`, \`HANDOFF.md\` и журналов. Получи фактический latest main SHA, PR и CI GitHub. Сохраняй все удачные и неудачные попытки подробно, включая ограничения и контрпримеры. Не заменяй реальные Безье sampled points, не запускай лечение повторно при Save EPS. Для очередной задачи создай feature branch, тесты, контрольную точку, PR и обнови NEXT_CHAT_START перед завершением.
+
+### Upcoming EPS-specific guards
+- Node-budget check after Clipper/refit compares real M/L/C/Q AFTER with pre-Union optimized commands; fallback if increased. UI displays the actual final count, not only optimizer's intermediate number. Export parses and compares every numeric PostScript command with cached AFTER before download; synthetic and browser regression tests added. User's actual failed output file not supplied: do not assert byte-for-byte reproduction.
