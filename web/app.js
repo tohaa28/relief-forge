@@ -21,7 +21,7 @@ const names={open:'Открытый контур',coincident:'Совпадающ
 let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null;
 let doc={format:'relief-forge',version:1,width:300,height:200,paths:[]},selected=new Set(),issues=[],metrics=[],past=[],future=[],mode='select',draft=[],drag=null,pan=null,worker,ready=false,pending=null,sequence=0,busy=false;
 let epsWorker=null,epsTimer=null,epsImportActive=false;let importFonts=[];
-let diagnosticGeneration=0,readGeneration=0;
+let diagnosticGeneration=0,readGeneration=0,readActive=false;
 const historyStorage=(()=>{try{return window.localStorage}catch{return null}})();
 let fileHistory=readHistory(historyStorage),activeHistoryId=null;
 const journal=[];const clone=v=>structuredClone(v);
@@ -689,11 +689,12 @@ function importEps(bytes,name,historyStarted=false){
   const transfer=bytes.slice();epsWorker.postMessage({bytes:transfer,fonts:importFonts},[transfer.buffer]);
 }
 async function importUserFile(file,origin='dialog'){
-  if(!file||busy)return;
+  if(!file||busy||readActive)return;
   if(!isSupportedDrop(file)){status('Поддерживаются EPS, PS, SVG и проекты JSON.');return;}
   if(file.size>64*1024*1024){status('Файл превышает 64 МБ. Импорт отклонён.');return;}
   beginFileHistory(file.name);
   const token=++readGeneration;
+  readActive=true;lock(true,{coverCanvas:false});
   record('open-file',{name:file.name,origin,bytes:file.size});
   try{
     // Stream reads expose real byte progress and avoid one big unresponsive
@@ -711,6 +712,7 @@ async function importUserFile(file,origin='dialog'){
     }finally{reader.releaseLock();}
     const bytes=new Uint8Array(size);let pos=0;
     for(const part of parts){bytes.set(part,pos);pos+=part.byteLength;}
+    readActive=false;lock(false);
     if(/\.(eps|epsf|epsi|ps)$/i.test(file.name))importEps(bytes,file.name,true);
     else{
       progressStage('Разбор документа',35);
@@ -719,6 +721,7 @@ async function importUserFile(file,origin='dialog'){
       endProgress();
     }
   }catch(err){
+    readActive=false;lock(false);
     endProgress();
     status(err.message);record('import-error',{name:file.name,origin,message:err.message});
     updateFileHistory({status:'Ошибка открытия: '+String(err.message).slice(0,180)});
@@ -750,7 +753,7 @@ window.addEventListener('dragleave',e=>{
 window.addEventListener('drop',e=>{
   if(!hasFiles(e))return;
   e.preventDefault();fileDragDepth=0;showDropOverlay(false);
-  if(busy){status('Идёт обработка. Завершите или отмените её перед открытием другого EPS.');return;}
+  if(busy||readActive){status('Идёт обработка. Завершите или отмените её перед открытием другого EPS.');return;}
   const files=droppedFiles(e);
   if(files.length!==1||e.dataTransfer.files.length!==1){
     status('Перетащите один EPS, PS, SVG или JSON-файл.');return;
