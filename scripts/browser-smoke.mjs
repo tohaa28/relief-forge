@@ -9,7 +9,7 @@ try{
   browser=await (process.env.SMOKE_BROWSER==='firefox'?firefox:chromium).launch({headless:true});
   const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('http://localhost:8080');
+  await page.goto('http://localhost:'+(process.env.PORT||8080));
   await page.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
   // Actual EPS worker -> Ghostscript/MuPDF or recognised recovery -> UI/WASM.
   await page.locator('#file').setInputFiles(process.env.SMOKE_EPS||'tests/fixtures/eps/corel-unpainted.eps');

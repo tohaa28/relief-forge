@@ -283,7 +283,7 @@ function render(){
     const b=document.createElement('button');
     b.textContent=(i+1)+'. '+(p.kind==='image'?'Изображение':p.artwork?'EPS / SVG':p.closed?'Замкнут':'Открыт')+' · '+p.points.length+' узлов';
     b.classList.toggle('selected',sel);b.disabled=reviewing;
-    b.onclick=e=>{if(!e.shiftKey)selected.clear();selected.has(i)?selected.delete(i):selected.add(i);render();};
+    b.onclick=e=>{if(!e.shiftKey)selected.clear();selected.has(i)?selected.delete(i):selected.add(i);render();if(!curveEditing())requestRecalculation();};
     $('paths').append(b);
   });
   // White-backed hollow rings always overlie the geometric stroke, at a
@@ -358,7 +358,7 @@ function buildUnifiedPreview(){
     const after=budget.document;
     const actualCount=document=>document.paths.reduce((n,p)=>n+
       (p.kind==='image'?0:p.commands?.filter(c=>c[0]==='M'||c[0]==='L'||c[0]==='C'||c[0]==='Q').length??p.points.length),0);
-    const st={...optimized.stats,refit:refitted.stats,budget,
+    const st={...optimized.stats,scope:[...scope],refit:refitted.stats,budget,
       actualNodesBefore:actualCount(doc),actualNodesAfter:actualCount(after),overlaps:merged.stats,mergeOverlaps:$('merge-overlaps').checked,pointRepairs:repaired.stats,diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
       smoothingDeviation:optimized.stats.smoothingError};
     const different=JSON.stringify(doc.paths.map(worldData))!==JSON.stringify(after.paths.map(worldData));
@@ -406,7 +406,8 @@ function applyUnifiedChanges(){
   if(Number($('smoothing-amount').value)!==pv.stats.smoothingAmount||
      Number($('optimization-tolerance').value)!==pv.stats.tolerance||
      Number($('tolerance').value)!==pv.stats.diagnosticTolerance||
-     $('merge-overlaps').checked!==pv.stats.mergeOverlaps){
+     $('merge-overlaps').checked!==pv.stats.mergeOverlaps||
+     JSON.stringify(selectedVectorIndices(doc,selected,$('selection-only').checked))!==JSON.stringify(pv.stats.scope)){
     status('Параметры изменились. Автоматический расчёт ещё не завершён.');return false;
   }
   const baseline=clone(doc),comparison=pv.comparisonData;
@@ -492,7 +493,7 @@ async function buildLargeUnifiedPreview(indices){
   const tol=Number($('tolerance').value),
     smoothingAmount=Number($('smoothing-amount').value),
     optimizationTolerance=Number($('optimization-tolerance').value);
-  const stats={original:0,result:0,removed:0,maxError:0,tolerance:optimizationTolerance,
+  const stats={scope:[...indices],original:0,result:0,removed:0,maxError:0,tolerance:optimizationTolerance,
     smoothingAmount,smoothedJoints:0,smoothingDeviation:0,rejected:0,smoothingRejected:0,pointRepairs:{
       removedNodes:0,closedGaps:0,maxDeviation:0,skipped:0
     },diagnosticTolerance:tol};
@@ -1066,7 +1067,8 @@ function readEpsSaveSettings(){
   return {diagnosticTolerance:Number($('tolerance').value),
     smoothingAmount:Number($('smoothing-amount').value),
     optimizationTolerance:Number($('optimization-tolerance').value),
-    mergeOverlaps:$('merge-overlaps').checked};
+    mergeOverlaps:$('merge-overlaps').checked,
+    scope:selectedVectorIndices(doc,selected,$('selection-only').checked)};
 }
 let epsColorMode='outline';
 function prepareEpsOutput(document){
@@ -1161,11 +1163,11 @@ $('log').onclick=()=>download('relief-forge-session.jsonl',journal.map(x=>JSON.s
 $('demo').onclick=()=>{activeHistoryId=null;checkpoint();doc={format:'relief-forge',version:1,width:150,height:100,paths:[{closed:true,points:[[10,10],[50,50],[10,50],[50,10]]},{closed:true,points:[[70,10],[110,10],[110,40],[70,40]]},{closed:true,points:[[110,40],[110,10],[70,10],[70,40]]},{closed:false,points:[[10,70],[30,70],[30.003,70],[50,70]]},{closed:false,points:[[50.005,70],[80,70],[80,90]]}]};selected.clear();changed('load-demo');fit();};
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const filter=b.dataset.filter;
-  if(filter==='none'){selected.clear();render();return;}
+  if(filter==='none'){selected.clear();render();if(!curveEditing())requestRecalculation();return;}
   if(filter==='duplicate'&&!issues.length){status('Сначала найдите проблемы (для всех объектов снимите выделение).');return;}
   const area=p=>p.closed?p.points.reduce((sum,a,i)=>{const b=p.points[(i+1)%p.points.length];return sum+a[0]*b[1]-b[0]*a[1];},0)/2:0;
   const length=p=>p.points.reduce((sum,a,i)=>{if(i===p.points.length-1&&!p.closed)return sum;const b=p.points[(i+1)%p.points.length];return sum+Math.hypot(a[0]-b[0],a[1]-b[1]);},0);
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
-  selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();
+  selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();if(!curveEditing())requestRecalculation();
 });
 record('session-start',{version:'0.2.0-alpha.36'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorReady='true';

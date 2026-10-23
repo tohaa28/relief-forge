@@ -1,3 +1,6 @@
+# 0.2.0-alpha.36 — PR48 verification, publication pending
+Base8f9afb8; branch fix/alpha32-verified-pipeline-alpha36. PR48 first head1c49eca CI39982180020 SUCCESS17Rust195JS+freshWASM+Chromium. New scope guard and browser-mode matrix need final CI, then merge and main build/deploy success. Private kalin3152->1972, old exported21872 rejected; 145->3 issues partial. Kernel exact differential121; 40x measured2000-node case. Firefox failed to launch, not verified. Full history below.
+
 # Active release: 0.2.0-alpha.36
 
 ## 0.2.0-alpha.36 — alpha.32 continuation, 2026-10-23
