@@ -1,6 +1,7 @@
 import {chromium} from 'playwright';
 import {spawn} from 'node:child_process';
 import assert from 'node:assert/strict';
+import svgpath from '../web/vendor/svgpath.mjs';
 const port=process.env.CLEARANCE_PORT||'8084',server=spawn(process.execPath,['scripts/serve.mjs'],{env:{...process.env,PORT:port},stdio:['ignore','pipe','inherit']});
 await new Promise((resolve,reject)=>{server.stdout.once('data',resolve);server.once('error',reject);});
 let browser;
@@ -21,7 +22,7 @@ try{
  const value=Number(await page.locator('#clearance-markers circle').getAttribute('data-distance-mm'));assert.ok(Math.abs(value-.05)<1e-7);
  if(process.env.CLEARANCE_SCREENSHOT)await page.screenshot({path:process.env.CLEARANCE_SCREENSHOT});
  await page.locator('#clearance-threshold').fill('0.04');await page.locator('#clearance-threshold').dispatchEvent('change');
- await page.waitForFunction(()=>document.querySelector('#clearance-status').textContent.includes('Сближения < 0.04 мм: 0'));
+ await page.waitForFunction(()=>document.querySelector('#clearance-status').textContent.includes('Узкие места < 0.04 мм: 0'));
  assert.equal(await page.locator('#clearance-markers circle').count(),0);assert.equal(await page.locator('#geometry').innerHTML(),geometry,'measurement must not change vectors');
  await page.locator('#clearance-threshold').fill('0.06');await page.locator('#clearance-threshold').dispatchEvent('change');
  await page.waitForFunction(()=>document.querySelector('#clearance-markers circle'));
@@ -32,5 +33,24 @@ try{
  if(await page.locator('#eps-save-warning').isVisible())await page.locator('#eps-save-anyway').click();
  const download=await pending,stream=await download.createReadStream(),chunks=[];for await(const c of stream)chunks.push(c);const eps=Buffer.concat(chunks).toString();
  assert.ok(eps.includes('curveto')||eps.includes(' c'));assert.equal(/ff79bb|clearance-markers|data-distance-mm/.test(eps),false);
+ await page.locator('#clearance-threshold').fill('0.1');await page.locator('#clearance-threshold').dispatchEvent('change');
+ const scene=async(paths,name)=>{
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="20mm" height="10mm" viewBox="0 0 20 10">'+paths.map(d=>'<path fill="none" stroke="black" stroke-width=".01" d="'+d+'"/>').join('')+'</svg>';
+  await page.locator('#file').setInputFiles({name,mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
+  await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));
+  await page.locator('#compare-before').click();
+  await page.waitForFunction(()=>document.querySelector('#clearance-status').textContent.includes('проверка завершена'));
+ };
+ const dense=y=>Array.from({length:81},(_,i)=>(i?'L':'M')+' '+(1+i*.01)+' '+y).join(' ');
+ await scene([dense(1)],'dense-continuation.svg');
+ assert.equal(await page.locator('#clearance-markers circle').count(),0,'81 ordinary dense nodes cannot create narrow places');
+ assert.ok(svgpath(await page.locator('#geometry path[data-path]').first().getAttribute('d')).segments.filter(c=>c[0].toUpperCase()==='L').length>=80,'test must view actual dense BEFORE, not optimized straight AFTER');
+ await scene([dense(1),dense(1.05)],'one-true-parallel-neck.svg');
+ assert.equal(await page.locator('#clearance-markers circle').count(),1,'one zone must not create a mark at each node');
+ const neck=await page.locator('#clearance-markers circle').evaluate(e=>({x:Number(e.getAttribute('cx')),y:Number(e.getAttribute('cy')),d:Number(e.dataset.distanceMm)}));
+ assert.ok(neck.x>1.2&&neck.x<1.6);assert.ok(Math.abs(neck.y-1.025)<1e-8);assert.ok(Math.abs(neck.d-.05)<1e-8);
+ await scene(['M 0 1.05 Q .5 2.05 1 2.05 Q 1.5 2.05 2 1.05','M -1 1 L 3 1'],'two-separate-necks.svg');
+ assert.equal(await page.locator('#clearance-markers circle').count(),2,'wide continuation between two necks cannot merge their marks');
+ console.log('PASS contour minima UI: dense BEFORE 81nodes/0marks, parallel dense pair 1true .05mm midpoint, two separate necks 2marks');
  assert.deepEqual(errors,[]);console.log('PASS: native Q clearance .05mm, default/threshold invalidation, background layer, real BEFORE/AFTER, actual EPS excludes markers, no browser errors');
 }finally{await browser?.close();server.kill();}

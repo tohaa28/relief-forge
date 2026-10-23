@@ -198,3 +198,6 @@ Alpha39 checkpoint:220localJS/14new tests incl F-033 exact-return seam, actual m
 
 ## 0.2.0-alpha.39 published/live verified
 PR55/fa1d256, finalCI40000669760 and main build+deploy40000825101 SUCCESS220JS/17Rust/freshWASM/all browser. Native curve clearance default0.1mm, pink display-only disks under vectors, exact thresholds/BEFORE-AFTER/EPS exclusion live verified. Actual min ORIGINAL2287/AFTER136pair locations complete; both EPS1967/Undo3146/Redo1967. Adjacent joins/single-segment self approach/stroke thickness outside scope;2Mwork/3000markers/unsupported/precision explicit incomplete; legacy cross-batch WASM remains partial. User external-browser confirmation separate.
+
+## 0.2.0-alpha.40 — whole-contour clearance minimum candidate
+Fix F-034 nearby-node false marks via incident-direction checks and topology-connected zones with native shared-boundary clearance proof.20distance tests and real Chromium dense BEFORE0/parallel neck1/.05mm/separated necks2 passed; source min2287->18zones complete106ms. Default0.1mm, pink-background/EPS/Undo semantics preserved.226fullJS/freshRustWASM/remaining browsers/PR/deploy still pending; alpha39 remains published until green main release.

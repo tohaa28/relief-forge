@@ -69,3 +69,32 @@ test('unsupported commands not silently certified and threshold validated',()=>{
 test('sweep rejects 10000 widely separated segments without quadratic work',()=>{
  const paths=Array.from({length:10000},(_,i)=>({points:[[i*20,0],[i*20+1,0]]}));const r=findCurveClearances({paths});assert.equal(r.complete,true);assert.equal(r.comparisons,0);assert.equal(r.work,0);
 });
+test('many short consecutive edges on one straight curve are not narrow places',()=>{
+ const points=Array.from({length:81},(_,i)=>[i*.01,0]);
+ assert.equal(findCurveClearances({paths:[{points}]}).markers.length,0);
+});
+test('ordinary dense smooth circle has no false proximity between nearby nodes',()=>{
+ const points=Array.from({length:500},(_,i)=>[Math.cos(i*2*Math.PI/500),Math.sin(i*2*Math.PI/500)]);
+ assert.equal(findCurveClearances({paths:[{points,closed:true}]}).markers.length,0);
+});
+test('one parallel narrow zone gives one actual minimum regardless of node density',()=>{
+ for(const count of [1,20,100]){
+  const points=Array.from({length:count+1},(_,i)=>[i/count,0]);
+  const r=findCurveClearances({paths:[{points},{points:points.map(([x])=>[x,.05])}]});
+  assert.equal(r.complete,true);assert.equal(r.markers.length,1);assert.ok(Math.abs(r.markers[0].distance-.05)<1e-10);
+ }
+});
+test('monotone separation across a node chooses the shorter continuation, not each node',()=>{
+ const paths=[{points:[[0,0],[1,0],[2,0],[3,0]]},{points:[[0,.09],[1,.07],[2,.05],[3,.03]]}];
+ const r=findCurveClearances({paths});assert.equal(r.markers.length,1);assert.ok(Math.abs(r.markers[0].distance-.03)<1e-9);
+});
+test('real narrow minimum at a smooth shared curve node remains measurable once',()=>{
+ const p=native([['M',0,1],['Q',.5,.05,1,.05],['Q',1.5,.05,2,1]]);
+ const r=findCurveClearances({paths:[p,{points:[[-1,0],[3,0]]}]});
+ assert.equal(r.markers.length,1);assert.ok(Math.abs(r.markers[0].distance-.05)<1e-8);
+});
+test('two separated narrow places do not merge through a wide shared-node region',()=>{
+ const p=native([['M',0,.05],['Q',.5,1.05,1,1.05],['Q',1.5,1.05,2,.05]]);
+ const r=findCurveClearances({paths:[p,{points:[[-1,0],[3,0]]}]});
+ assert.equal(r.markers.length,2);assert.ok(r.markers.every(m=>Math.abs(m.distance-.05)<1e-8));
+});
