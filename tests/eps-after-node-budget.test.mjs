@@ -33,7 +33,7 @@ test('real EPS result reimport preserves exactly the preview M/L/C anchor count'
   const reopened=importRichSvg(restored.svg,{unitsPerInch:72,Parser:DOMParser});
   assert.equal(realNodeCount(reopened),30);
   const tampered=eps.replace(/0\.0283465 282\.6377953 L/, '91 282.6377953 L');
-  if(tampered!==eps)assert.throws(()=>verifyEpsOutputGeometry(budget.document,{content:tampered,source:'outline'}),/отличается/);
+  if(tampered!==eps)assert.throws(()=>verifyEpsOutputGeometry(budget.document,{content:tampered,source:'outline'}),/не совпадает/);
 });
 test('repainted RGB EPS carries identical actual commands, never denser polys',()=>{
   const c={kind:'vector',artwork:'<path d="M 1 1 C 5 1 8 8 10 10"/>',offset:[0,0],closed:false,

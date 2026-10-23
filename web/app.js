@@ -363,7 +363,7 @@ function buildUnifiedPreview(){
       smoothingDeviation:optimized.stats.smoothingError};
     const different=JSON.stringify(doc.paths.map(worldData))!==JSON.stringify(after.paths.map(worldData));
     const msg='ИТОГОВЫЕ реальные узлы: '+st.actualNodesBefore+' → '+st.actualNodesAfter+'.'+
-      (budget.reason?'\n'+previewBudgetMessage(budget):'')+'\nТочки: убрано коротких/нулевых сегментов '+st.pointRepairs.removedNodes+
+      (budget.reason?'\n'+previewBudgetMessage(budget)+' Показатели Union ниже относятся к отклонённой попытке.':'')+'\nТочки: убрано коротких/нулевых сегментов '+st.pointRepairs.removedNodes+
       ' · замкнуто близких концов '+st.pointRepairs.closedGaps+'.'+
       '\nБулево объединение Clipper: слито объектов '+st.overlaps.mergedObjects+
       ', сварено заполненных групп '+st.overlaps.weldedGroups+
@@ -550,7 +550,7 @@ async function buildLargeUnifiedPreview(indices){
       comparisonData:{beforeDoc:clone(source),afterDoc:after,beforeIssues:clone(issues),afterIssues:[]}};
     curvePreview=pv;compareStage='after';
     $('optimization-result').textContent='ИТОГОВЫЕ реальные узлы: '+stats.actualNodesBefore+' → '+stats.actualNodesAfter+'.'+
-      (budget.reason?' '+previewBudgetMessage(budget):'')+'\nБольшой документ: обработано '+indices.length+
+      (budget.reason?' '+previewBudgetMessage(budget)+' Показатели Union ниже — отклонённая попытка.':'')+'\nБольшой документ: обработано '+indices.length+
       ' контуров; сглажено '+stats.smoothedJoints+' стыков, удалено '+stats.removed+
       ' сегментов; слито объектов '+stats.overlaps.mergedObjects+
       ', нормализовано заливок '+stats.overlaps.normalizedObjects+
