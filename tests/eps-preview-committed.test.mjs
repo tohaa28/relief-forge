@@ -36,23 +36,17 @@ test('smoothing changes Bezier control handles even without deleting an anchor, 
   assert.doesNotMatch(exportEps(preview.document),forbidden,'applied EPS also remains paintless');
 });
 
-test('EPS save checks all vectors before applying preview; Apply remains a manual alternative',()=>{
+test('AFTER always displays remaining errors and saves precisely the cached optimized result',()=>{
   assert.match(html,/<button id="apply-changes" class="primary" disabled>[^]*?Применить изменения<\/button>/);
   assert.match(app,/\$\('apply-changes'\)\.onclick=applyUnifiedChanges/);
-  assert.match(app,/function applyUnifiedChanges\(\)/);
-  assert.match(app,/checkpoint\(baseline\);doc=clone\(pv\.result\)/);
-  assert.match(app,/\$\('export-eps'\)\.onclick=\(\)=>\{/);
-  assert.match(app,/\$\('eps-color-confirm'\)\.onclick=\(\)=>\{/);
-  assert.match(app,/void saveEpsWithPreflight\(\)/);
-  assert.match(app,/for\(let k=0;k<vectors\.length;k\+\+\)\{/);
-  assert.match(app,/epsSaveCandidate\(doc,curvePreview,readEpsSaveSettings\(\)\)/);
-  assert.match(app,/epsSaveDecision\(report,task.autoApply\)/);
-  assert.match(app,/decision.action==='apply-and-save'/);
-  assert.match(app,/exportConfirmedEps\(\{autoApplied:decision.action==='apply-and-save',verified:true,remainingIssues:0,precomputed\}\)/);
+  assert.match(app,/checkpoint\(baseline\);doc=clone\(pv.result\)/);
+  assert.match(app,/diagnoseAfterDocument\(preview.result,/);
+  assert.match(app,/preview.comparisonData.afterIssues=report.issues/);
+  assert.match(app,/markersVisible=true;compareStage='after'/);
+  assert.match(app,/chooseAfterSnapshot\(doc,curvePreview,readEpsSaveSettings\(\)/);
+  assert.match(app,/prepareEpsOutput\(chosen.document\)/);
+  assert.match(app,/void checkPreviewAfter\(pv\)/);
   assert.match(html,/id="eps-save-warning"/);
-  assert.match(html,/id="eps-save-anyway"/);
-  assert.match(html,/id="eps-save-return"/);
-  assert.match(app,/exportConfirmedEps\(\{overridden:true,verified:false\}\)/);
-  assert.doesNotMatch(app,/exportEps\(curvePreview\.result\)/,
-    'export after a pending preview must pass through a validated commit or save the original');
+  assert.match(html,/Сохранить результат ПОСЛЕ/);
+  assert.doesNotMatch(app,/function saveEpsWithPreflight\(/);
 });
