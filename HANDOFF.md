@@ -1,4 +1,4 @@
-# alpha.42 CANDIDATE — PR #62, production alpha.41 still unchanged
+# 0.2.0-alpha.42 CANDIDATE — PR #62, production alpha.41 still unchanged
 2026-10-26 Union-before-smooth/optimize/AFTER verification, native exact opaque duplicate stage retained across Union rollback, large geometry quality checked by bounded per-object+spatial-pair fallback, new regressions. Initial PR CI40304538124 had 4 old source-pattern/history/cache assertions; follow-up in progress. F-037 true intersections and exact Bézier trace through Boolean cuts NOT yet solved. GPU only evaluated, never claimed implemented. No publication or successful comprehensive test until proven. See docs/NEXT_CHAT_START.md, docs/history/GERB_DIAGNOSTIC_INVESTIGATION_20261026.md.
 
 # gerb investigation COMPLETE — alpha.41 runtime unchanged, CI verified
