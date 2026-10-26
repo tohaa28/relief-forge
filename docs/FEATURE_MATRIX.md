@@ -1,3 +1,10 @@
+# 0.2.0-alpha.45 CANDIDATE — CNC minimum closed-element filter (NOT published yet)
+- User request: remove every independent CLOSED native vector subpath only if its **exact bounding-box width <0.1mm AND height <0.1mm** by default. User-configurable independent width/height thresholds; checkbox ON by default, operator can disable. Delete tiny internal details of compound paths too, retain outer figures, open engraving strokes, narrow-long details and all other source geometry.
+- `web/cnc-microfilter.js`: exact analytic quadratic/cubic derivative roots + line endpoints, no sampled preview/chord approximation. Partition original native M/L/Q/C/Z subpaths; preserve each retained command verbatim. Style preserving safe reconstructions with original solid paint/fill rule; reject unsupported mixed decoration rather than silently corrupt colors. Keep filter after approved Union->Bézier smoothing->optimization and safety node budget, before AFTER diagnosis. `stats.micro` reports removed subpaths, entire objects and original nodes.
+- `web/app.js`: ordinary and large-document preview both filter only RESULT/AFTER. Import ДО and first-error markers untouched. Normal Apply/EPS settings freshness reject stale filter options. `web/after-result.js` validates options for cached AFTER EPS. `web/index.html` adds enable switch, width and height inputs and CNC explanation.
+- Source-owned `tests/cnc-microfilter.test.mjs`: exact cubic extrema, inner compound/hole cleanup, long thin slots, open traces, exact-threshold retention, color EPS and DO immutability. Full JS/Rust/WASM/Chromium/EPS/PDF/Undo verification pending; no private gerb processing claimed.
+- Previous rollback point: alpha.44 `dfb94dd`, GitHub Pages workflow40321047109 SUCCESS. Preserve all previous history and failed attempts, never relax Union-geometry topology safety.
+
 # 0.2.0-alpha.44 PUBLISHED — verified checkpoint (2026-10-26)
 
 - User requirement: **ДО** must show the raw document *immediately after import* and its **original diagnosis problem rings**, irrespective of later Union/smoothing/optimization/Apply; no background task may select ПОСЛЕ without an explicit user click.
