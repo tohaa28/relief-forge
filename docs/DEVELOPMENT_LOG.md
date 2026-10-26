@@ -1,3 +1,10 @@
+# 2026-10-26 — 0.2.0-alpha.42 CANDIDATE (PR #62, NOT PUBLISHED)
+User request: Union must precede smoothing/optimization and postdiagnosis; never insert unnecessary nodes or create new defects; EPS output must equal displayed AFTER. User explicitly authorized GitHub updates/publication after validation, proposed GPU.
+Branch fix/union-first-verified-alpha42 from main2994815, preserves alpha41 production checkpoint.
+Implemented conservative exact-native (opaque solid matching paint+commands) removal before Clipper; separate safeDocument fallback when candidate Union violates node budget, both preview paths reordered, large independent quality fallback with per-object and potentially contacting cross-object pairs. Added source-dominant Union silhouette XOR reuse of original C commands; guards for transparency. Added tests/union-first-alpha42.test.mjs. Version/cache to alpha42.
+Initial CI 40304538124 failed 4 stale static/version tests. Followup 40304926472 failed two stale handoff/cache references; fixed. CI 40305243980 progressed past JS to Rust/WASM but superseded. CI 40305603862 uncovered true transparent compound fallback bug (test failure); fixed isSimpleColor opacity gate. Last validation pending. Native F-037 provenance, exact Bézier tracing of arbitrary Boolean intersections and native-GPU acceleration NOT delivered. Do not claim final release or a clean gerb until tested.
+Preserve exact old main, CI jobs, old 229 JS /17 Rust + real browser gates, visual/live EPS release verification.
+
 # Журнал разработки
 
 ## 2026-10-22 · 0.1.0-alpha.1
