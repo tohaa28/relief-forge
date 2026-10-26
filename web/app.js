@@ -595,7 +595,43 @@ async function buildLargeUnifiedPreview(indices){
       stats.result=stats.original;stats.removed=0;stats.smoothedJoints=0;
       stats.maxError=0;stats.smoothingDeviation=0;
     }
-    const budget=protectPreviewNodeBudget(source,merged.safeDocument,result);
+    let budget=protectPreviewNodeBudget(source,merged.safeDocument,result);
+    if(budget.reason==='union-node-growth'){
+      // A rejected polygonized Union must not block independent safe native
+      // optimization or erase earlier exact-copy removal on large EPS.
+      const safeSource=clone(merged.safeDocument),safeResult=clone(safeSource);
+      const nativeStats={original:0,result:0,removed:0,maxError:0,
+        smoothedJoints:0,smoothingDeviation:0,rejected:0,smoothingRejected:0};
+      const nativeIndices=merged.safeSelectedIndices;
+      for(let k=0;k<nativeIndices.length;k++){
+        if(generation!==previewGeneration)return;
+        const i=nativeIndices[k],sm=smoothVectorPath(safeSource.paths[i],smoothingAmount,tol);
+        const opt=optimizeVectorPath(sm.path,optimizationTolerance,tol);
+        safeResult.paths[i]=opt.path;
+        nativeStats.original+=opt.before;nativeStats.result+=opt.after;
+        nativeStats.removed+=opt.removed;nativeStats.maxError=Math.max(nativeStats.maxError,opt.maxError);
+        nativeStats.smoothedJoints+=sm.changed;
+        nativeStats.smoothingDeviation=Math.max(nativeStats.smoothingDeviation,sm.maxError);
+        nativeStats.rejected+=Number(opt.quality?.accepted===false);
+        nativeStats.smoothingRejected+=Number(sm.quality?.accepted===false);
+        if((k+1)%3===0||k===nativeIndices.length-1){
+          progressStage('Безопасная оптимизация без отклонённого Union',
+            Math.round(95+4*(k+1)/nativeIndices.length),
+            (k+1)+' / '+nativeIndices.length+' контуров');
+          await yieldForUi();
+        }
+      }
+      if(generation!==previewGeneration)return;
+      const nativeQuality=validateDocumentCurveChange(safeSource,safeResult,{
+        tolerance:smoothingAmount+optimizationTolerance,nodeTolerance:tol});
+      const nativeBudget=protectPreviewNodeBudget(source,safeSource,safeResult);
+      if(nativeQuality.accepted&&!nativeBudget.reason){
+        result=safeResult;
+        Object.assign(stats,nativeStats);
+        stats.quality=nativeQuality;
+        budget={...nativeBudget,reason:'union-fallback-optimized',rejectedUnionNodes:budget.after};
+      }
+    }
     const after=budget.document;
     stats.budget=budget;stats.overlaps=merged.stats;stats.refit=refitted.stats;
     stats.mergeOverlaps=$('merge-overlaps').checked;
