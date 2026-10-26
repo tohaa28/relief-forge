@@ -298,3 +298,6 @@ Actual min EPS alpha37 retained3overlaps from a closed linear A-B-A contour lyin
 
 ## F-039. Combined-document quality sampler cap rejects even unchanged large geometry
 2026-10-26 gerb independent quality acceptedfalse solely 'Кривая слишком сложна' at.0025mm,20000pointcombinedpath cap; all smoothing/optimization rolledback though budget refusal does not establish deterioration. Source-owned3x7001node separatepaths with identical before/after reproduces same refusal. Scale postcondition via per-object/spatial pairs retaining global safety and partial status; do not disable validator or inflate limits blindly. Full evidence and no runtime fix in GERB_DIAGNOSTIC_INVESTIGATION_20261026.md.
+
+## F-040. ubuntu-latest 26.04 outgrows pinned Playwright browser registry
+2026-10-26 PR61 CI40291584782 failed browser installation with ERROR Playwright does not support chromium-headless-shell on ubuntu26.04-x64.229JS/native17/freshWASM passed; browser not run, no deployment. CI-only exact Ubuntu26.04/x64 host override selects existing24.04 browser build, preserving dependency validation and all actual browser gates; explicit caller override untouched. New CI must prove compatibility, not assume official26support. No application runtime change or dependency upgrade; source findings F-037..039 independent.
