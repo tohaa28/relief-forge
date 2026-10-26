@@ -94,3 +94,17 @@ test('transparent layered artwork is not welded or native-deduplicated',()=>{
  assert.equal(r.stats.weldedGroups,0);
  assert.equal(r.stats.exactRemoved,0);
 });
+
+test('the pre-Union fallback snapshot never aliases the Boolean-modified document',()=>{
+ const a=rect(0,0),b=rect(2,0);
+ const compound=vector([...a.commands,...b.commands]);
+ const original=doc([compound]);
+ const union=mergeOverlappingObjects(original,{tolerance:.01});
+ assert.ok(union.stats.normalizedObjects>0,'fixture must exercise actual Boolean normalization');
+ assert.deepEqual(union.safeDocument.paths[0].commands,compound.commands,
+   'fallback must preserve original native segments, not flattened Union L vertices');
+ assert.notDeepEqual(union.document.paths[0].commands,union.safeDocument.paths[0].commands);
+ union.document.paths[0].commands[0][1]+=7;
+ assert.deepEqual(union.safeDocument.paths[0].commands,compound.commands,
+   'mutating Boolean result must not corrupt independent native snapshot');
+});
