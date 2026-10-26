@@ -455,3 +455,10 @@ button>.tool-icon,button>.tool-icon.approved-icon{flex-shrink:0;overflow:hidden}
 
 /* Zoom controls use complete vector glyphs; approved PNG originals are untouched. */
 #zoom-in>.zoom-symbol,#zoom-out>.zoom-symbol{display:block;width:22px;height:22px;flex:0 0 22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;overflow:visible}
+
+/* Separate precise width and height limits for AFTER-only micro contours. */
+.tiny-cleanup{margin:10px 0 12px;padding:8px 0;border-top:1px solid var(--border,#d9e1e4);border-bottom:1px solid var(--border,#d9e1e4)}
+.tiny-cleanup .tiny-size-inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:7px 0}
+.tiny-cleanup .tiny-size-inputs label{display:flex;flex-direction:column;gap:4px;font-size:12px}
+.tiny-cleanup .tiny-size-inputs input{box-sizing:border-box;width:100%;min-width:0}
+.tiny-cleanup .hint{margin:4px 0;font-size:11px}
