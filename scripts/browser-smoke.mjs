@@ -89,6 +89,29 @@ try{
   const restored=(await page.locator('#canvas').getAttribute('viewBox')).split(/\s+/).map(Number),original=zoomWidth.split(/\s+/).map(Number);
   restored.forEach((n,i)=>assert.ok(Math.abs(n-original[i])<=Math.max(1,Math.abs(original[i]))*2e-6,'zoom +/- restores view'));
   console.log('PASS complete vector +/- signs and real zoom inverse controls');
+  // Independent import: the first Rust diagnostic's actual error rings belong
+  // to the original DO geometry, even after an asynchronous AFTER is ready.
+  const duplicateSvg='<svg xmlns="http://www.w3.org/2000/svg" width="30mm" height="30mm" viewBox="0 0 30 30">'+
+    '<path fill="#222" d="M 2 2 L 20 2 L 20 20 L 2 20 Z"/>'+
+    '<path fill="#222" d="M 2 2 L 20 2 L 20 20 L 2 20 Z"/></svg>';
+  await page.locator('#file').setInputFiles({name:'original-before-errors.svg',
+    mimeType:'image/svg+xml',buffer:Buffer.from(duplicateSvg)});
+  await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'),{},{timeout:120000});
+  await page.waitForFunction(()=>document.querySelector('#busy').hidden);
+  assert.equal(await page.locator('#compare-before').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('#geometry .comparison-path.before').count(),2);
+  const originalIssues=Number(await page.locator('#issue-count').textContent());
+  const originalRings=await page.locator('#markers .problem-marker').count();
+  assert.ok(originalIssues>0&&originalRings>0,
+    'first imported original is displayed in DO with actual Rust diagnostic issue rings');
+  await page.locator('#compare-after').click();
+  await page.locator('#compare-before').click();
+  assert.equal(await page.locator('#issue-count').textContent(),String(originalIssues),
+    'returning to DO must retain original error counts, never regenerated from AFTER');
+  assert.equal(await page.locator('#markers .problem-marker').count(),originalRings,
+    'returning to DO must preserve original marker locations');
+  console.log('PASS imported DO: original geometry and '+originalIssues+
+    ' primary issue markers persist across comparison');
   // Source-owned large closed contour forces batch splitting, without private artwork.
   const points=Array.from({length:2444},(_,i)=>[110+100*Math.cos(i*2*Math.PI/2444),110+100*Math.sin(i*2*Math.PI/2444)]);
   const svg='<svg xmlns="http://www.w3.org/2000/svg" width="220mm" height="220mm" viewBox="0 0 220 220"><path fill="none" stroke="black" d="M '+points.map(p=>p.join(' ')).join(' L ')+' Z"/></svg>';
@@ -96,12 +119,17 @@ try{
   await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'),{},{timeout:120000});
   await page.waitForFunction(()=>document.querySelector('#busy').hidden);
   assert.equal(await page.locator('#workspace-filename').textContent(),'closed-batch-regression.svg');
-  const after=await page.locator('#geometry .comparison-path').first().getAttribute('d');
-  assert.ok(after);
-  assert.ok(!(await page.locator('#issues').textContent()).includes('Открытый контур'));
-  await page.locator('#compare-before').click();
+  assert.equal(await page.locator('#compare-before').getAttribute('aria-pressed'),'true',
+    'after import and asynchronous repairs DO must remain selected');
   const before=await page.locator('#geometry .comparison-path').first().getAttribute('d');
-  assert.notEqual(before,after,'optimization must change stored/rendered geometry');
+  assert.ok(before);
+  assert.ok(!(await page.locator('#issues').textContent()).includes('Открытый контур'));
+  await page.locator('#compare-after').click();
+  const after=await page.locator('#geometry .comparison-path').first().getAttribute('d');
+  assert.notEqual(before,after,'AFTER must change stored/rendered geometry only after explicit click');
+  await page.locator('#compare-before').click();
+  assert.equal(await page.locator('#geometry .comparison-path').first().getAttribute('d'),before,
+    'DO always returns to the imported geometry, even after AFTER diagnostic');
   await page.locator('#compare-after').click();
   await page.locator('#apply-changes').click();
   assert.equal(await page.locator('#geometry .comparison-path').first().getAttribute('d'),after);

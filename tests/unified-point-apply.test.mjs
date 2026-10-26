@@ -20,7 +20,7 @@ test('the actual unified preview and Apply commit point repairs even when smooth
     'optimization-tolerance':{value:'0.00001'},tolerance:{value:'0.01'},'optimization-result':{},'gpu-status':{},'merge-overlaps':{checked:false}};
   const changes=[],past=[],history=[];
   const context={doc:structuredClone(source),selected:new Set(),issues:[{kind:'short'}],
-    diagnosticComplete:true,busy:false,ready:false,curvePreview:null,previewGeneration:0,curveEditing:()=>false,
+    diagnosticComplete:true,busy:false,ready:false,curvePreview:null,previewGeneration:0,importedBefore:null,importedComparison:()=>null,curveEditing:()=>false,
     gpuBroadphase:async()=>({mode:'cpu',pairs:null,reason:'union-disabled'}),
     $:id=>elements[id],clone:structuredClone,repairVectorPoints,selectedVectorIndices,
     smoothAndOptimizePaths,refitBooleanUnion,protectPreviewNodeBudget,previewBudgetMessage,worldData,render:()=>{},record:()=>{},status:()=>{},

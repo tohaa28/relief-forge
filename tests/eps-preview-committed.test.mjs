@@ -42,7 +42,9 @@ test('AFTER always displays remaining errors and saves precisely the cached opti
   assert.match(app,/checkpoint\(baseline\);doc=clone\(pv.result\)/);
   assert.match(app,/diagnoseAfterDocument\(preview.result,/);
   assert.match(app,/preview.comparisonData.afterIssues=report.issues/);
-  assert.match(app,/markersVisible=true;compareStage='after'/);
+  assert.match(app,/preview\.comparisonData\.afterIssues=report\.issues/);
+  assert.doesNotMatch(app,/markersVisible=true;compareStage='after'/);
+  assert.match(app,/curvePreview=pv;compareStage='before'/);
   assert.match(app,/chooseAfterSnapshot\(doc,curvePreview,readEpsSaveSettings\(\)/);
   assert.match(app,/prepareEpsOutput\(chosen.document\)/);
   assert.match(app,/void checkPreviewAfter\(pv\)/);

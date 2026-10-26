@@ -27,7 +27,12 @@ try{
   await page.waitForFunction(()=>document.querySelector('#busy').hidden);
   await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));
   assert.equal(await page.locator('#apply-changes').isEnabled(),true,'scene must have a real optimized candidate');
+  assert.equal(await page.locator('#compare-before').getAttribute('aria-pressed'),'true',
+    'the imported original and primary diagnostic markers must remain visible');
+  const importedGeometry=await page.locator('#geometry').innerHTML();
+  await page.locator('#compare-after').click();
   const rendered=await page.locator('#geometry').innerHTML();
+  assert.notEqual(rendered,importedGeometry,'DO and AFTER are distinct snapshots');
   const outputs={};
   for(const mode of ['outline','original']){
    const pending=page.waitForEvent('download');await page.locator('#export-eps').click();
