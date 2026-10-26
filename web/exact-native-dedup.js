@@ -33,7 +33,9 @@ export function deduplicateExactVectors(document,{indices=null}={}){
     document:{...structuredClone(document),paths},
     keptOriginalIndices,
     stats:{before:document.paths.length,after:paths.length,removed:drop.size,
-      removedNodes:[...drop].reduce((sum,i)=>sum+(document.paths[i].commands||document.paths[i].points||[])
-        .filter?.(c=>Array.isArray(c)&&c[0]!=='Z')?.length||sum,0)}
+      removedNodes:[...drop].reduce((sum,i)=>sum+
+        (document.paths[i].commands
+          ?document.paths[i].commands.filter(c=>['M','L','C','Q'].includes(c[0])).length
+          :(document.paths[i].points?.length||0)),0)}
   };
 }
