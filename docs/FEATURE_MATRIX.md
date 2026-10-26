@@ -210,3 +210,6 @@ PDF-only self-contained layer namespace fixes strict browser "Некоррект
 
 ## 0.2.0-alpha.41 published / LIVE verified
 PDF-only named-layer namespace fix, all old non-PDF logic identical after version/cache normalization. PR59/6a0557f, PR40013897510/main40014070205 build+deploySUCCESS229JS/17Rust/freshWASM/all old+new browser. SuppliedPDF396source/49.789856x26.65857mm, valid paint/C, visual20/342400pixels; existing optimizer245, exact UndoRedo/EPS/project; real Unicode/layers/font/text/multipage/cancel/image/invalid input tests. Old neck LIVE0/1/2cases and minEPS18/16zones/1967exact output unchanged. F-036 first manual coldEPS120s timeout preserved, causeUNKNOWN; samebuild traced retry8072msPASS with no failed requests, no code change. SourcePDF/privategeometry not committed; user confirmation separate.
+
+## 2026-10-26 gerb investigation — no release change (0.2.0-alpha.41)
+F-037 native/proxy marker mismatch, F-038 wholeUnionrollback restores35copies, F-039 aggregatequalitycap identified on real gerb.229JSbaseline passes but known cases not covered;5sourceowned reproductions added as diagnostic tool. Runtime unchanged/noalpha42. Actual11493->11170,3284->2642partial,35copies/19pairschecked,all5AFTERselfcross false on native intervals,57protectedtiny parts; EPSroundtripidentical. Full evidence GERB_DIAGNOSTIC_INVESTIGATION_20261026.md.

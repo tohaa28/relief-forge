@@ -59,6 +59,16 @@ console.log(`PASS: compiled WASM ABI, autoheal before/after, crossings, split, l
 // Keep fresh-WASM example/browser gates in the existing mandatory CI entrypoint.
 if(process.env.CI){
  const {execFileSync}=await import('node:child_process');
+ // ubuntu-latest moved to 26.04, absent from pinned Playwright's registry.
+ // Select its existing 24.04 browser build only on that exact CI host. This
+ // does not skip dependency validation or any actual Worker/browser checks.
+ if(process.platform==='linux'&&process.arch==='x64'&&!process.env.PLAYWRIGHT_HOST_PLATFORM_OVERRIDE){
+  const release=readFileSync('/etc/os-release','utf8');
+  if(/^ID="?ubuntu"?$/m.test(release)&&/^VERSION_ID="?26\.04"?$/m.test(release)){
+   process.env.PLAYWRIGHT_HOST_PLATFORM_OVERRIDE='ubuntu24.04-x64';
+   console.log('CI Ubuntu 26.04: verify the pinned Ubuntu 24.04 Playwright browser build with all real browser gates.');
+  }
+ }
  execFileSync(process.execPath,['scripts/verify-example.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/verify-union.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/verify-retraces.mjs'],{stdio:'inherit'});
