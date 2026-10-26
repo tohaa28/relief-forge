@@ -150,6 +150,7 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
   const doc=exact.document,pathCount=doc.paths.length;
   const selected=indices?new Set(exact.keptOriginalIndices.flatMap((old,i)=>
     indices.includes(old)?[i]:[])):null;
+  const safeSelectedIndices=doc.paths.flatMap((_,i)=>!selected||selected.has(i)?[i]:[]);
   const normalizationCandidates=new Set(doc.paths.filter((_,i)=>!selected||selected.has(i)));
   const geometry=doc.paths.map((p,i)=>isSimpleColor(p)&&(!selected||selected.has(i))?
     sampledGeometry(p,tolerance):null);
@@ -239,7 +240,7 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
       skipped++;
     }
   }
-  return {document:doc,safeDocument:exact.document,selectedIndices,
+  return {document:doc,safeDocument:exact.document,safeSelectedIndices,selectedIndices,
     stats:{before:document.paths.length,after:doc.paths.length,
     mergedObjects:mergedObjects+exact.stats.removed,
     removedExact:removedExact+exact.stats.removed,exactRemoved:exact.stats.removed,
