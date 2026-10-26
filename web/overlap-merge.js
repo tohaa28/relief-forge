@@ -2,6 +2,7 @@ import {geometryCommands} from './eps-export.js';
 import {sampledContours} from './rich-svg.js';
 import {filledPathsOverlap,unionFilledPaths} from './polygon-union.js';
 import {isUnchangedUnion} from './union-refit.js';
+import {deduplicateExactVectors} from './exact-native-dedup.js';
 // Clipper performs true area union for *closed filled* Bézier polygons,
 // including holes. Unfilled strokes retain their original cubic path data.
 // No paint-mode conversion or joining unlike-colored artwork.
@@ -140,8 +141,12 @@ function asCompound(group){
 }
 export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance=tolerance,indices=null}={}){
   if(!Array.isArray(document?.paths))throw Error('Документ не содержит векторных объектов');
-  const doc=structuredClone(document),pathCount=doc.paths.length;
-  const selected=indices?new Set(indices):null;
+  // Exact opaque native duplicates are an independent, already-valid stage.
+  // A later failed or node-inflating Union must never restore these copies.
+  const exact=deduplicateExactVectors(document,{indices});
+  const doc=exact.document,pathCount=doc.paths.length;
+  const selected=indices?new Set(exact.keptOriginalIndices.flatMap((old,i)=>
+    indices.includes(old)?[i]:[])):null;
   const normalizationCandidates=new Set(doc.paths.filter((_,i)=>!selected||selected.has(i)));
   const geometry=doc.paths.map((p,i)=>isSimpleColor(p)&&(!selected||selected.has(i))?
     sampledGeometry(p,tolerance):null);
@@ -196,6 +201,8 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
       if(out.welded){weldedGroups++;holes+=out.holes||0;flattenedVertices+=out.vertices||0;}
     }catch{skipped++;}
   }
+  const surviving=doc.paths.map((_,i)=>i).filter(i=>!drop.has(i));
+  const selectedIndices=surviving.flatMap((old,i)=>!selected||selected.has(old)?[i]:[]);
   doc.paths=doc.paths.flatMap((p,i)=>drop.has(i)?[]:[replacements.get(i)||p]);
   // CorelDRAW frequently exports an entire logo as ONE filled compound path
   // with many nested/overlapping M…Z subpaths (8048531.eps is an example).
@@ -221,7 +228,10 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
       skipped++;
     }
   }
-  return {document:doc,stats:{before:pathCount,after:doc.paths.length,mergedObjects,removedExact,
+  return {document:doc,safeDocument:exact.document,selectedIndices,
+    stats:{before:document.paths.length,after:doc.paths.length,
+    mergedObjects:mergedObjects+exact.stats.removed,
+    removedExact:removedExact+exact.stats.removed,exactRemoved:exact.stats.removed,
     weldedGroups,compoundGroups:replacements.size-weldedGroups,normalizedObjects,
     skipped,holes,flattenedVertices,cleanup:cleanupStats,
     booleanEngine:'Clipper 6.4.2.2',
