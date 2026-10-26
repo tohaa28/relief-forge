@@ -27,7 +27,7 @@ test('the actual unified preview and Apply commit point repairs even when smooth
     checkpoint:before=>past.push(structuredClone(before)),updateFileHistory:patch=>history.push(patch)};
   context.changed=action=>{changes.push(action);context.curvePreview=null;};
   vm.createContext(context);
-  const start=app.indexOf('function buildUnifiedPreview()');
+  const start=app.indexOf('async function buildUnifiedPreview()');
   const finish=app.indexOf('function requestRecalculation()',start);
   vm.runInContext(app.slice(start,finish),context);
   const beforeEps=exportEps(source);
