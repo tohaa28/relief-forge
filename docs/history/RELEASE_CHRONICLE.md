@@ -1,3 +1,9 @@
+# alpha.44 candidate — ДО is immutable import baseline (2026-10-26; NOT YET DEPLOYED)
+- Requirement: after importing EPS/PDF/SVG, show ORIGINAL native curves in ДО with all errors from first Rust/WASM diagnostic. Automatically calculating Union/smoothing and checking ПОСЛЕ MUST NOT switch tabs without user input.
+- Implementation: web/import-before.js clones native geometry on successful import and captures first original-geometry diagnosis once (including partial status). Both ordinary and large-file previews use the same preserved original snapshot/markers, while AFTER uses its own separately diagnosed snapshot. Auto-preview and asynchronous AFTER diagnosis leave the requested stage unchanged. Importing another document starts a clean baseline; a new blank document clears it. EPS export remains bound to AFTER as before.
+- Tests: tests/import-before-markers.test.mjs validates immutable geometry/initial issue points and explicit mode selection. Existing Rust/WASM, EPS/PDF browser, Undo/Redo, GPU fallback and node-budget tests MUST remain green. No user EPS bytes or screenshots committed.
+- Alpha.43 remains the last production control point until PR CI and GitHub Pages deploy are verified.
+
 # 0.2.0-alpha.43 PUBLISHED — VERIFIED CHECKPOINT 2026-10-26
 - Functional PR https://github.com/tohaa28/relief-forge/pull/64 merged into main at `af4c285dd07906e16ecb62d541d7bc6e2a05ed01`.
 - PR source-head CI https://github.com/tohaa28/relief-forge/actions/runs/40316932711 **SUCCESS**: 245 JS tests, 17 Rust native tests, freshly compiled WASM, genuine browser/Worker EPS and PDF import, union+holes silhouette, both color/outline EPS modes, actual AFTER export vs preview, Undo/Redo and node editing. Separate simulated WebGPU device exercises adapter request, WGSL dispatch, readback, candidate flags; NO hardware benchmark.
