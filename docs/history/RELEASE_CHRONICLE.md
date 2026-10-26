@@ -1,3 +1,4 @@
+# 0.2.0-alpha.44 candidate (NOT YET DEPLOYED): original import DO + first diagnostic issue markers
 # alpha.44 candidate — ДО is immutable import baseline (2026-10-26; NOT YET DEPLOYED)
 - Requirement: after importing EPS/PDF/SVG, show ORIGINAL native curves in ДО with all errors from first Rust/WASM diagnostic. Automatically calculating Union/smoothing and checking ПОСЛЕ MUST NOT switch tabs without user input.
 - Implementation: web/import-before.js clones native geometry on successful import and captures first original-geometry diagnosis once (including partial status). Both ordinary and large-file previews use the same preserved original snapshot/markers, while AFTER uses its own separately diagnosed snapshot. Auto-preview and asynchronous AFTER diagnosis leave the requested stage unchanged. Importing another document starts a clean baseline; a new blank document clears it. EPS export remains bound to AFTER as before.
