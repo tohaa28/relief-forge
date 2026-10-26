@@ -314,3 +314,18 @@ Sourcea17c773, PR61 CI40292188928 SUCCESS56sbuild/59srun with all actual browser
 - **Protection / verification:** PR #62 merged `3dd7099`, full PR CI [40307674333](https://github.com/tohaa28/relief-forge/actions/runs/40307674333) SUCCESS 238 JS/17 Rust/fresh WASM/all browser gates; main [40307945350](https://github.com/tohaa28/relief-forge/actions/runs/40307945350) build+deploy SUCCESS.
 - **Status:** fixed for covered scenarios; independent user's private `gerb.eps` was not re-tested. Do NOT remove this state-isolation test, weaken original-node ceilings or claim native Bézier intersections F-037 are repaired.
 
+
+## F-042. Global Boolean rollback erased independent valid groups (alpha.42)
+- **Observed:** on the private coat-of-arms `gerb.eps`, after safe exact dedup the Union normalized multiple compound filled objects into thousands of sampled polygon anchors. The old one-document node ceiling correctly blocked whole-candidate inflation, but also discarded independently valid Boolean groups. Earlier standalone export showed 58 objects, 452 remaining issues, and native anchors equal to safe dedup+point cleanup rather than substantial accepted area welds.
+- **Incorrect method:** either disable the global node budget or accept entire 20k+ sampled Union polygon geometry; would reproduce F-028 and potentially corrupt detail.
+- **alpha43 solution:** `assessUnionGroup` validates each independent connected Boolean group and each single-object compound normalization after Bézier refit, with both bounded local growth and unchanged whole-document node ceiling. Successful groups stay in the AFTER snapshot; failed groups retain native original paths. No new unchecked geometry is accepted; native exact duplicate removal remains independent.
+- **Verification:** PR64 / CI40316932711, 245JS/17Rust/freshWASM/all browser gates; scoped-union regression on overlapping rectangles, cubic rejection, EPS identity. No direct private `gerb.eps` test in this release and no guarantee that every complex group now merges.
+- **Status:** addressed for covered cases. Full exact Bézier Boolean reconstruction is still an unresolved separate development task.
+
+## F-043. WebGPU compute precision and hardware availability (alpha.43)
+- **Requirement:** user requested GPU processing for Doctor Uzelkov, specifically on available NVIDIA-class GPUs.
+- **Risk:** shader floats are f32 and can miss narrow near-coincident Bézier boundaries if unpadded. GPU driver support varies by browser/OS, and GPU readback/initialization can cost more than CPU broadphase on small logos.
+- **alpha43 method:** WGSL compute handles only candidate control-hull AABB pairs, conservatively padded to overselect. GPU cannot independently delete a path, accept a Union, move a node or author EPS; CPU f64 and Clipper own all such steps. Unsupported devices, invalid coordinates, small or very large documents and GPU errors use deterministic CPU fallback; GPU status visible in application.
+- **Evidence:** fake WebGPU adapter/device regression dispatches 256 candidate flags and checks returned pairs; real Rust/WASM and browser EPS PDF tests pass in CI40316932711. CI does **not** contain NVIDIA GTX1080/RTX3050 benchmark or proof of active hardware GPU shader execution. No performance/speedup claim.
+- **Status:** WebGPU broadphase implemented with CPU fallback and simulated compute test; live hardware GPU acceptance/benchmark pending.
+
