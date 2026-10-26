@@ -75,7 +75,7 @@ test('both preview routes run Union before smoothing, and export uses cached AFT
 
 test('source-dominant Union retains the exact original cubic when a smaller filled object lies inside',()=>{
  const large=bezier();
- const little=rect(1.2,1.2);
+ const little=vector([['M',1,1],['L',2,1],['L',2,2],['L',1,2],['Z']]);
  const input=doc([large,little]);
  const result=mergeOverlappingObjects(input,{tolerance:.01});
  assert.equal(result.stats.weldedGroups,1);
