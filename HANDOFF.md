@@ -1,3 +1,15 @@
+# 0.2.0-alpha.44 PUBLISHED — verified checkpoint (2026-10-26)
+
+- User requirement: **ДО** must show the raw document *immediately after import* and its **original diagnosis problem rings**, irrespective of later Union/smoothing/optimization/Apply; no background task may select ПОСЛЕ without an explicit user click.
+- Feature PR [#66](https://github.com/tohaa28/relief-forge/pull/66) merged at [74d1e9e](https://github.com/tohaa28/relief-forge/commit/74d1e9e489bf8db506ca9197ef266d295cf2fbe8).
+- Full PR [CI 40320220363](https://github.com/tohaa28/relief-forge/actions/runs/40320220363) **SUCCESS**: 248/248 JS, 17/17 Rust, fresh WASM and actual Chromium regression. Synthetic duplicated closed SVG imported as 2 native paths with **17 original error rings**; DO retains exact original geometry, marker count and positions across DO→AFTER→DO. Browser EPS and PDF import, all 8 mode-matrix combinations, node editor, EPS export from cached AFTER, Undo/Redo and reopen tests passed.
+- Main production [Pages workflow 40320407500](https://github.com/tohaa28/relief-forge/actions/runs/40320407500) **SUCCESS** build + deploy. Site https://tohaa28.github.io/relief-forge/?v=alpha44. Live user's browser and their private gerb.eps not independently re-run; avoid claiming a user-confirmed visual inspection.
+- `web/import-before.js`: independent structured-clone import baseline captured when successful import becomes current. First original Rust/WASM diagnostic issues and completeness cached one time. Subsequent ordinary or large EPS preview always compares imported first snapshot to separately processed AFTER; background AFTER diagnosis no longer forcibly changes tab. New import replaces baseline, new blank document clears it. Export still uses approved AFTER snapshot exclusively.
+- Failed CI attempts retained: [40319459488](https://github.com/tohaa28/relief-forge/actions/runs/40319459488) old static AFTER assertion, unsigned docs version, VM harness omitted new importedBefore stub; [40319662440](https://github.com/tohaa28/relief-forge/actions/runs/40319662440) browser-smoke wrongly assumed automatic AFTER; [40319990699](https://github.com/tohaa28/relief-forge/actions/runs/40319990699) mode-matrix wrongly compared saved AFTER to displayed DO. Tests were corrected to assert both stages and actual export parity, **not weakened**.
+- Rollback: production alpha.43 is `e3e2c3a`; alpha.42 `b454bcf`. Remaining geometry limitations F-037 exact cubic crossing provenance, arbitrary analytic Bézier Boolean and hardware GPU performance remain separate and unchanged by this UI/data-integrity fix.
+
+## Earlier working notes (historical, NOT the current release status)
+
 # 0.2.0-alpha.44 candidate: original DO (pending verified CI)
 # alpha.44 candidate — ДО is immutable import baseline (2026-10-26; NOT YET DEPLOYED)
 - Requirement: after importing EPS/PDF/SVG, show ORIGINAL native curves in ДО with all errors from first Rust/WASM diagnostic. Automatically calculating Union/smoothing and checking ПОСЛЕ MUST NOT switch tabs without user input.
