@@ -72,3 +72,25 @@ test('both preview routes run Union before smoothing, and export uses cached AFT
  assert.match(large,/checkPreviewAfter\(pv\)/);
  assert.match(app,/prepareEpsOutput\(chosen.document\)/);
 });
+
+test('source-dominant Union retains the exact original cubic when a smaller filled object lies inside',()=>{
+ const large=bezier();
+ const little=rect(1.2,1.2);
+ const input=doc([large,little]);
+ const result=mergeOverlappingObjects(input,{tolerance:.01});
+ assert.equal(result.stats.weldedGroups,1);
+ assert.equal(result.document.paths.length,1);
+ assert.deepEqual(result.document.paths[0].commands,large.commands,
+   'no new L anchors may be added to existing containing Bezier');
+ const eps=exportEps(result.document);
+ assert.equal(verifyEpsOutputGeometry(result.document,{content:eps,source:'outline'}).realNodes,4);
+});
+test('transparent layered artwork is not welded or native-deduplicated',()=>{
+ const ink={...paint,opacity:.5};
+ const same=vector(bezier().commands,ink);
+ const input=doc([same,structuredClone(same)]);
+ const r=mergeOverlappingObjects(input,{tolerance:.01});
+ assert.equal(r.document.paths.length,2);
+ assert.equal(r.stats.weldedGroups,0);
+ assert.equal(r.stats.exactRemoved,0);
+});
