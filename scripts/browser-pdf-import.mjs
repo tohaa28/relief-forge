@@ -34,6 +34,16 @@ try{
   const eps=await getDownload(async()=>{await page.locator('#export-eps').click();await page.locator('input[name="eps-color-mode"][value="'+mode+'"]').check();await page.locator('#eps-color-confirm').click();if(await page.locator('#eps-save-warning').isVisible())await page.locator('#eps-save-anyway').click();});
   assert.match(eps,/^%!PS/);assert.ok(/(?:curveto| C\s*$)/m.test(eps));finalProject=await project();
  }
+ if(JSON.stringify(finalProject.paths)===JSON.stringify(before.paths)){
+   console.error('PDF-UNION-FALLBACK-DIAGNOSTIC',JSON.stringify({
+     sourceNodes:before.paths.reduce((n,p)=>n+p.points.length,0),
+     finalNodes:finalProject.paths.reduce((n,p)=>n+p.points.length,0),
+     status:await page.locator('#status').textContent(),
+     preview:(await page.locator('#optimization-result').textContent()).slice(0,2600),
+     auto:await page.locator('#auto-status').textContent(),
+     applyDisabled:await page.locator('#apply-changes').isDisabled()
+   }));
+ }
  await page.keyboard.press('Control+z');await page.waitForTimeout(250);await page.waitForFunction(()=>document.querySelector('#busy').hidden);assert.deepEqual((await project()).paths,before.paths,'Undo must restore imported PDF native curves and paint exactly');
  await page.keyboard.press('Control+y');await page.waitForTimeout(250);await page.waitForFunction(()=>document.querySelector('#busy').hidden);assert.deepEqual((await project()).paths,finalProject.paths,'Redo must restore the applied result exactly');
  await page.locator('#file').setInputFiles({name:'reopened.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(finalProject))});await waitImport();assert.equal((await project()).pdfImport.pageNumber,1);
