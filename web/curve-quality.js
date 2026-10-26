@@ -79,12 +79,56 @@ export function validateCurveChange(before,after,{tolerance=.01,nodeTolerance=.0
   }catch(error){report.reason=String(error.message);return report;}
 }
 
-// Compare relationships across separate objects too, before intentional Union.
-export function validateDocumentCurveChange(before,after,options){
-  const combine=doc=>{
-    const list=doc.paths.filter(p=>p.kind!=='image').flatMap(p=>commands(p).map(c=>
-      [c[0],...c.slice(1).map((v,i)=>v+(p.offset?.[i%2]||0))]));
-    return {kind:'vector',artwork:'<path/>',commands:list,offset:[0,0]};
+// Preserve inter-object checks, but do not combine thousands of native
+// anchors into one 20,000-sample contour. The large-document fallback checks
+// each changed path and every potentially contacting object pair. Any budget
+// exhaustion is a rejection, never an unverified acceptance.
+export function validateDocumentCurveChange(before,after,options={}){
+  const combine=paths=>({
+    kind:'vector',artwork:'<path/>',offset:[0,0],
+    commands:paths.filter(p=>p.kind!=='image').flatMap(p=>commands(p).map(c=>
+      [c[0],...c.slice(1).map((v,i)=>v+(p.offset?.[i%2]||0))]))
+  });
+  const all=validateCurveChange(combine(before.paths),combine(after.paths),options);
+  if(all.accepted||!/(too complex|слишком сложна|quality-budget|quality-intersections-limit)/i.test(all.reason||''))return all;
+  if(before.paths.length!==after.paths.length)
+    return {...all,reason:'scoped-validation-requires-stable-object-mapping'};
+  const changed=[];
+  for(let i=0;i<before.paths.length;i++){
+    if(JSON.stringify(commands(before.paths[i]))!==JSON.stringify(commands(after.paths[i]))||
+       JSON.stringify(before.paths[i].offset||[0,0])!==JSON.stringify(after.paths[i].offset||[0,0]))
+      changed.push(i);
+  }
+  if(!changed.length)return {...all,accepted:true,reason:null,scoped:true,checkedPairs:0};
+  const t=Math.max(.0001,Number(options.tolerance)||.01);
+  const bounds=p=>{
+    const values=commands(p).flatMap(c=>c.slice(1)),off=p.offset||[0,0];
+    if(!values.length)return null;
+    const xx=values.filter((_,i)=>i%2===0).map(x=>x+off[0]),
+      yy=values.filter((_,i)=>i%2===1).map(y=>y+off[1]);
+    return [Math.min(...xx),Math.min(...yy),Math.max(...xx),Math.max(...yy)];
   };
-  return validateCurveChange(combine(before),combine(after),options);
+  const boxes=before.paths.map((p,i)=>{
+    const a=bounds(p),b=bounds(after.paths[i]);if(!a)return b;if(!b)return a;
+    return [Math.min(a[0],b[0]),Math.min(a[1],b[1]),
+      Math.max(a[2],b[2]),Math.max(a[3],b[3])];
+  });
+  const proximity=(a,b)=>a&&b&&a[0]<=b[2]+t&&b[0]<=a[2]+t&&
+    a[1]<=b[3]+t&&b[1]<=a[3]+t;
+  let checkedPairs=0;
+  for(const i of changed){
+    const self=validateCurveChange(before.paths[i],after.paths[i],options);
+    if(!self.accepted)return {...self,scoped:true,failedPath:i};
+  }
+  const seen=new Set();
+  for(const i of changed)for(let j=0;j<before.paths.length;j++){
+    if(i===j||!proximity(boxes[i],boxes[j]))continue;
+    const key=Math.min(i,j)+':'+Math.max(i,j);
+    if(seen.has(key))continue;seen.add(key);
+    if(++checkedPairs>25000)return {...all,reason:'scoped-pair-budget',scoped:true};
+    const pair=validateCurveChange(combine([before.paths[i],before.paths[j]]),
+      combine([after.paths[i],after.paths[j]]),options);
+    if(!pair.accepted)return {...pair,scoped:true,failedPair:[i,j]};
+  }
+  return {...all,accepted:true,reason:null,scoped:true,checkedPairs,checkedPaths:changed.length};
 }
