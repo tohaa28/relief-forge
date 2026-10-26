@@ -70,3 +70,65 @@ test('GPU workgroup dispatch has readback and cannot replace CPU Boolean/EPS val
  assert.match(app,/refitBooleanUnion\(merged\.document/);
  assert.match(app,/prepareEpsOutput\(chosen.document\)/);
 });
+
+test('GPU compute path requests adapter, dispatches WGSL and reads back exact candidate flags',async()=>{
+ const savedUsage=globalThis.GPUBufferUsage,savedMode=globalThis.GPUMapMode;
+ globalThis.GPUBufferUsage={STORAGE:1,COPY_DST:2,COPY_SRC:4,MAP_READ:8,UNIFORM:16};
+ globalThis.GPUMapMode={READ:1};
+ const dispatches=[];let shader='',bindings;
+ const createBuffer=({size})=>({bytes:new Uint8Array(size),mapAsync:async()=>{},
+   getMappedRange(){return this.bytes.buffer;},unmap(){},destroy(){}});
+ const device={
+   limits:{maxStorageBufferBindingSize:1<<20},
+   createBuffer,createShaderModule({code}){shader=code;return {code};},
+   async createComputePipelineAsync(){return {getBindGroupLayout:()=>({})};},
+   createBindGroup({entries}){bindings=entries;return entries;},
+   createCommandEncoder(){
+     let command;
+     return {beginComputePass(){return {setPipeline(){},setBindGroup(){},
+       dispatchWorkgroups(n){dispatches.push(n);},end(){}};},
+       copyBufferToBuffer(source,sourceOffset,dest,destOffset,count){
+         command=()=>dest.bytes.set(source.bytes.subarray(sourceOffset,sourceOffset+count),destOffset);
+       },
+       finish(){return {copy:command};}
+     };
+   },
+   queue:{
+     writeBuffer(buffer,offset,data){
+       const bytes=data instanceof ArrayBuffer?new Uint8Array(data):
+         new Uint8Array(data.buffer,data.byteOffset,data.byteLength);
+       buffer.bytes.set(bytes,offset);
+     },
+     submit(commands){
+       const boxes=bindings[0].resource.buffer.bytes,
+         out=bindings[1].resource.buffer.bytes,
+         params=bindings[2].resource.buffer.bytes,
+         n=new DataView(params.buffer).getUint32(0,true),
+         padding=new DataView(params.buffer).getFloat32(4,true);
+       const b=new Float32Array(boxes.buffer),flags=new Uint32Array(out.buffer);
+       for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){
+         const a=4*i,c=4*j;
+         flags[i*n+j]=Number(b[a]<=b[c+2]+padding&&b[c]<=b[a+2]+padding&&
+           b[a+1]<=b[c+3]+padding&&b[c+1]<=b[a+3]+padding);
+       }
+       commands.forEach(c=>c.copy());
+     }
+   },destroy(){}
+ };
+ const navigatorObject={gpu:{requestAdapter:async()=>({
+   requestDevice:async()=>device
+ })}};
+ try{
+   const paths=Array.from({length:16},(_,i)=>rectangle(i===1?5:i*20,0));
+   const report=await gpuBroadphase(doc(paths),{navigatorObject});
+   assert.equal(report.mode,'webgpu',JSON.stringify(report));
+   assert.equal(report.count,16);
+   assert.ok(report.pairs.some(([a,b])=>a===0&&b===1));
+   assert.ok(!report.pairs.some(([a,b])=>a===0&&b===15));
+   assert.deepEqual(dispatches,[4],'256 pair flags dispatched in four 64-thread workgroups');
+   assert.match(shader,/@compute @workgroup_size\(64\)/);
+ }finally{
+   if(savedUsage===undefined)delete globalThis.GPUBufferUsage;else globalThis.GPUBufferUsage=savedUsage;
+   if(savedMode===undefined)delete globalThis.GPUMapMode;else globalThis.GPUMapMode=savedMode;
+ }
+});
