@@ -375,11 +375,24 @@ function buildUnifiedPreview(){
     // native dedup even if a later Boolean group is rejected by node budget.
     const merged=$('merge-overlaps').checked?
       mergeOverlappingObjects(repaired.document,{indices:scope,tolerance:diagnosticTolerance,cleanupTolerance:optimizationTolerance}):
-      {document:repaired.document,safeDocument:repaired.document,selectedIndices:scope,
+      {document:repaired.document,safeDocument:repaired.document,selectedIndices:scope,safeSelectedIndices:scope,
         stats:{mergedObjects:0,removedExact:0,weldedGroups:0,compoundGroups:0,skipped:0,holes:0,normalizedObjects:0,unionToleranceMm:0.005,cleanup:{coincident:0,collinear:0,short:0,shortEdgesRemaining:0,reverted:0}}};
     const refitted=refitBooleanUnion(merged.document,optimizationTolerance);
-    const optimized=smoothAndOptimizePaths(refitted.document,merged.selectedIndices,smoothingAmount,optimizationTolerance,diagnosticTolerance);
-    const budget=protectPreviewNodeBudget(doc,merged.safeDocument,optimized.document);
+    let optimized=smoothAndOptimizePaths(refitted.document,merged.selectedIndices,smoothingAmount,optimizationTolerance,diagnosticTolerance);
+    let budget=protectPreviewNodeBudget(doc,merged.safeDocument,optimized.document);
+    if(budget.reason==='union-node-growth'){
+      // Reject only the flattened Boolean candidate, not the native repair.
+      // Still run smoothing/optimization AFTER the attempted Union, on the
+      // certified exact-native snapshot. PDF/large artwork must remain editable
+      // and Save/Undo must commit an actual changed AFTER when safe.
+      const nativeOptimized=smoothAndOptimizePaths(merged.safeDocument,
+        merged.safeSelectedIndices,smoothingAmount,optimizationTolerance,diagnosticTolerance);
+      const nativeBudget=protectPreviewNodeBudget(doc,merged.safeDocument,nativeOptimized.document);
+      if(!nativeBudget.reason){
+        optimized=nativeOptimized;
+        budget={...nativeBudget,reason:'union-fallback-optimized',rejectedUnionNodes:budget.after};
+      }
+    }
     const after=budget.document;
     const actualCount=document=>document.paths.reduce((n,p)=>n+
       (p.kind==='image'?0:p.commands?.filter(c=>c[0]==='M'||c[0]==='L'||c[0]==='C'||c[0]==='Q').length??p.points.length),0);
@@ -546,7 +559,7 @@ async function buildLargeUnifiedPreview(indices){
     await yieldForUi();
     const merged=$('merge-overlaps').checked?
       mergeOverlappingObjects(result,{indices,tolerance:tol,cleanupTolerance:optimizationTolerance}):
-      {document:result,safeDocument:result,selectedIndices:indices,
+      {document:result,safeDocument:result,selectedIndices:indices,safeSelectedIndices:indices,
        stats:{mergedObjects:0,removedExact:0,weldedGroups:0,compoundGroups:0,skipped:0,holes:0,normalizedObjects:0,unionToleranceMm:0.005,cleanup:{coincident:0,collinear:0,short:0,shortEdgesRemaining:0,reverted:0}}};
     if(generation!==previewGeneration)return;
     progressStage('Восстановление кривых после Union',44);
