@@ -91,12 +91,14 @@ function rebuildArtwork(commands,paint){
     '" stroke-width="'+escapeAttr(w)+'" fill-rule="'+escapeAttr(rule)+'"/>';
 }
 function paintFor(path){
+  if(path.artwork){
+    // Even when a top-level paint record exists, a multi-element/masked SVG
+    // may have distinct styles per child. Never flatten those into one style.
+    if(/clip-path|mask=|filter=|<image\b|url\s*\(|opacity\s*=|stroke-dasharray|mix-blend-mode/i.test(path.artwork))return null;
+    if((path.artwork.match(/<(?:path|line|polyline|polygon|circle|ellipse|rect)\b/gi)||[]).length!==1)return null;
+  }
   if(path.paint)return path.paint;
   if(!path.artwork)return {fill:'none',stroke:'#34465b',strokeWidthMm:.07,fillRule:'nonzero',opacity:1};
-  if(/clip-path|mask=|filter=|<image\b|url\s*\(|opacity\s*=|stroke-dasharray|mix-blend-mode/i.test(path.artwork))return null;
-  // Reconstructing a composite of different styled SVG elements as one path
-  // would destroy CNC/paint semantics; only one decorated source is safe.
-  if((path.artwork.match(/<(?:path|line|polyline|polygon|circle|ellipse|rect)\b/gi)||[]).length!==1)return null;
   try{return paintFromArtwork(path.artwork);}catch{return null;}
 }
 export function removeTinyClosedSubpaths(document,{enabled=true,width=.1,height=.1}={}){
@@ -120,7 +122,9 @@ export function removeTinyClosedSubpaths(document,{enabled=true,width=.1,height=
       const bounds=closedSubpathBounds(piece.commands);
       if(!bounds){stats.skippedUnsafe++;keep.push(piece);continue;}
       stats.checkedClosed++;
-      if(bounds.width<width&&bounds.height<height){
+      // Keep on-threshold parts despite IEEE-754 rounding during subtraction.
+      const gx=Math.max(1e-12,width*1e-11),gy=Math.max(1e-12,height*1e-11);
+      if(bounds.width<width-gx&&bounds.height<height-gy){
         stats.removedSubpaths++;
         stats.removedNodes+=piece.commands.filter(c=>['M','L','C','Q'].includes(c[0])).length;
       }else{stats.retainedLarge++;keep.push(piece);}
