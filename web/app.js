@@ -11,6 +11,7 @@ import {beginImportBefore,captureImportBefore,importedComparison} from './import
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
 import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.44';
 import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.44';
+import {removeTinyClosedObjects} from './tiny-closed-objects.js?v=0.2.0-alpha.44';
 import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.44';
 import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.44';
 import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.44';
@@ -363,6 +364,10 @@ function lock(value,{coverCanvas=true}={}){
   if(!value){endProgress();render();}
 }
 
+function readTinyCleanup(){
+  return {enabled:$('remove-tiny-closed').checked,
+    width:Number($('tiny-width').value),height:Number($('tiny-height').value)};
+}
 // The automatic section is declarative: settings trigger calculation, no
 // "start/cancel" action. Only Apply commits a candidate to the document.
 async function buildUnifiedPreview(){
@@ -405,14 +410,19 @@ async function buildUnifiedPreview(){
         budget={...nativeBudget,reason:'union-fallback-optimized',rejectedUnionNodes:budget.after};
       }
     }
-    const after=budget.document;
+    const tinyOptions=readTinyCleanup();
+    const tinyIndices=(!$('selection-only').checked||!selected.size)?null:
+      (budget.reason?merged.safeSelectedIndices:merged.selectedIndices);
+    const tiny=removeTinyClosedObjects(budget.document,{...tinyOptions,indices:tinyIndices});
+    const after=tiny.document;
     const actualCount=document=>document.paths.reduce((n,p)=>n+
       (p.kind==='image'?0:p.commands?.filter(c=>c[0]==='M'||c[0]==='L'||c[0]==='C'||c[0]==='Q').length??p.points.length),0);
     const st={...optimized.stats,scope:[...scope],gpu,refit:refitted.stats,budget,
-      actualNodesBefore:actualCount(doc),actualNodesAfter:actualCount(after),overlaps:merged.stats,mergeOverlaps:$('merge-overlaps').checked,pointRepairs:repaired.stats,diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
+      actualNodesBefore:actualCount(doc),actualNodesAfter:actualCount(after),tinyCleanup:tiny.stats,overlaps:merged.stats,mergeOverlaps:$('merge-overlaps').checked,pointRepairs:repaired.stats,diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
       smoothingDeviation:optimized.stats.smoothingError};
     const different=JSON.stringify(doc.paths.map(worldData))!==JSON.stringify(after.paths.map(worldData));
     const msg='ИТОГОВЫЕ реальные узлы: '+st.actualNodesBefore+' → '+st.actualNodesAfter+'.'+
+      '\nМелкие замкнутые элементы: удалено '+st.tinyCleanup.removedSubpaths+' контуров ('+st.tinyCleanup.removedObjects+' отдельных объектов), '+st.tinyCleanup.removedNodes+' узлов. Порог: '+st.tinyCleanup.thresholdWidth+' × '+st.tinyCleanup.thresholdHeight+' мм'+(st.tinyCleanup.enabled?'':' · фильтр выключен')+'.'+
       (budget.reason?'\n'+previewBudgetMessage(budget)+' Показатели Union ниже относятся к отклонённой попытке.':'')+'\nТочки: убрано коротких/нулевых сегментов '+st.pointRepairs.removedNodes+
       ' · замкнуто близких концов '+st.pointRepairs.closedGaps+' · удалено покрытых повторных проходов '+(st.pointRepairs.removedRetraces||0)+'.'+
       '\nUnion по независимым группам: принято '+(st.overlaps.acceptedGroups||0)+
@@ -462,6 +472,9 @@ function applyUnifiedChanges(){
      Number($('optimization-tolerance').value)!==pv.stats.tolerance||
      Number($('tolerance').value)!==pv.stats.diagnosticTolerance||
      $('merge-overlaps').checked!==pv.stats.mergeOverlaps||
+     $('remove-tiny-closed').checked!==pv.stats.tinyCleanup.enabled||
+     Number($('tiny-width').value)!==pv.stats.tinyCleanup.thresholdWidth||
+     Number($('tiny-height').value)!==pv.stats.tinyCleanup.thresholdHeight||
      JSON.stringify(selectedVectorIndices(doc,selected,$('selection-only').checked))!==JSON.stringify(pv.stats.scope)){
     status('Параметры изменились. Автоматический расчёт ещё не завершён.');return false;
   }
@@ -502,6 +515,9 @@ $('tolerance').onchange=requestRecalculation;
 $('clearance-threshold').onchange=()=>render();
 $('selection-only').onchange=requestRecalculation;
 $('merge-overlaps').onchange=requestRecalculation;
+$('remove-tiny-closed').onchange=requestRecalculation;
+$('tiny-width').onchange=requestRecalculation;
+$('tiny-height').onchange=requestRecalculation;
 $('apply-changes').onclick=applyUnifiedChanges;
 
 function spawnWorker(){
@@ -664,7 +680,12 @@ async function buildLargeUnifiedPreview(indices){
         budget={...nativeBudget,reason:'union-fallback-optimized',rejectedUnionNodes:budget.after};
       }
     }
-    const after=budget.document;
+    const tinyOptions=readTinyCleanup();
+    const tinyIndices=(!$('selection-only').checked||!selected.size)?null:
+      (budget.reason?merged.safeSelectedIndices:merged.selectedIndices);
+    const tiny=removeTinyClosedObjects(budget.document,{...tinyOptions,indices:tinyIndices});
+    const after=tiny.document;
+    stats.tinyCleanup=tiny.stats;
     stats.gpu=gpu;stats.budget=budget;stats.overlaps=merged.stats;stats.refit=refitted.stats;
     stats.mergeOverlaps=$('merge-overlaps').checked;
     const countReal=target=>target.paths.reduce((n,p)=>n+(p.kind==='image'?0:
@@ -679,6 +700,7 @@ async function buildLargeUnifiedPreview(indices){
     pv.beforeDiagnosticComplete=importedBefore?.complete??diagnosticComplete;
     curvePreview=pv;compareStage='before';
     $('optimization-result').textContent='ИТОГОВЫЕ реальные узлы: '+stats.actualNodesBefore+' → '+stats.actualNodesAfter+'.'+
+      '\nМелкие замкнутые элементы: удалено '+stats.tinyCleanup.removedSubpaths+' контуров ('+stats.tinyCleanup.removedObjects+' отдельных объектов), '+stats.tinyCleanup.removedNodes+' узлов. Порог: '+stats.tinyCleanup.thresholdWidth+' × '+stats.tinyCleanup.thresholdHeight+' мм'+(stats.tinyCleanup.enabled?'':' · фильтр выключен')+'.'+
       (budget.reason?' '+previewBudgetMessage(budget)+' Показатели Union ниже — отклонённая попытка.':'')+'\nБольшой документ: обработано '+indices.length+
       ' контуров; Union принято групп '+(stats.overlaps.acceptedGroups||0)+
       ', отклонено '+(stats.overlaps.rejectedGroups||0)+
@@ -1203,6 +1225,8 @@ function readEpsSaveSettings(){
     smoothingAmount:Number($('smoothing-amount').value),
     optimizationTolerance:Number($('optimization-tolerance').value),
     mergeOverlaps:$('merge-overlaps').checked,
+    tinyEnabled:$('remove-tiny-closed').checked,
+    tinyWidth:Number($('tiny-width').value),tinyHeight:Number($('tiny-height').value),
     scope:selectedVectorIndices(doc,selected,$('selection-only').checked)};
 }
 let epsColorMode='outline';
