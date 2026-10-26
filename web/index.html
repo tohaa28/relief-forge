@@ -24,6 +24,11 @@
 <div class="auto-settings"><label for="smoothing-amount">Размер сглаживания Безье, мм</label><input id="smoothing-amount" type="number" min="0" max="2" step="0.01" value="0.05">
 <label for="optimization-tolerance">Допуск оптимизации, мм</label><div class="optimizer-precision"><input id="optimization-range" type="range" min="0.001" max="0.25" step="0.001" value="0.02" aria-label="Уровень оптимизации"><input id="optimization-tolerance" type="number" min="0.00001" max="2" step="0.001" value="0.02"></div>
 <label class="check"><input id="merge-overlaps" type="checkbox" checked> Объединять наложенные объекты</label><p class="hint">Настоящая булева операция Union: объединяет перекрывающиеся закрытые заливки одного цвета, убирает внутренние границы и сохраняет отверстия. Кривые аппроксимируются с точностью до 0,005 мм. Разные цвета и открытые линии не объединяются.</p>
+<div class="micro-contour-controls">
+<label class="check"><input id="remove-micro" type="checkbox" checked> Удалять мелкие замкнутые элементы для ЧПУ</label>
+<div class="micro-contour-sizes"><label for="micro-width">Ширина меньше, мм <input id="micro-width" type="number" min="0.000001" max="100" step="0.01" value="0.1"></label><label for="micro-height">Высота меньше, мм <input id="micro-height" type="number" min="0.000001" max="100" step="0.01" value="0.1"></label></div>
+<p class="hint">Удаляются отдельные замкнутые подконтуры, включая внутренние детали составных векторов, только если оба габарита меньше заданных. Размеры вычисляются по реальным экстремумам кривых Безье. Длинные узкие и открытые линии сохраняются. Фильтр применяется к ПОСЛЕ и EPS, исходный ДО не меняется.</p>
+</div>
 <p class="hint">Исправление точек убирает нулевые и короткие сегменты, замыкает близкие концы в пределах допуска диагностики. Сглаживание изменяет ручки Безье; оптимизация объединяет сегменты. Результат виден в центре в режимах ДО / ПОСЛЕ, оригинал сохраняется до подтверждения.</p>
 <p id="optimization-result" role="status">После открытия файла появится сравнение геометрии.</p>
 <button id="apply-changes" class="primary" disabled><svg class="tool-icon" aria-hidden="true"><use href="doctor-icons.svg#apply"/></svg>Применить изменения</button></div>
