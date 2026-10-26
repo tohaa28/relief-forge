@@ -304,3 +304,13 @@ Actual min EPS alpha37 retained3overlaps from a closed linear A-B-A contour lyin
 
 ### F-040 verified follow-up2026-10-26
 Sourcea17c773, PR61 CI40292188928 SUCCESS56sbuild/59srun with all actual browser gates,229JS17RustfreshWASM; previous40291584782 remainsFAILED. ExactUbuntu26/x64 CI fallback to existing24 browser observed compatible on runner; no general official26 support asserted, no application behavior changed.
+
+
+## F-041. Aliased native rollback snapshot wrongly contained flattened Union vertices — PDF Undo silently ineffective
+- **Symptom (2026-10-26, alpha42 PR #62):** actual Chromium PDF import loaded 108 editable native anchors, but post-Union node-budget diagnostic showed "optimized-node-growth" 108 → 481; cached AFTER stayed unchanged. Saving EPS generated no applied optimization snapshot; Ctrl+Z then undid the original import to an empty document. Browser PDF smoke failed even though 238 JS, 17 Rust and other browser checks were green.
+- **Confirmed root cause:** `mergeOverlappingObjects` stored `const doc=exact.document` and returned `safeDocument:exact.document`; both referred to the **same mutable object**. Subsequent `doc.paths=` Boolean normalization contaminated the supposed pre-Union rollback snapshot with densely flattened curves.
+- **Failed attempts recorded:** first reordered Union ahead of smoothing but retained global rollback; second introduced native fallback optimization, but it still read aliased already-flattened source. Earlier CI 40306355892 failed PDF Undo, and targeted instrumentation in CI 40307425158 exposed the exact 108 → 481 misuse.
+- **Fix:** deep-clone the verified native-only document *before* any group normalization or array replacement and return an independent `safeDocument`. On rejected over-dense Boolean result, safely optimize that native snapshot and preserve exact opaque duplicate removals. Regression: `tests/union-first-alpha42.test.mjs` verifies original compound Bézier commands remain byte-identical when union result is mutated; full real PDF Worker/Undo test checks 108 original → 103 AFTER, Undo restores original curves/paint exactly.
+- **Protection / verification:** PR #62 merged `3dd7099`, full PR CI [40307674333](https://github.com/tohaa28/relief-forge/actions/runs/40307674333) SUCCESS 238 JS/17 Rust/fresh WASM/all browser gates; main [40307945350](https://github.com/tohaa28/relief-forge/actions/runs/40307945350) build+deploy SUCCESS.
+- **Status:** fixed for covered scenarios; independent user's private `gerb.eps` was not re-tested. Do NOT remove this state-isolation test, weaken original-node ceilings or claim native Bézier intersections F-037 are repaired.
+
