@@ -7,6 +7,7 @@ import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.44';
 import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.44';
 import {packedInput} from './auto-repair.js';
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
+import {removeTinyClosedSubpaths} from './cnc-microfilter.js?v=0.2.0-alpha.44';
 import {beginImportBefore,captureImportBefore,importedComparison} from './import-before.js?v=0.2.0-alpha.44';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
 import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.44';
@@ -405,14 +406,21 @@ async function buildUnifiedPreview(){
         budget={...nativeBudget,reason:'union-fallback-optimized',rejectedUnionNodes:budget.after};
       }
     }
-    const after=budget.document;
+    const filtered=removeTinyClosedSubpaths(budget.document,{
+      enabled:$('remove-micro')?.checked??true,
+      width:Number($('micro-width')?.value??.1),height:Number($('micro-height')?.value??.1)});
+    const after=filtered.document;
     const actualCount=document=>document.paths.reduce((n,p)=>n+
       (p.kind==='image'?0:p.commands?.filter(c=>c[0]==='M'||c[0]==='L'||c[0]==='C'||c[0]==='Q').length??p.points.length),0);
     const st={...optimized.stats,scope:[...scope],gpu,refit:refitted.stats,budget,
-      actualNodesBefore:actualCount(doc),actualNodesAfter:actualCount(after),overlaps:merged.stats,mergeOverlaps:$('merge-overlaps').checked,pointRepairs:repaired.stats,diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
+      actualNodesBefore:actualCount(doc),actualNodesAfter:actualCount(after),micro:filtered.stats,overlaps:merged.stats,mergeOverlaps:$('merge-overlaps').checked,pointRepairs:repaired.stats,diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
       smoothingDeviation:optimized.stats.smoothingError};
     const different=JSON.stringify(doc.paths.map(worldData))!==JSON.stringify(after.paths.map(worldData));
     const msg='ИТОГОВЫЕ реальные узлы: '+st.actualNodesBefore+' → '+st.actualNodesAfter+'.'+
+      '\nCNC: удалено малых замкнутых подконтуров '+st.micro.removedSubpaths+
+      ' (объектов: '+st.micro.removedObjects+', узлов: '+st.micro.removedNodes+
+      '); размер строго меньше '+st.micro.width+' × '+st.micro.height+
+      ' мм'+(st.micro.enabled?'':' · фильтр отключён')+'.'+
       (budget.reason?'\n'+previewBudgetMessage(budget)+' Показатели Union ниже относятся к отклонённой попытке.':'')+'\nТочки: убрано коротких/нулевых сегментов '+st.pointRepairs.removedNodes+
       ' · замкнуто близких концов '+st.pointRepairs.closedGaps+' · удалено покрытых повторных проходов '+(st.pointRepairs.removedRetraces||0)+'.'+
       '\nUnion по независимым группам: принято '+(st.overlaps.acceptedGroups||0)+
@@ -462,6 +470,9 @@ function applyUnifiedChanges(){
      Number($('optimization-tolerance').value)!==pv.stats.tolerance||
      Number($('tolerance').value)!==pv.stats.diagnosticTolerance||
      $('merge-overlaps').checked!==pv.stats.mergeOverlaps||
+     ($('remove-micro')?.checked??true)!==pv.stats.micro?.enabled||
+     Number($('micro-width')?.value??.1)!==pv.stats.micro?.width||
+     Number($('micro-height')?.value??.1)!==pv.stats.micro?.height||
      JSON.stringify(selectedVectorIndices(doc,selected,$('selection-only').checked))!==JSON.stringify(pv.stats.scope)){
     status('Параметры изменились. Автоматический расчёт ещё не завершён.');return false;
   }
@@ -502,6 +513,7 @@ $('tolerance').onchange=requestRecalculation;
 $('clearance-threshold').onchange=()=>render();
 $('selection-only').onchange=requestRecalculation;
 $('merge-overlaps').onchange=requestRecalculation;
+for(const id of ['remove-micro','micro-width','micro-height'])$(id).onchange=requestRecalculation;
 $('apply-changes').onclick=applyUnifiedChanges;
 
 function spawnWorker(){
@@ -664,7 +676,11 @@ async function buildLargeUnifiedPreview(indices){
         budget={...nativeBudget,reason:'union-fallback-optimized',rejectedUnionNodes:budget.after};
       }
     }
-    const after=budget.document;
+    const filtered=removeTinyClosedSubpaths(budget.document,{
+      enabled:$('remove-micro')?.checked??true,
+      width:Number($('micro-width')?.value??.1),height:Number($('micro-height')?.value??.1)});
+    const after=filtered.document;
+    stats.micro=filtered.stats;
     stats.gpu=gpu;stats.budget=budget;stats.overlaps=merged.stats;stats.refit=refitted.stats;
     stats.mergeOverlaps=$('merge-overlaps').checked;
     const countReal=target=>target.paths.reduce((n,p)=>n+(p.kind==='image'?0:
@@ -679,6 +695,9 @@ async function buildLargeUnifiedPreview(indices){
     pv.beforeDiagnosticComplete=importedBefore?.complete??diagnosticComplete;
     curvePreview=pv;compareStage='before';
     $('optimization-result').textContent='ИТОГОВЫЕ реальные узлы: '+stats.actualNodesBefore+' → '+stats.actualNodesAfter+'.'+
+      '\nCNC: удалено малых замкнутых подконтуров '+stats.micro.removedSubpaths+
+      ', узлов '+stats.micro.removedNodes+'; размер '+stats.micro.width+' × '+
+      stats.micro.height+' мм'+(stats.micro.enabled?'':' · фильтр отключён')+'.'+
       (budget.reason?' '+previewBudgetMessage(budget)+' Показатели Union ниже — отклонённая попытка.':'')+'\nБольшой документ: обработано '+indices.length+
       ' контуров; Union принято групп '+(stats.overlaps.acceptedGroups||0)+
       ', отклонено '+(stats.overlaps.rejectedGroups||0)+
@@ -1203,6 +1222,9 @@ function readEpsSaveSettings(){
     smoothingAmount:Number($('smoothing-amount').value),
     optimizationTolerance:Number($('optimization-tolerance').value),
     mergeOverlaps:$('merge-overlaps').checked,
+    microEnabled:$('remove-micro')?.checked??true,
+    microWidth:Number($('micro-width')?.value??.1),
+    microHeight:Number($('micro-height')?.value??.1),
     scope:selectedVectorIndices(doc,selected,$('selection-only').checked)};
 }
 let epsColorMode='outline';
