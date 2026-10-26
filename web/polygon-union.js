@@ -99,6 +99,29 @@ export function unionFilledPaths(paths,{tolerance=.01,cleanupTolerance=tolerance
     flattenToleranceMm:flattenTolerance(tolerance),
     quantizationMm:1/scale};
 }
+// If the complete Boolean result is already one original opaque silhouette,
+// retain its exact native L/Q/C segments and handles: ZERO new Union anchors.
+// Clipper is only a conservative equivalence oracle here, never the geometry
+// exported for a source-dominant union.
+export function findUnionEquivalentSource(paths,{tolerance=.01}={}){
+  if(!Array.isArray(paths)||paths.length<2)return -1;
+  try{
+    const scale=toScale(tolerance);
+    const normalized=paths.map(p=>normalizePath(p,tolerance,scale));
+    const result=runUnion(normalized.flat()).map(p=>p.points);
+    for(let i=0;i<normalized.length;i++){
+      const c=new C.Clipper();
+      if(!c.AddPaths(normalized[i],C.PolyType.ptSubject,true))continue;
+      if(!c.AddPaths(result,C.PolyType.ptClip,true))continue;
+      const xor=new C.Paths();
+      if(!c.Execute(C.ClipType.ctXor,xor,C.PolyFillType.pftNonZero,C.PolyFillType.pftNonZero))continue;
+      if(xor.reduce((sum,ring)=>sum+square(ring),0)<=1)return i;
+    }
+  }catch{
+    // An uncertain match cannot license replacement or dropped art.
+  }
+  return -1;
+}
 export function filledPathsOverlap(first,second,{tolerance=.01}={}){
   const scale=toScale(tolerance);
   return positiveIntersection(normalizePath(first,tolerance,scale),
