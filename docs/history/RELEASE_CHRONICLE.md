@@ -1,3 +1,14 @@
+# 0.2.0-alpha.43 CANDIDATE — 2026-10-26, NOT PUBLISHED
+- Source branch `feature/alpha43-scoped-union-webgpu` based on published alpha.42 (`b454bcf`). Do not claim publication or CI success before evidence.
+- Real WebGPU WGSL compute broadphase for native Bézier convex-hull AABB candidate pairs (high-performance adapter, conservative f32 padding). Device/readback buffers are disposed. CPU fallback for unsupported browsers, documents outside limits or device errors. GPU only filters candidate pairs; CPU f64 sampling, Clipper Union, Bézier post-refit, quality checks and EPS snapshot remain authoritative.
+- Group-scoped Union acceptance: every independent group and each compound path is refitted/checked before commit. Invalid, node-inflating or over-budget groups stay original, while other approved groups and exact opaque source-copy removals remain. Overall input-node ceiling remains; no disabling topology/hole/paint guards.
+- Both ordinary and large EPS preview use new GPU candidate prefilter, then Union -> smoothing -> optimization -> AFTER diagnostics -> EPS from one snapshot.
+- Explicitly **not** implemented: full f64 analytic curve-curve Boolean tracing, guaranteed elimination of every unnecessary new node, full cross-batch diagnostic coverage, GPU Clipper/geometry kernel, hardware speedup proof on GTX 1080 or RTX 3050.
+- Verification TODO: static/238+ JS, 17 Rust, compiled WASM, real Chromium EPS/PDF/Undo/Export parity, CPU/WebGPU candidate identical output, release Pages push and live user checks. No private `gerb.eps` committed; actual screenshot and exported file remain outside repo.
+- Pre-existing alpha42 checkpoint: PR #62 merged `3dd7099`; final publication with history PR #63 `b454bcf`, Pages CI40308614388 SUCCESS. Preserve this rollback target.
+
+0.2.0-alpha.43 is a candidate and not verified/deployed. Historical alpha.42 evidence is unchanged.
+
 # RELEASE COMPLETE — 0.2.0-alpha.42, GitHub Pages deployed and CI verified (2026-10-26)
 - Functional PR [#62](https://github.com/tohaa28/relief-forge/pull/62) merged to main at [3dd70995124f5d1c935bbda45e1ba18ab385ab6e](https://github.com/tohaa28/relief-forge/commit/3dd70995124f5d1c935bbda45e1ba18ab385ab6e).
 - Final-head PR CI [40307674333](https://github.com/tohaa28/relief-forge/actions/runs/40307674333) **SUCCESS**: 238 JS tests, 17 Rust native tests, fresh WASM, real browser/Worker gates including EPS, PDF, real Union, holes, project Undo/Redo, exact cached AFTER EPS. PDF synthetic 108 original anchors -> 103 AFTER, Undo exact, real two-mode EPS exports, source silhouette mismatch 0/320000 pixels.
