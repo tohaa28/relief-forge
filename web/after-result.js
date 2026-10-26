@@ -7,6 +7,9 @@ export function chooseAfterSnapshot(document,preview,settings,comparison,diagnos
        s.smoothingAmount!==settings.smoothingAmount||
        s.tolerance!==settings.optimizationTolerance||
        s.mergeOverlaps!==settings.mergeOverlaps||
+       s.micro?.enabled!==settings.microEnabled||
+       s.micro?.width!==settings.microWidth||
+       s.micro?.height!==settings.microHeight||
        (settings.scope!==undefined&&JSON.stringify(s.scope)!==JSON.stringify(settings.scope))||
        JSON.stringify(preview.source)!==JSON.stringify(document))
       return {valid:false,reason:'stale-preview'};

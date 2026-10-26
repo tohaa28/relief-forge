@@ -68,7 +68,8 @@ test('Union output is refitted in AFTER, opening node editor commits that exact 
   const overlap=readFileSync(new URL('../web/overlap-merge.js',import.meta.url),'utf8');
   assert.match(app,/refitBooleanUnion\(merged\.document,optimizationTolerance\)/);
   assert.match(app,/let budget=protectPreviewNodeBudget\(doc,merged\.safeDocument,optimized\.document\)/);
-  assert.match(app,/const after=budget\.document/);
+  assert.match(app,/const after=filtered\.document/);
+  assert.match(app,/removeTinyClosedSubpaths\(budget\.document/);
   assert.match(app,/if\(curvePreview&&compareStage==='after'\)/);
   assert.match(app,/!applyUnifiedChanges\(\)/);
   assert.match(app,/mode='nodes';nodeTool='move'/);
