@@ -1,6 +1,6 @@
 import {geometryCommands} from './eps-export.js';
 import {sampledContours} from './rich-svg.js';
-import {filledPathsOverlap,unionFilledPaths} from './polygon-union.js';
+import {filledPathsOverlap,unionFilledPaths,findUnionEquivalentSource} from './polygon-union.js';
 import {isUnchangedUnion} from './union-refit.js';
 import {deduplicateExactVectors} from './exact-native-dedup.js';
 // Clipper performs true area union for *closed filled* Bézier polygons,
@@ -59,7 +59,8 @@ function filledEligible(path){
   const paint=path.paint;
   return path.kind!=='image'&&paint&&typeof paint.fill==='string'&&
     paint.fill.toLowerCase()!=='none'&&(!paint.stroke||paint.stroke.toLowerCase()==='none')&&
-    !paint.unsupported&&path.closed===true;
+    !paint.unsupported&&path.closed===true&&Number(paint.opacity??1)===1&&
+    Number(paint.fillOpacity??1)===1;
 }
 function styleKey(p){
   return JSON.stringify(p.paint||{fill:'none',stroke:'#000000',strokeWidthMm:.1});
@@ -183,6 +184,13 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
         JSON.stringify(geometryCommands(group[0])));
       let out;
       if(allFilled&&!identical){
+        const dominant=findUnionEquivalentSource(group,{tolerance});
+        if(dominant>=0){
+          // Existing source curve already represents the whole filled area.
+          // Preserve every native Bézier handle; do not polygonize it.
+          out={welded:true,removedExact:0,path:structuredClone(group[dominant]),
+            holes:0,vertices:0};
+        }else{
         const welded=unionFilledPaths(group,{tolerance,cleanupTolerance});
         addCleanup(welded.cleanup);
         const d=welded.commands.map(c=>c.join(' ')).join(' ');
@@ -194,6 +202,7 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
           closed:true,paint,
           artwork:'<path d="'+d+'" fill="none" stroke="#34465b" stroke-width="0.07" fill-rule="evenodd"/>'
         },holes:welded.holes,vertices:welded.vertices};
+        }
       }else out=asCompound(group);
       replacements.set(ids[0],out.path);normalizationCandidates.add(out.path);
       for(const i of ids.slice(1))drop.add(i);
