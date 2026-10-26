@@ -1,3 +1,6 @@
+# 0.2.0-alpha.42 VERIFIED PUBLISHED — 2026-10-26
+Functional PR #62 merged as 3dd7099; CI40307674333 PASS 238JS/17Rust/freshWASM/all browser; main build+deploy40307945350 PASS. Pipeline Union-before-smoothing/optimization/diagnosis, source-dominant original native Bézier reuse, independent native dedup+fallback, scalable bounded verification, snapshot AFTER EPS all covered by new/existing tests. F-037 true native intersection reports, full inter-job diagnostic coverage, arbitrary exact-native Boolean cuts, GPU computing NOT yet implemented. Live public page not independently inspected; do not overclaim. Private gerb input unavailable for this round.
+
 # 0.2.0-alpha.42 CANDIDATE — PR #62 (not published)
 - Union before smoothing/optimization, both fast and large preview: implemented.
 - Exact native opaque duplicate removal independent from optional Clipper Union rollback: implemented.
