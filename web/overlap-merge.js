@@ -51,7 +51,9 @@ function overlaps(a,b){
   return false;
 }
 function isSimpleColor(path){
-  if(path.kind==='image'||path.paint?.unsupported)return false;
+  if(path.kind==='image'||path.paint?.unsupported||
+     Number(path.paint?.opacity??1)!==1||Number(path.paint?.fillOpacity??1)!==1||
+     Number(path.paint?.strokeOpacity??1)!==1)return false;
   if(path.artwork&&/(?:clip-path|mask=|filter=|<image\b|fill="url\(|stroke="url\()/i.test(path.artwork))return false;
   return true;
 }
