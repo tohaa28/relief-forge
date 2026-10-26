@@ -62,6 +62,54 @@ try{
   await page.keyboard.press('Control+z');assert.ok(await page.locator('#geometry [data-path]').count());
   await page.close();modes++;
  }
+ // CNC end-to-end: tiny internal compound detail (<.1×.1 mm), strict
+ // thresholds, original DO, independent AFTER, and exported outline EPS.
+ const cncPage=await browser.newPage({viewport:{width:1280,height:1000}});
+ cncPage.on('pageerror',e=>errors.push(e.message));
+ await cncPage.goto('http://localhost:'+port);
+ await cncPage.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
+ await cncPage.locator('#merge-overlaps').uncheck();
+ const cncSvg='<svg xmlns="http://www.w3.org/2000/svg" width="40mm" height="40mm" viewBox="0 0 40 40">'+
+  '<path fill="none" stroke="#222" d="M1 1 L20 1 L20 20 L1 20 Z M5 5 L5.04 5 L5.04 5.05 L5 5.05 Z"/></svg>';
+ await cncPage.locator('#file').setInputFiles({name:'cnc-inner-micro.svg',
+   mimeType:'image/svg+xml',buffer:Buffer.from(cncSvg)});
+ const cncReady=async()=>{
+   await cncPage.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'),{},{timeout:120000});
+   await cncPage.waitForFunction(()=>document.querySelector('#busy').hidden);
+ };
+ const countMoves=async()=>((await cncPage.locator('#geometry .comparison-path').first().getAttribute('d')).match(/M/g)||[]).length;
+ await cncReady();
+ assert.equal(await cncPage.locator('#compare-before').getAttribute('aria-pressed'),'true');
+ assert.equal(await countMoves(),2,'original CNC ДО must retain both native contours');
+ await cncPage.locator('#compare-after').click();
+ assert.equal(await countMoves(),1,'CNC AFTER must remove only .04×.05mm inner contour');
+ assert.match(await cncPage.locator('#optimization-result').textContent(),/CNC: удалено малых замкнутых подконтуров 1/);
+ await cncPage.locator('#remove-micro').uncheck();
+ await cncReady();await cncPage.locator('#compare-after').click();
+ assert.equal(await countMoves(),2,'disabled microfilter must preserve tiny detail');
+ await cncPage.locator('#remove-micro').check();
+ await cncPage.locator('#micro-width').fill('0.02');
+ await cncPage.locator('#micro-width').press('Tab');
+ await cncReady();await cncPage.locator('#compare-after').click();
+ assert.equal(await countMoves(),2,'width threshold .02mm must retain .04mm detail');
+ await cncPage.locator('#micro-width').fill('0.1');
+ await cncPage.locator('#micro-width').press('Tab');
+ await cncReady();await cncPage.locator('#compare-after').click();
+ assert.equal(await countMoves(),1,'restoring .1mm threshold removes tiny detail');
+ await cncPage.locator('#compare-before').click();
+ assert.equal(await countMoves(),2,'filter must never alter raw imported ДО');
+ await cncPage.locator('#compare-after').click();
+ const downloadCnc=cncPage.waitForEvent('download');
+ await cncPage.locator('#export-eps').click();
+ await cncPage.locator('input[name="eps-color-mode"][value="outline"]').check();
+ await cncPage.locator('#eps-color-confirm').click();
+ if(await cncPage.locator('#eps-save-warning').isVisible())await cncPage.locator('#eps-save-anyway').click();
+ const cncFile=await downloadCnc;
+ const cncEPS=readFileSync(await cncFile.path(),'utf8');
+ assert.equal(cncEPS.split(/\r?\n/).filter(x=>/^[-\d. ]+ m$/.test(x)).length,1,
+   'downloaded EPS contains exactly the filtered AFTER native contour');
+ await cncPage.close();
+ console.log('PASS CNC micro-filter: inner compound contour, toggling, threshold, DO and exported EPS');
  const tracePage=await browser.newPage();tracePage.on('pageerror',e=>errors.push(e.message));
  await tracePage.goto('http://localhost:'+port);await tracePage.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
  const traceSvg='<svg xmlns="http://www.w3.org/2000/svg" width="20mm" height="20mm" viewBox="0 0 20 20"><path fill="red" stroke="none" d="M0 0 L10 0 L10 10 L0 10 Z M2 0 L8 0 L2 0 Z"/></svg>';
