@@ -1,27 +1,28 @@
-import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.42';
-import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.42';
+import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.43';
+import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.43';
 import {issueViewBox} from './issue-focus.js';
 import {visibleHealthyAnchors,circlePath} from './vector-points.js';
-import {screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.42';
-import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.42';
-import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.42';
+import {screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.43';
+import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.43';
+import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.43';
 import {packedInput} from './auto-repair.js';
 import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
-import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.42';
-import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.42';
-import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.42';
-import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.42';
-import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.42';
-import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.42';
-import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.42';
-import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.42';
-import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.42';
-import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.42';
-import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.42';
-import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.42';
-import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.42';
-import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.42';
+import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.43';
+import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.43';
+import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.43';
+import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.43';
+import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.43';
+import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.43';
+import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.43';
+import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.43';
+import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.43';
+import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.43';
+import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.43';
+import {gpuBroadphase} from './gpu-broadphase.js?v=0.2.0-alpha.43';
+import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.43';
+import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.43';
+import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.43';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 let clearanceKey='',clearanceJob=0,clearanceTimer=null,clearanceWorker=null,clearanceReport=null;
 function updateClearance(document,unit){
@@ -32,7 +33,7 @@ function updateClearance(document,unit){
     clearanceKey=key;clearanceReport=null;clearanceJob++;clearTimeout(clearanceTimer);clearanceWorker?.terminate();clearanceWorker=null;
     label.textContent=threshold?'Измерение расстояний…':'Укажите расстояние больше 0 и не больше 1000 мм.';
     if(threshold&&document.paths.length){const id=clearanceJob;clearanceTimer=setTimeout(()=>{
-      clearanceWorker=new Worker(new URL('./clearance-worker.js?v=0.2.0-alpha.42',import.meta.url),{type:'module'});
+      clearanceWorker=new Worker(new URL('./clearance-worker.js?v=0.2.0-alpha.43',import.meta.url),{type:'module'});
       clearanceWorker.onmessage=({data})=>{if(data.id!==clearanceJob)return;clearanceReport=data.report||null;label.textContent=data.error||('Узкие места < '+threshold+' мм: '+data.report.markers.length+(data.report.complete?' · проверка завершена':' · проверка неполная (лимит или пограничная точность)'));clearanceWorker?.terminate();clearanceWorker=null;render();};
       clearanceWorker.onerror=()=>{if(id!==clearanceJob)return;label.textContent='Измерение расстояний не завершено: ошибка вычисления.';clearanceWorker?.terminate();clearanceWorker=null;};
       clearanceWorker.postMessage({id,document:{paths:document.paths.map(p=>({kind:p.kind,artwork:Boolean(p.artwork),commands:p.commands,points:p.points,closed:p.closed,offset:p.offset}))},threshold});
@@ -156,7 +157,7 @@ function workspaceScan({attemptRepair=false,manual=false}={}){
   state.hidden=health.ok&&!manual;
   state.dataset.health=health.ok?'ok':'warning';
   $('workspace-health-report').value=safeWorkspaceReport(health,{
-    version:'0.2.0-alpha.42',source:lastImportFailure?.source||doc.sourceFileName||'',
+    version:'0.2.0-alpha.43',source:lastImportFailure?.source||doc.sourceFileName||'',
     errors:displayErrors});
   record('workspace-health',{ok:health.ok,issues:health.issues,forceWireframe,attempts:repairs,
     count:health.elementCount,rect:health.canvasRect,bbox:health.geometryBox});
@@ -183,7 +184,7 @@ $('workspace-check').onclick=()=>{
   const health=workspaceScan({attemptRepair:true,manual:true});
   $('workspace-health-report').value=safeWorkspaceReport(health||{
     ok:true,issues:[],note:'Документ не открыт'},{
-    version:'0.2.0-alpha.42',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
+    version:'0.2.0-alpha.43',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
   $('workspace-health-dialog').showModal();
 };
 $('workspace-check-repair').onclick=()=>{
@@ -362,19 +363,28 @@ function lock(value,{coverCanvas=true}={}){
 
 // The automatic section is declarative: settings trigger calculation, no
 // "start/cancel" action. Only Apply commits a candidate to the document.
-function buildUnifiedPreview(){
+async function buildUnifiedPreview(){
   if(busy||!doc.paths.length||curveEditing())return;
   const scope=selectedVectorIndices(doc,selected,$('selection-only').checked);
   if(!scope.length){curvePreview=null;$('optimization-result').textContent='Нет векторных кривых для обработки.';render();return;}
+  const generation=++previewGeneration;
   try{
     const smoothingAmount=Number($('smoothing-amount').value);
     const optimizationTolerance=Number($('optimization-tolerance').value);
     const diagnosticTolerance=Number($('tolerance').value);
     const repaired=repairVectorPoints(doc,scope,diagnosticTolerance);
+    const gpu=$('merge-overlaps').checked
+      ?await gpuBroadphase(repaired.document,{tolerance:diagnosticTolerance})
+      :{mode:'cpu',pairs:null,reason:'union-disabled'};
+    if(generation!==previewGeneration)return;
+    $('gpu-status').textContent=gpu.mode==='webgpu'
+      ?'GPU: WebGPU · '+gpu.candidates+' пар'
+      :'GPU: CPU fallback ('+gpu.reason+')';
     // Union MUST precede post-Union smoothing/optimization. Keep independent
     // native dedup even if a later Boolean group is rejected by node budget.
     const merged=$('merge-overlaps').checked?
-      mergeOverlappingObjects(repaired.document,{indices:scope,tolerance:diagnosticTolerance,cleanupTolerance:optimizationTolerance}):
+      mergeOverlappingObjects(repaired.document,{indices:scope,tolerance:diagnosticTolerance,
+         cleanupTolerance:optimizationTolerance,gpuPairs:{...gpu,sourceCount:repaired.document.paths.length}}):
       {document:repaired.document,safeDocument:repaired.document,selectedIndices:scope,safeSelectedIndices:scope,
         stats:{mergedObjects:0,removedExact:0,weldedGroups:0,compoundGroups:0,skipped:0,holes:0,normalizedObjects:0,unionToleranceMm:0.005,cleanup:{coincident:0,collinear:0,short:0,shortEdgesRemaining:0,reverted:0}}};
     const refitted=refitBooleanUnion(merged.document,optimizationTolerance);
@@ -396,14 +406,16 @@ function buildUnifiedPreview(){
     const after=budget.document;
     const actualCount=document=>document.paths.reduce((n,p)=>n+
       (p.kind==='image'?0:p.commands?.filter(c=>c[0]==='M'||c[0]==='L'||c[0]==='C'||c[0]==='Q').length??p.points.length),0);
-    const st={...optimized.stats,scope:[...scope],refit:refitted.stats,budget,
+    const st={...optimized.stats,scope:[...scope],gpu,refit:refitted.stats,budget,
       actualNodesBefore:actualCount(doc),actualNodesAfter:actualCount(after),overlaps:merged.stats,mergeOverlaps:$('merge-overlaps').checked,pointRepairs:repaired.stats,diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
       smoothingDeviation:optimized.stats.smoothingError};
     const different=JSON.stringify(doc.paths.map(worldData))!==JSON.stringify(after.paths.map(worldData));
     const msg='ИТОГОВЫЕ реальные узлы: '+st.actualNodesBefore+' → '+st.actualNodesAfter+'.'+
       (budget.reason?'\n'+previewBudgetMessage(budget)+' Показатели Union ниже относятся к отклонённой попытке.':'')+'\nТочки: убрано коротких/нулевых сегментов '+st.pointRepairs.removedNodes+
       ' · замкнуто близких концов '+st.pointRepairs.closedGaps+' · удалено покрытых повторных проходов '+(st.pointRepairs.removedRetraces||0)+'.'+
-      '\nБулево объединение Clipper: слито объектов '+st.overlaps.mergedObjects+
+      '\nUnion по независимым группам: принято '+(st.overlaps.acceptedGroups||0)+
+      ', отклонено '+(st.overlaps.rejectedGroups||0)+
+      '. Булево объединение Clipper: слито объектов '+st.overlaps.mergedObjects+
       ', сварено заполненных групп '+st.overlaps.weldedGroups+
       ', нормализовано составных заливок '+st.overlaps.normalizedObjects+
       ', сохранено отверстий '+st.overlaps.holes+
@@ -554,11 +566,21 @@ async function buildLargeUnifiedPreview(indices){
       }
     }
     if(generation!==previewGeneration)return;
-    // Point repair -> Union -> refit -> smooth -> optimize -> AFTER diagnostics.
+    // Point repair -> WebGPU broadphase -> CPU Boolean -> refit -> smooth.
+    progressStage('GPU: поиск возможных пересечений',32);
+    await yieldForUi();
+    const gpu=$('merge-overlaps').checked
+      ?await gpuBroadphase(result,{tolerance:tol})
+      :{mode:'cpu',pairs:null,reason:'union-disabled'};
+    if(generation!==previewGeneration)return;
+    $('gpu-status').textContent=gpu.mode==='webgpu'
+      ?'GPU: WebGPU · '+gpu.candidates+' пар'
+      :'GPU: CPU fallback ('+gpu.reason+')';
     progressStage('Union: перекрытия и точные дубликаты',35);
     await yieldForUi();
     const merged=$('merge-overlaps').checked?
-      mergeOverlappingObjects(result,{indices,tolerance:tol,cleanupTolerance:optimizationTolerance}):
+      mergeOverlappingObjects(result,{indices,tolerance:tol,cleanupTolerance:optimizationTolerance,
+        gpuPairs:{...gpu,sourceCount:result.paths.length}}):
       {document:result,safeDocument:result,selectedIndices:indices,safeSelectedIndices:indices,
        stats:{mergedObjects:0,removedExact:0,weldedGroups:0,compoundGroups:0,skipped:0,holes:0,normalizedObjects:0,unionToleranceMm:0.005,cleanup:{coincident:0,collinear:0,short:0,shortEdgesRemaining:0,reverted:0}}};
     if(generation!==previewGeneration)return;
@@ -633,7 +655,7 @@ async function buildLargeUnifiedPreview(indices){
       }
     }
     const after=budget.document;
-    stats.budget=budget;stats.overlaps=merged.stats;stats.refit=refitted.stats;
+    stats.gpu=gpu;stats.budget=budget;stats.overlaps=merged.stats;stats.refit=refitted.stats;
     stats.mergeOverlaps=$('merge-overlaps').checked;
     const countReal=target=>target.paths.reduce((n,p)=>n+(p.kind==='image'?0:
       p.commands?.filter(c=>['M','L','C','Q'].includes(c[0])).length??p.points.length),0);
@@ -645,7 +667,9 @@ async function buildLargeUnifiedPreview(indices){
     curvePreview=pv;compareStage='after';
     $('optimization-result').textContent='ИТОГОВЫЕ реальные узлы: '+stats.actualNodesBefore+' → '+stats.actualNodesAfter+'.'+
       (budget.reason?' '+previewBudgetMessage(budget)+' Показатели Union ниже — отклонённая попытка.':'')+'\nБольшой документ: обработано '+indices.length+
-      ' контуров; удалено покрытых повторных проходов '+stats.pointRepairs.removedRetraces+' ('+stats.pointRepairs.removedRetracedNodes+' узлов); сглажено '+stats.smoothedJoints+' стыков, удалено '+stats.removed+
+      ' контуров; Union принято групп '+(stats.overlaps.acceptedGroups||0)+
+      ', отклонено '+(stats.overlaps.rejectedGroups||0)+
+      '; удалено покрытых повторных проходов '+stats.pointRepairs.removedRetraces+' ('+stats.pointRepairs.removedRetracedNodes+' узлов); сглажено '+stats.smoothedJoints+' стыков, удалено '+stats.removed+
       ' сегментов; слито объектов '+stats.overlaps.mergedObjects+
       ', нормализовано заливок '+stats.overlaps.normalizedObjects+
       ', сохранено отверстий '+stats.overlaps.holes+
@@ -1009,7 +1033,7 @@ function stopEps({destroy=false}={}){const picker=$('pdf-page-picker');if(picker
 function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);openingFile=false;lastImportFailure=null;lastImportAttempt={source:name,status:'opened',objects:next.paths.length};forceWireframe=false;syncWireframeControl();if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);fit();scheduleWorkspaceCheck();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;openingFile=true;lastImportFailure=null;lastImportAttempt={source:name,status:'converting',bytes:bytes.byteLength};updateMascot();if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта '+(/\.pdf$/i.test(name)?'PDF':'EPS')+'…';record('vector-import-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.42',import.meta.url));
+  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.43',import.meta.url));
   progressStage(/\.pdf$/i.test(name)?'Импорт PDF: подготовка MuPDF':'Импорт EPS: подготовка интерпретатора',9);
   const started=performance.now();
   const fail=message=>{
@@ -1264,4 +1288,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();if(!curveEditing())requestRecalculation();
 });
-record('session-start',{version:'0.2.0-alpha.42'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorReady='true';
+record('session-start',{version:'0.2.0-alpha.43'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorReady='true';
