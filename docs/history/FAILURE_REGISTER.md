@@ -301,3 +301,6 @@ Actual min EPS alpha37 retained3overlaps from a closed linear A-B-A contour lyin
 
 ## F-040. ubuntu-latest 26.04 outgrows pinned Playwright browser registry
 2026-10-26 PR61 CI40291584782 failed browser installation with ERROR Playwright does not support chromium-headless-shell on ubuntu26.04-x64.229JS/native17/freshWASM passed; browser not run, no deployment. CI-only exact Ubuntu26.04/x64 host override selects existing24.04 browser build, preserving dependency validation and all actual browser gates; explicit caller override untouched. New CI must prove compatibility, not assume official26support. No application runtime change or dependency upgrade; source findings F-037..039 independent.
+
+### F-040 verified follow-up2026-10-26
+Sourcea17c773, PR61 CI40292188928 SUCCESS56sbuild/59srun with all actual browser gates,229JS17RustfreshWASM; previous40291584782 remainsFAILED. ExactUbuntu26/x64 CI fallback to existing24 browser observed compatible on runner; no general official26 support asserted, no application behavior changed.

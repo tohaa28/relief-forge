@@ -89,3 +89,6 @@ The real downloaded outline EPS passes `verifyEpsOutputGeometry` as `matching-af
 5. Expose an explicit policy for deleting micro-components/zero-area elements. Preserve deliberate small artwork by default.
 
 No alpha.42 was released, and no claim of complete repair is made. Current requested investigation is complete; do not confuse these findings with a deployed fix.
+
+## Investigation CI record
+PR61 sourcec9e8137 firstCI40291584782 failed only because pinned Playwright did not recognize Ubuntu26.04;229JS/native17/freshWASM passed but browser checks did not run. CI-only follow-upa17c773 selects its existing24.04 browser build on that exact host, without suppressing dependency checks or any browser gate. CI40292188928 then SUCCESS:229JS/17Rust/freshWASM/all actual browserscenarios. App runtime web/src/Cargo/package unchanged, version41 retained. This additional infrastructure adaptation F-040 is not a fix for F-037..039.
