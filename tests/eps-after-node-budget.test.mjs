@@ -15,7 +15,7 @@ test('Union must not replace a 48-node optimized curve with 2840 polygon nodes',
   const result=protectPreviewNodeBudget(source,preUnion,inflated);
   assert.equal(result.reason,'union-node-growth');
   assert.equal(result.final,48);assert.equal(realNodeCount(result.document),48);
-  assert.match(previewBudgetMessage(result),/отменён/);
+  assert.match(previewBudgetMessage(result),/отклонён/);
   assert.deepEqual(source,frozen);
 });
 test('accept actual node reduction; rollback even pre-Union increases',()=>{

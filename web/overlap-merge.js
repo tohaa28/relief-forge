@@ -1,7 +1,8 @@
 import {geometryCommands} from './eps-export.js';
 import {sampledContours} from './rich-svg.js';
-import {filledPathsOverlap,unionFilledPaths} from './polygon-union.js';
+import {filledPathsOverlap,unionFilledPaths,findUnionEquivalentSource} from './polygon-union.js?v=0.2.0-alpha.42';
 import {isUnchangedUnion} from './union-refit.js';
+import {deduplicateExactVectors} from './exact-native-dedup.js';
 // Clipper performs true area union for *closed filled* Bézier polygons,
 // including holes. Unfilled strokes retain their original cubic path data.
 // No paint-mode conversion or joining unlike-colored artwork.
@@ -50,7 +51,9 @@ function overlaps(a,b){
   return false;
 }
 function isSimpleColor(path){
-  if(path.kind==='image'||path.paint?.unsupported)return false;
+  if(path.kind==='image'||path.paint?.unsupported||
+     Number(path.paint?.opacity??1)!==1||Number(path.paint?.fillOpacity??1)!==1||
+     Number(path.paint?.strokeOpacity??1)!==1)return false;
   if(path.artwork&&/(?:clip-path|mask=|filter=|<image\b|fill="url\(|stroke="url\()/i.test(path.artwork))return false;
   return true;
 }
@@ -58,7 +61,8 @@ function filledEligible(path){
   const paint=path.paint;
   return path.kind!=='image'&&paint&&typeof paint.fill==='string'&&
     paint.fill.toLowerCase()!=='none'&&(!paint.stroke||paint.stroke.toLowerCase()==='none')&&
-    !paint.unsupported&&path.closed===true;
+    !paint.unsupported&&path.closed===true&&Number(paint.opacity??1)===1&&
+    Number(paint.fillOpacity??1)===1;
 }
 function styleKey(p){
   return JSON.stringify(p.paint||{fill:'none',stroke:'#000000',strokeWidthMm:.1});
@@ -140,8 +144,16 @@ function asCompound(group){
 }
 export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance=tolerance,indices=null}={}){
   if(!Array.isArray(document?.paths))throw Error('Документ не содержит векторных объектов');
-  const doc=structuredClone(document),pathCount=doc.paths.length;
-  const selected=indices?new Set(indices):null;
+  // Exact opaque native duplicates are an independent, already-valid stage.
+  // A later failed or node-inflating Union must never restore these copies.
+  const exact=deduplicateExactVectors(document,{indices});
+  // CRITICAL: Union mutates doc.paths. Snapshot the valid native-only state
+  // BEFORE any Boolean normalization, never alias exact.document to doc.
+  const safeDocument=structuredClone(exact.document);
+  const doc=exact.document,pathCount=doc.paths.length;
+  const selected=indices?new Set(exact.keptOriginalIndices.flatMap((old,i)=>
+    indices.includes(old)?[i]:[])):null;
+  const safeSelectedIndices=doc.paths.flatMap((_,i)=>!selected||selected.has(i)?[i]:[]);
   const normalizationCandidates=new Set(doc.paths.filter((_,i)=>!selected||selected.has(i)));
   const geometry=doc.paths.map((p,i)=>isSimpleColor(p)&&(!selected||selected.has(i))?
     sampledGeometry(p,tolerance):null);
@@ -178,6 +190,13 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
         JSON.stringify(geometryCommands(group[0])));
       let out;
       if(allFilled&&!identical){
+        const dominant=findUnionEquivalentSource(group,{tolerance});
+        if(dominant>=0){
+          // Existing source curve already represents the whole filled area.
+          // Preserve every native Bézier handle; do not polygonize it.
+          out={welded:true,removedExact:0,path:structuredClone(group[dominant]),
+            holes:0,vertices:0};
+        }else{
         const welded=unionFilledPaths(group,{tolerance,cleanupTolerance});
         addCleanup(welded.cleanup);
         const d=welded.commands.map(c=>c.join(' ')).join(' ');
@@ -189,6 +208,7 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
           closed:true,paint,
           artwork:'<path d="'+d+'" fill="none" stroke="#34465b" stroke-width="0.07" fill-rule="evenodd"/>'
         },holes:welded.holes,vertices:welded.vertices};
+        }
       }else out=asCompound(group);
       replacements.set(ids[0],out.path);normalizationCandidates.add(out.path);
       for(const i of ids.slice(1))drop.add(i);
@@ -196,6 +216,8 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
       if(out.welded){weldedGroups++;holes+=out.holes||0;flattenedVertices+=out.vertices||0;}
     }catch{skipped++;}
   }
+  const surviving=doc.paths.map((_,i)=>i).filter(i=>!drop.has(i));
+  const selectedIndices=surviving.flatMap((old,i)=>!selected||selected.has(old)?[i]:[]);
   doc.paths=doc.paths.flatMap((p,i)=>drop.has(i)?[]:[replacements.get(i)||p]);
   // CorelDRAW frequently exports an entire logo as ONE filled compound path
   // with many nested/overlapping M…Z subpaths (8048531.eps is an example).
@@ -221,7 +243,10 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
       skipped++;
     }
   }
-  return {document:doc,stats:{before:pathCount,after:doc.paths.length,mergedObjects,removedExact,
+  return {document:doc,safeDocument,safeSelectedIndices,selectedIndices,
+    stats:{before:document.paths.length,after:doc.paths.length,
+    mergedObjects:mergedObjects+exact.stats.removed,
+    removedExact:removedExact+exact.stats.removed,exactRemoved:exact.stats.removed,
     weldedGroups,compoundGroups:replacements.size-weldedGroups,normalizedObjects,
     skipped,holes,flattenedVertices,cleanup:cleanupStats,
     booleanEngine:'Clipper 6.4.2.2',

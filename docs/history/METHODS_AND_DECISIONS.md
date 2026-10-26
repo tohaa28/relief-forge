@@ -1,3 +1,11 @@
+# alpha.42 candidate methodology — 2026-10-26 (PR #62, NOT published)
+- Keep exact opaque same-paint native duplicate removal separate from lossy Boolean polygonization. Retain later matching source without any added L/C nodes; never dedup transparency/masks/strokes or objects outside selected scope.
+- Union first (after conservative native point repair), refit Clipper boundary, then smooth and optimize, then validate/diagnose actual AFTER. Both normal and large EPS use the same ordering and cached EPS snapshot.
+- Source-dominant union detected through quantized Clipper XOR; native source cubic/handles remain EXACT. Other true cuts remain sampled Clipper + bounded postrefit; fully native Boolean split-and-trace remains an outstanding problem, not claimed repaired.
+- Quality sampling in large documents: if global sampling cap exceeded, independently verify every modified path and candidate-contact pair via bounding-box broadphase. Budget exhaustion or ambiguous contacts reject modification; no silent certification.
+- GPU: WGSL WebGPU runtime arithmetic f32 is unsuitable as final exact Bézier/Boolean authority under sub-0.01mm tolerances. Optional GPU spatial candidate generation could be evaluated after correctness regression on GTX1080/RTX3050, with padded bounds, deterministic CPU f64 verification and measured transfer overhead.
+- Persistent open items: exact native provenance for F-037, full cross-batch diagnostic pairing F-038, micro-figure semantics, robust Boolean reconstruction on intersecting non-contained cubic arcs, quality/per-group fallback for Union rather than global node rollback. Protect all existing holes, paint and Undo + EPS=AFTER invariants.
+
 # Технические решения и методы разработки «Доктора Узелкова»
 
 **Состояние, от которого исходить:** 0.2.0-alpha.33, GitHub main \`fee205c17a729ed246f0760f2cebd29352e73cd9\`, [успешный CI/Pages](https://github.com/tohaa28/relief-forge/actions/runs/39948169551). Это **архитектурный справочник** и причины выбора методов, не обещание, что каждый PDF/EPS проверен на конкретной ОС.

@@ -1,3 +1,12 @@
+# 0.2.0-alpha.42 CANDIDATE — PR #62 (not published)
+- Union before smoothing/optimization, both fast and large preview: implemented.
+- Exact native opaque duplicate removal independent from optional Clipper Union rollback: implemented.
+- Contained filled objects retain dominant source Bézier handles via silhouette equality check: implemented.
+- Large-document postquality fallback per-object + proximity pairs: implemented, budget failure remains rejected.
+- UI AFTER and EPS share cache: existing invariant unchanged (browser tests pending).
+- Exact native intersections F-037: NOT implemented. GPU computing: NOT implemented (analysis only). Full real-gerb validation still pending.
+- No claims of finished native-only Boolean on arbitrary Béziers.
+
 # Матрица Vector Doctor и лечения
 
 «Написано» означает код текущего alpha, а не проверенную совместимость с ArtCAM. Последний подтверждённый PR #17 для alpha.14: 15 нативных Rust-тестов, 63 JS-теста и проверка собранного WASM ABI успешны. Это CI PR, не доказательство текущего live Pages. Основной браузерный сценарий проверен; совместимость с ArtCAM ещё не подтверждена.
