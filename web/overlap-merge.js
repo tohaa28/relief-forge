@@ -147,6 +147,9 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
   // Exact opaque native duplicates are an independent, already-valid stage.
   // A later failed or node-inflating Union must never restore these copies.
   const exact=deduplicateExactVectors(document,{indices});
+  // CRITICAL: Union mutates doc.paths. Snapshot the valid native-only state
+  // BEFORE any Boolean normalization, never alias exact.document to doc.
+  const safeDocument=structuredClone(exact.document);
   const doc=exact.document,pathCount=doc.paths.length;
   const selected=indices?new Set(exact.keptOriginalIndices.flatMap((old,i)=>
     indices.includes(old)?[i]:[])):null;
@@ -240,7 +243,7 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
       skipped++;
     }
   }
-  return {document:doc,safeDocument:exact.document,safeSelectedIndices,selectedIndices,
+  return {document:doc,safeDocument,safeSelectedIndices,selectedIndices,
     stats:{before:document.paths.length,after:doc.paths.length,
     mergedObjects:mergedObjects+exact.stats.removed,
     removedExact:removedExact+exact.stats.removed,exactRemoved:exact.stats.removed,
