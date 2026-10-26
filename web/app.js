@@ -371,12 +371,15 @@ function buildUnifiedPreview(){
     const optimizationTolerance=Number($('optimization-tolerance').value);
     const diagnosticTolerance=Number($('tolerance').value);
     const repaired=repairVectorPoints(doc,scope,diagnosticTolerance);
-    const optimized=smoothAndOptimizePaths(repaired.document,scope,smoothingAmount,optimizationTolerance,diagnosticTolerance);
+    // Union MUST precede post-Union smoothing/optimization. Keep independent
+    // native dedup even if a later Boolean group is rejected by node budget.
     const merged=$('merge-overlaps').checked?
-      mergeOverlappingObjects(optimized.document,{indices:scope,tolerance:diagnosticTolerance,cleanupTolerance:optimizationTolerance}):
-      {document:optimized.document,stats:{mergedObjects:0,weldedGroups:0,compoundGroups:0,skipped:0,holes:0,normalizedObjects:0,unionToleranceMm:0.005,cleanup:{coincident:0,collinear:0,short:0,shortEdgesRemaining:0,reverted:0}}};
+      mergeOverlappingObjects(repaired.document,{indices:scope,tolerance:diagnosticTolerance,cleanupTolerance:optimizationTolerance}):
+      {document:repaired.document,safeDocument:repaired.document,selectedIndices:scope,
+        stats:{mergedObjects:0,removedExact:0,weldedGroups:0,compoundGroups:0,skipped:0,holes:0,normalizedObjects:0,unionToleranceMm:0.005,cleanup:{coincident:0,collinear:0,short:0,shortEdgesRemaining:0,reverted:0}}};
     const refitted=refitBooleanUnion(merged.document,optimizationTolerance);
-    const budget=protectPreviewNodeBudget(doc,optimized.document,refitted.document);
+    const optimized=smoothAndOptimizePaths(refitted.document,merged.selectedIndices,smoothingAmount,optimizationTolerance,diagnosticTolerance);
+    const budget=protectPreviewNodeBudget(doc,merged.safeDocument,optimized.document);
     const after=budget.document;
     const actualCount=document=>document.paths.reduce((n,p)=>n+
       (p.kind==='image'?0:p.commands?.filter(c=>c[0]==='M'||c[0]==='L'||c[0]==='C'||c[0]==='Q').length??p.points.length),0);
@@ -398,14 +401,14 @@ function buildUnifiedPreview(){
       (st.overlaps.cleanup.reverted?' · '+st.overlaps.cleanup.reverted+
         ' изменений отменено защитой топологии':'')+
       (st.overlaps.skipped?' · неподдерживаемых групп '+st.overlaps.skipped:'')+
-      '. '+(budget.reason?'Объединение не применено. ':st.overlaps.weldedGroups||st.overlaps.normalizedObjects?'Применено булево исправление перекрытий. ':'')+'Точность аппроксимации '+st.overlaps.unionToleranceMm.toFixed(5)+' мм.'+
+      '. '+(budget.reason?'Булево объединение ограничено защитой узлов. ':st.overlaps.weldedGroups||st.overlaps.normalizedObjects?'Применено булево исправление перекрытий. ':'')+'Точность аппроксимации '+st.overlaps.unionToleranceMm.toFixed(5)+' мм.'+
       '\nИтоговая оптимизация ПОСЛЕ Union: '+st.refit.originalNodes+' → '+st.refit.finalNodes+
       ' реальных узлов (−'+st.refit.removed+'), кубических сегментов '+st.refit.cubicSegments+
       ', проходов '+st.refit.passes+(st.refit.skipped?' · пропущено объектов '+st.refit.skipped:'')+
       '. На экране реальных узлов: '+st.actualNodesBefore+' → '+st.actualNodesAfter+'.'+
       '\nКривые: сглажено стыков '+st.smoothedJoints+
       ' · оценённое отклонение сглаживания до '+st.smoothingDeviation.toFixed(5)+' мм.'+
-      '\nДо Union, сегментов исходных кривых: '+st.original+' → '+st.result+
+      '\nПосле Union, сегментов кривых: '+st.original+' → '+st.result+
       ' (−'+st.removed+'), оценка отклонения оптимизации до '+st.maxError.toFixed(5)+' мм.'+
       '\nКонтроль геометрии: отклонено изменений '+(st.rejected+st.smoothingRejected+(st.refit?.rejected||0))+'.'+
       '\nДопуски: сглаживание '+smoothingAmount+' мм · оптимизация '+optimizationTolerance+' мм.'+
