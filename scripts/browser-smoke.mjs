@@ -96,12 +96,17 @@ try{
   await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'),{},{timeout:120000});
   await page.waitForFunction(()=>document.querySelector('#busy').hidden);
   assert.equal(await page.locator('#workspace-filename').textContent(),'closed-batch-regression.svg');
-  const after=await page.locator('#geometry .comparison-path').first().getAttribute('d');
-  assert.ok(after);
-  assert.ok(!(await page.locator('#issues').textContent()).includes('Открытый контур'));
-  await page.locator('#compare-before').click();
+  assert.equal(await page.locator('#compare-before').getAttribute('aria-pressed'),'true',
+    'after import and asynchronous repairs DO must remain selected');
   const before=await page.locator('#geometry .comparison-path').first().getAttribute('d');
-  assert.notEqual(before,after,'optimization must change stored/rendered geometry');
+  assert.ok(before);
+  assert.ok(!(await page.locator('#issues').textContent()).includes('Открытый контур'));
+  await page.locator('#compare-after').click();
+  const after=await page.locator('#geometry .comparison-path').first().getAttribute('d');
+  assert.notEqual(before,after,'AFTER must change stored/rendered geometry only after explicit click');
+  await page.locator('#compare-before').click();
+  assert.equal(await page.locator('#geometry .comparison-path').first().getAttribute('d'),before,
+    'DO always returns to the imported geometry, even after AFTER diagnostic');
   await page.locator('#compare-after').click();
   await page.locator('#apply-changes').click();
   assert.equal(await page.locator('#geometry .comparison-path').first().getAttribute('d'),after);
