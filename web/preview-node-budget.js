@@ -16,7 +16,7 @@ export function protectPreviewNodeBudget(source,preUnion,postRefit){
  return {document:postRefit,reason:null,before,optimized,after,final:after};
 }
 export function previewBudgetMessage(report){
- if(report.reason==='union-node-growth')return 'Union отменён: превышено исходное число реальных узлов ('+report.before+' → '+report.after+'). Сохранены оптимизированные кривые до Union.';
- if(report.reason==='optimized-node-growth')return 'Оптимизация отменена: число узлов выросло ('+report.before+' → '+report.optimized+'). Сохранён оригинал.';
+ if(report.reason==='union-node-growth')return 'Булев результат отклонён: превышено исходное число реальных узлов ('+report.before+' → '+report.after+'). Сохранены независимые безопасные исправления до Union.';
+ if(report.reason==='optimized-node-growth')return 'Предварительное исправление отменено: число узлов выросло ('+report.before+' → '+report.optimized+'). Сохранён оригинал.';
  return '';
 }
