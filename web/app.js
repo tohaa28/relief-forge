@@ -515,7 +515,7 @@ async function buildLargeUnifiedPreview(indices){
   if(busy||!doc.paths.length||curveEditing())return;
   const generation=++previewGeneration;
   previewActive=true;
-  const source=clone(doc),result=clone(doc),qualitySource=clone(doc);
+  const source=clone(doc);let result=clone(doc),qualitySource=clone(doc);
   const tol=Number($('tolerance').value),
     smoothingAmount=Number($('smoothing-amount').value),
     optimizationTolerance=Number($('optimization-tolerance').value);
@@ -530,7 +530,34 @@ async function buildLargeUnifiedPreview(indices){
       const index=indices[k],input=source.paths[index];
       const repaired=repairVectorPoints({paths:[input]},[0],tol);
       qualitySource.paths[index]=clone(repaired.document.paths[0]);
-      const smoothed=smoothVectorPath(repaired.document.paths[0],smoothingAmount,tol);
+      result.paths[index]=repaired.document.paths[0];
+      for(const key of ['removedNodes','closedGaps','removedRetraces','removedRetracedNodes','skipped'])
+        stats.pointRepairs[key]+=repaired.stats[key]||0;
+      stats.pointRepairs.maxDeviation=Math.max(stats.pointRepairs.maxDeviation,repaired.stats.maxDeviation);
+      if((k+1)%3===0||k===indices.length-1){
+        progressStage('Подготовка контуров перед Union',Math.round(5+26*(k+1)/indices.length),
+          (k+1)+' / '+indices.length+' контуров');
+        await yieldForUi();
+      }
+    }
+    if(generation!==previewGeneration)return;
+    // Point repair -> Union -> refit -> smooth -> optimize -> AFTER diagnostics.
+    progressStage('Union: перекрытия и точные дубликаты',35);
+    await yieldForUi();
+    const merged=$('merge-overlaps').checked?
+      mergeOverlappingObjects(result,{indices,tolerance:tol,cleanupTolerance:optimizationTolerance}):
+      {document:result,safeDocument:result,selectedIndices:indices,
+       stats:{mergedObjects:0,removedExact:0,weldedGroups:0,compoundGroups:0,skipped:0,holes:0,normalizedObjects:0,unionToleranceMm:0.005,cleanup:{coincident:0,collinear:0,short:0,shortEdgesRemaining:0,reverted:0}}};
+    if(generation!==previewGeneration)return;
+    progressStage('Восстановление кривых после Union',44);
+    await yieldForUi();
+    const refitted=refitBooleanUnion(merged.document,optimizationTolerance);
+    qualitySource=clone(refitted.document);result=clone(refitted.document);
+    const selectedAfter=merged.selectedIndices;
+    for(let k=0;k<selectedAfter.length;k++){
+      if(generation!==previewGeneration)return;
+      const index=selectedAfter[k],input=result.paths[index];
+      const smoothed=smoothVectorPath(input,smoothingAmount,tol);
       const optimized=optimizeVectorPath(smoothed.path,optimizationTolerance,tol);
       result.paths[index]=optimized.path;
       stats.original+=optimized.before;stats.result+=optimized.after;
@@ -539,34 +566,23 @@ async function buildLargeUnifiedPreview(indices){
       stats.removed+=optimized.removed;stats.smoothedJoints+=smoothed.changed;
       stats.smoothingDeviation=Math.max(stats.smoothingDeviation,smoothed.maxError);
       stats.maxError=Math.max(stats.maxError,optimized.maxError);
-      stats.pointRepairs.removedNodes+=repaired.stats.removedNodes;
-      stats.pointRepairs.closedGaps+=repaired.stats.closedGaps;
-      stats.pointRepairs.removedRetraces+=repaired.stats.removedRetraces||0;
-      stats.pointRepairs.removedRetracedNodes+=repaired.stats.removedRetracedNodes||0;
-      stats.pointRepairs.skipped+=repaired.stats.skipped;
-      stats.pointRepairs.maxDeviation=Math.max(stats.pointRepairs.maxDeviation,repaired.stats.maxDeviation);
-      if((k+1)%3===0||k===indices.length-1){
-        progressStage('Сглаживание и оптимизация кривых',Math.round(12+87*(k+1)/indices.length),
-          (k+1)+' / '+indices.length+' контуров');
+      if((k+1)%3===0||k===selectedAfter.length-1){
+        progressStage('Сглаживание и оптимизация ПОСЛЕ Union',
+          Math.round(48+47*(k+1)/selectedAfter.length),
+          (k+1)+' / '+selectedAfter.length+' контуров');
         await yieldForUi();
       }
     }
     if(generation!==previewGeneration)return;
     previewActive=false;
-    stats.quality=validateDocumentCurveChange(qualitySource,result,{tolerance:smoothingAmount+optimizationTolerance,nodeTolerance:tol});
+    stats.quality=validateDocumentCurveChange(qualitySource,result,{
+      tolerance:smoothingAmount+optimizationTolerance,nodeTolerance:tol});
     if(!stats.quality.accepted){
       result.paths=qualitySource.paths;stats.rejected++;
       stats.result=stats.original;stats.removed=0;stats.smoothedJoints=0;
       stats.maxError=0;stats.smoothingDeviation=0;
     }
-    const merged=$('merge-overlaps').checked?
-      mergeOverlappingObjects(result,{indices,tolerance:tol,cleanupTolerance:optimizationTolerance}):
-      {document:result,stats:{mergedObjects:0,weldedGroups:0,compoundGroups:0,skipped:0,holes:0,normalizedObjects:0,unionToleranceMm:0.005,cleanup:{coincident:0,collinear:0,short:0,shortEdgesRemaining:0,reverted:0}}};
-    progressStage('Оптимизация контуров после Union',99);
-    await yieldForUi();
-    const refitted=refitBooleanUnion(merged.document,optimizationTolerance);
-    if(generation!==previewGeneration)return;
-    const budget=protectPreviewNodeBudget(source,result,refitted.document);
+    const budget=protectPreviewNodeBudget(source,merged.safeDocument,result);
     const after=budget.document;
     stats.budget=budget;stats.overlaps=merged.stats;stats.refit=refitted.stats;
     stats.mergeOverlaps=$('merge-overlaps').checked;
