@@ -505,7 +505,7 @@ function applyUnifiedChanges(){
 function requestRecalculation(){
   clearTimeout(settingsTimeout);settingsTimeout=setTimeout(()=>{
     if(busy){requestRecalculation();return;}
-    curvePreview=null;appliedComparison=null;compareStage='before';
+    curvePreview=null;appliedComparison=null;if(!comparisonSelectionExplicit)compareStage='before';
     if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);
     else render();
   },180);
