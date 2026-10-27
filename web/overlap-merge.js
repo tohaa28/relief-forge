@@ -1,6 +1,6 @@
 import {geometryCommands} from './eps-export.js';
 import {sampledContours} from './rich-svg.js';
-import {filledPathsOverlap,unionFilledPaths,findUnionEquivalentSource} from './polygon-union.js?v=0.2.0-alpha.45';
+import {filledPathsOverlap,unionFilledPaths,findUnionEquivalentSource} from './polygon-union.js?v=0.2.0-alpha.46';
 import {isUnchangedUnion} from './union-refit.js';
 import {deduplicateExactVectors} from './exact-native-dedup.js';
 import {assessUnionGroup} from './union-group-budget.js';
