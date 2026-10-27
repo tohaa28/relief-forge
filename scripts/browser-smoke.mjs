@@ -55,7 +55,7 @@ try{
     const bad=await page.evaluate(()=>{
       const errors=[];
       const keys=['#open','#export-eps','#toggle-info','#fit','#zoom-in','#zoom-out',
-        '#curve-edit','#compare-before','#compare-after','#toggle-points','#toggle-markers','#apply-changes'];
+        '#curve-edit','#workspace-check','#compare-before','#compare-after','#toggle-points','#toggle-markers','#apply-changes'];
       for(const sel of keys){
         const button=document.querySelector(sel),icon=button?.querySelector(':scope > .tool-icon');
         if(!button||!icon||!button.getClientRects().length)continue;
@@ -68,6 +68,11 @@ try{
             errors.push(sel+' icon overlaps shortcut');}
         if(button.scrollWidth>button.clientWidth+2)errors.push(sel+' horizontal overflow');
       }
+      const wc=document.querySelector('#workspace-check');
+      const nav=document.querySelector('nav').getBoundingClientRect(),cb=wc.getBoundingClientRect();
+      if(Math.abs(cb.width-cb.height)>1||nav.right-cb.right>25)
+        errors.push('workspace check must be square and at far right');
+      if(wc.textContent.trim())errors.push('workspace check has visible label');
       const badge=document.querySelector('#workspace-file'),r=badge.getBoundingClientRect(),
         w=document.querySelector('#drop-target').getBoundingClientRect();
       if(badge.hidden||r.left<w.left-1||r.right>w.right+1||r.bottom>w.bottom+1)
