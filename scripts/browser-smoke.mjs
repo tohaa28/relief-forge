@@ -151,6 +151,31 @@ try{
   assert.match(file.suggestedFilename(),/_result\.eps$/);
   await page.keyboard.press('Control+z');
   assert.ok(await page.locator('#geometry [data-path]').count());
+  // Actual browser import must recover from an indefinitely hung WebGPU
+  // requestAdapter, the class of driver failure reported by users.
+  const gpuHang=await browser.newPage({viewport:{width:1240,height:920}});
+  await gpuHang.addInitScript(()=>{
+    Object.defineProperty(navigator,'gpu',{configurable:true,
+      value:{requestAdapter:()=>new Promise(()=>{})}});
+  });
+  await gpuHang.goto('http://localhost:'+(process.env.PORT||8080));
+  await gpuHang.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
+  const shapes=Array.from({length:18},(_,i)=>{
+    const x=5+(i%6)*12,y=5+Math.floor(i/6)*12;
+    return '<path fill="#333" d="M'+x+' '+y+' L'+(x+6)+' '+y+
+      ' L'+(x+6)+' '+(y+6)+' L'+x+' '+(y+6)+' Z"/>';
+  }).join('');
+  await gpuHang.locator('#file').setInputFiles({name:'webgpu-driver-stalled.svg',
+    mimeType:'image/svg+xml',buffer:Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="90mm" height="50mm" viewBox="0 0 90 50">'+shapes+'</svg>')});
+  await gpuHang.waitForFunction(()=>document.querySelector('#gpu-status').textContent.includes('webgpu-timeout'),
+    {},{timeout:18000});
+  await gpuHang.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'),
+    {},{timeout:18000});
+  assert.equal(await gpuHang.locator('#compare-after').getAttribute('aria-pressed'),'true',
+    'stalled GPU must fall back to CPU and complete AFTER');
+  await gpuHang.close();
+  console.log('PASS browser hung GPU adapter: CPU fallback completes file import and AFTER');
   assert.deepEqual(errors,[]);
   console.log('PASS browser: real Worker/WASM EPS import, large closed diagnostic batches, actual BEFORE/AFTER reduction, Apply, EPS export, Undo');
 }finally{await browser?.close();server.kill();}
