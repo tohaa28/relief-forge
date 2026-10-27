@@ -294,3 +294,6 @@ F-037 native/proxy marker mismatch, F-038 wholeUnionrollback restores35copies, F
 
 ## 0.2.0-alpha.48 — candidate source, publication pending
 Native L/Q/C Union preserves untouched original segments and reconstructs only necessary intersection subcurves; no generated sample-polyline output/refit. Recomputable provenance + independent finite-sample Clipper XOR/holes check; unproven group rejected independently. Scoped/global node rules admit proven required junctions only. GPU4500ms CPUfallback retained; CPU Boolean/diagnostic geometry off main thread. Native marker witnesses/node classes and optimizer anchor/topology guard. All alpha42–47 CNC/import/UI/Undo/EPS contracts retained. Kernel numerical ambiguity still protected/incomplete; not universal repair.
+
+## 0.2.0-alpha.48 qualification
+PUBLISHED PR74 mergeeb7141c, main40484635706 build+deploySUCCESS;276JS/17Rust/freshWASM/allbrowserCI. LIVE nativecuts8->12/proof4/bothEPS/Undo andnativeclearancePASS; actualgerb9668anchors,29issuesPARTIAL/2protectedgroups, bothEPS=AFTER/reimport. Actual804240nodes0complete, min1941nodes0partial, suppliedPDF/Undo/localmodechecksPASS. UserhardwareGPUbenchmark/CNCsimulation/allremaininggerbfixes not claimed.
