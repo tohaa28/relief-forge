@@ -828,7 +828,14 @@ async function runProgressiveDiagnostics(indices,tolerance){
           ' блоках; найдено '+issues.length+' замечаний.'+
           (complete?'':' Проверка частичная: взаимодействия между блоками не исключены.')+
           (misplaced?' Исключены '+misplaced+' маркеров вне соответствующих контуров.':''));
-        if(complete)buildUnifiedPreview();
+        // Large EPS files may pass Rust diagnostics completely while still
+        // containing tens of thousands of original Bézier segments. Running
+        // their Union/smoothing synchronously stalls the browser on ПОСЛЕ.
+        // Always use cooperative per-object stages above this work threshold.
+        const largeWork=plan.totalPoints>2500||indices.length>150;
+        record('preview-routing',{points:plan.totalPoints,objects:indices.length,
+          progressive:largeWork||!complete});
+        if(complete&&!largeWork)void buildUnifiedPreview();
         else if(!curveEditing())void buildLargeUnifiedPreview(indices);
         return;
       }
