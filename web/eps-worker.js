@@ -4,7 +4,7 @@ let enginesPromise=null,mupdfPromise=null,pendingPdf=null,sizesPromise=null;
 const megabytes=n=>(n/1048576).toFixed(1)+' МБ';
 function sizes(){
  if(!sizesPromise){let timer;sizesPromise=Promise.race([
-  fetch(new URL('vendor/versions.json?v=0.2.0-alpha.49',self.location.href)).then(r=>r.ok?r.json():{}).then(x=>x.wasmBytes||{}),
+  fetch(new URL('vendor/versions.json?v=0.2.0-alpha.50',self.location.href)).then(r=>r.ok?r.json():{}).then(x=>x.wasmBytes||{}),
   new Promise(resolve=>{timer=setTimeout(()=>resolve({}),2000);})
  ]).catch(()=>({})).finally(()=>clearTimeout(timer));}
  return sizesPromise;
@@ -12,7 +12,7 @@ function sizes(){
 async function loadMupdf({onDownload}={}){
  if(mupdfPromise)return mupdfPromise;
  mupdfPromise=(async()=>{
-  const {downloadBinary}=await import('./asset-download.js?v=0.2.0-alpha.49');
+  const {downloadBinary}=await import('./asset-download.js?v=0.2.0-alpha.50');
   let expected=0;sizes().then(s=>expected=Number(s.mupdf)||0);
   const wasmBinary=await downloadBinary(new URL('vendor/mupdf/mupdf-wasm.wasm',self.location.href),{label:'MuPDF',onProgress:p=>{
    const total=expected||p.total;
@@ -22,14 +22,14 @@ async function loadMupdf({onDownload}={}){
   // Supported upstream Emscripten Module hook: provide the already-downloaded
   // WASM instead of silently fetching the same binary again inside mupdf.js.
   const config={wasmBinary};self['$libmupdf_wasm_Module']=config;
-  try{return await import('./vendor/mupdf/mupdf.js?v=0.2.0-alpha.49');}
+  try{return await import('./vendor/mupdf/mupdf.js?v=0.2.0-alpha.50');}
   finally{if(self['$libmupdf_wasm_Module']===config)delete self['$libmupdf_wasm_Module'];}
  })().catch(e=>{mupdfPromise=null;throw e;});return mupdfPromise;
 }
 async function loadEngines(){
  if(enginesPromise)return enginesPromise;
  enginesPromise=(async()=>{
-  const {downloadBinary}=await import('./asset-download.js?v=0.2.0-alpha.49');
+  const {downloadBinary}=await import('./asset-download.js?v=0.2.0-alpha.50');
   const warmMu=Boolean(mupdfPromise),state={ghostscript:{loaded:0,total:0},mupdf:{loaded:0,total:0}},expected={};
   let muReady=false,reporting=true;
   const report=()=>{
@@ -53,7 +53,7 @@ self.onmessage=async({data})=>{
   const started=Date.now();
   try{
     if(data.kind==='pdf'||data.type==='select-pdf-page'){
-      const pdf=await import('./pdf-pipeline.js?v=0.2.0-alpha.49');
+      const pdf=await import('./pdf-pipeline.js?v=0.2.0-alpha.50');
       if(data.kind==='pdf'){
         pendingPdf=pdf.pdfProgram(new Uint8Array(data.bytes)).slice();
         send(12,'Загрузка движка MuPDF для PDF…');
@@ -79,7 +79,7 @@ self.onmessage=async({data})=>{
       self.postMessage({type:'done',result,durationMs:Date.now()-started,format:'pdf'});
       return;
     }
-    const pipeline=await import('./eps-pipeline.js?v=0.2.0-alpha.49');
+    const pipeline=await import('./eps-pipeline.js?v=0.2.0-alpha.50');
     // Path-only files never load heavyweight interpreters at all.
     const direct=pipeline.recoverOutlineOnlyEps(new Uint8Array(data.bytes));
     if(direct){

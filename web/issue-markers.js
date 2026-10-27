@@ -1,4 +1,4 @@
-import {issueColors,issueLabels} from './vector-points.js?v=0.2.0-alpha.49';
+import {issueColors,issueLabels} from './vector-points.js?v=0.2.0-alpha.50';
 
 // SVG uses xMidYMid meet: the limiting viewport dimension determines the
 // actual scale. Width alone makes markers shrink on tall/letterboxed sheets.

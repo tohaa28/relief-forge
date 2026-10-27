@@ -336,3 +336,8 @@ PR74 source29b6d13 mergedeb7141c. PR40484372797 SUCCESS276JS/17Rust/freshWASM/br
 
 ## 2026-10-27 — 0.2.0-alpha.49 startup/EPS loading candidate
 Watchdogactualversion+late-readyrecovery, optionalgeometryremovedfromUIstartupdependency, boundedkernelload/readiness, parallelstreamedGhostscript/MuPDFwithactualbyteprogress/idledeadlines/warmcache. No geometrybinary/algorithm/tolerancechanges. Required284JS/native17/freshWASM/browser/privateEPS/PDF/CI/live stillpending.
+
+## 0.2.0-alpha.50 candidate — 2026-10-27T12:10:13.741Z
+Base main3732bfe1b50eb098dc1ad4ebf34ae4a864f4a5c1, alpha49 PR76 published: CI40498160209 and main40498713198 build/deploy SUCCESS. Live gerb11493->9668,29 remaining protected diagnostics; both EPS identical geometry/paint to alpha48.
+Live alpha49 startup regression exposed Cancel/new import before restarted Rust ready: old suppressNextDiagnostic flag suppressed NEW document preview. Clear suppression on explicit changed(action), reset readiness/header on spawnWorker, version worker URL. No geometry/paint/Undo/export algorithm changes. Deterministic browser holds restarted Rust, imports new SVG, releases Rust and requires automatic preview3->2. Positive PASS; removing suppression reset alone fails at30s with document parsed but no preview.
+Harness attempts preserved: initial LF/CRLF replacement missed and query-only route missed bare worker URL, so first negative unexpectedly passed without exercising race. Corrected wildcard and explicit blocked precondition; immediate unroute raced pending route.continue (already handled), corrected with continuation acknowledgment. Final negative FAIL is expected evidence; good app restored. Full qualification and publication pending.

@@ -29,6 +29,9 @@ try{
 
  let release,seen;const blocked=new Promise(r=>seen=r),gate=new Promise(r=>release=r);let paperRequests=0;
  await context.route('**/vendor/paper-core.mjs*',async r=>{paperRequests++;seen();await gate;try{await r.abort('timedout');}catch{}});
+ let restartRust=false,releaseRust,rustSeen,rustResumed;
+ const rustGate=new Promise(r=>releaseRust=r),rustBlocked=new Promise(r=>rustSeen=r),rustContinued=new Promise(r=>rustResumed=r);
+ await context.route('**/worker.js*',async r=>{const held=restartRust;if(held){rustSeen();await rustGate;}await r.continue();if(held)rustResumed();});
  const page=await context.newPage();await page.goto(base,{waitUntil:'commit'});
  await page.waitForFunction(()=>document.documentElement.dataset.doctorReady==='true',null,{timeout:6000});
  assert.equal(paperRequests,0,'UI startup must not fetch the optional native geometry bundle');
@@ -36,13 +39,17 @@ try{
  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="20mm" height="10mm" viewBox="0 0 20 10"><path fill="none" stroke="black" d="M0 0L1 0L2 0"/></svg>';
  await page.locator('#file').setInputFiles({name:'source.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
  await blocked;assert.equal(await page.locator('#cancel').isEnabled(),true);
- await page.locator('#cancel').click();await page.waitForFunction(()=>document.querySelector('#busy').hidden);
+ restartRust=true;await page.locator('#cancel').click();await page.waitForFunction(()=>document.querySelector('#busy').hidden);
  assert.ok(await page.locator('#geometry [data-path]').count(),'Cancel preserves imported source vectors');
  assert.equal(await page.locator('#doctor-startup-error').count(),0);
  release();await context.unroute('**/vendor/paper-core.mjs*');
- await page.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
+ await rustBlocked;
+ assert.ok(!(await page.locator('#engine').textContent()).includes('готов'),'restarting Rust must not retain the stale ready badge');
  await page.locator('#file').setInputFiles({name:'source-retry.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
- await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));
+ await page.waitForFunction(()=>document.querySelector('#workspace-filename').textContent==='source-retry.svg');
+ await page.waitForFunction(()=>document.querySelector('#busy').hidden);
+ releaseRust();await rustContinued;await context.unroute('**/worker.js*');
+ try{await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));}catch(error){console.error('startup retry state',await page.evaluate(()=>({ready:document.documentElement.dataset.doctorReady,engine:document.querySelector('#engine').textContent,status:document.querySelector('#status').textContent,stage:document.querySelector('#task-stage').textContent,result:document.querySelector('#optimization-result').textContent,busy:!document.querySelector('#busy').hidden})));throw error;}
  await page.waitForFunction(()=>document.querySelector('#busy').hidden);
  assert.match(await page.locator('#optimization-result').innerText(),/3 → 2/,'actual optimization must use the same prepared lazy-kernel instance');
  await page.close();
