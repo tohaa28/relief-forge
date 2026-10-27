@@ -297,3 +297,6 @@ Native L/Q/C Union preserves untouched original segments and reconstructs only n
 
 ## 0.2.0-alpha.48 qualification
 PUBLISHED PR74 mergeeb7141c, main40484635706 build+deploySUCCESS;276JS/17Rust/freshWASM/allbrowserCI. LIVE nativecuts8->12/proof4/bothEPS/Undo andnativeclearancePASS; actualgerb9668anchors,29issuesPARTIAL/2protectedgroups, bothEPS=AFTER/reimport. Actual804240nodes0complete, min1941nodes0partial, suppliedPDF/Undo/localmodechecksPASS. UserhardwareGPUbenchmark/CNCsimulation/allremaininggerbfixes not claimed.
+
+## 0.2.0-alpha.49 candidate
+Startup report usesactualrequested/runtimeversion, distinguishespendingvsfailure anddismissesafterlateready. PageinitializationdoesnotfetchPaper; kernelpreparedonlyforgeometry,20sloaddeadline,Cancel/sourcepreserved. EPSdownloadsGS/MuPDFinparallel, reportsdecodedreceivedbytesusingexpectedbuildsizesratherthancompressedContentLength,45sidleabort,120sappidleprogressguard, cachedenginewarmreuse, noextraMuPDFbinaryfetch. Actualbrowserfault/realpaintedEPSgatePASS;8newunitcasesPASS,finalfullCIpending. No claim offixeduserbandwidth,instantfirstdownloador29gerbgeometryrepairs.

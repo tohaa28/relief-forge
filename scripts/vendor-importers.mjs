@@ -25,5 +25,5 @@ for(const item of provenance.subject.filter(s=>s.name==='gs-core.wasm'||s.name==
   const actual=createHash('sha256').update(readFileSync(new URL('ghostscript/'+item.name,vendor))).digest('hex');
   if(actual!==item.digest.sha256)throw Error('Ghostscript upstream digest mismatch: '+item.name);
 }
-writeFileSync(new URL('versions.json',vendor),JSON.stringify({ghostscript:'10.08.0',ghostscript_package:'0.7.2',mupdf:'1.28.1',svgpath:'2.6.0',paper:'0.16.0'},null,2));
+writeFileSync(new URL('versions.json',vendor),JSON.stringify({ghostscript:'10.08.0',ghostscript_package:'0.7.2',mupdf:'1.28.1',svgpath:'2.6.0',paper:'0.16.0',wasmBytes:{ghostscript:readFileSync(new URL('ghostscript/gs-core.wasm',vendor)).length,mupdf:readFileSync(new URL('mupdf/mupdf-wasm.wasm',vendor)).length}},null,2));
 console.log('Self-hosted EPS importers prepared; Ghostscript provenance digests verified.');

@@ -76,6 +76,7 @@ if(process.env.CI){
  execFileSync(process.execPath,['scripts/browser-smoke.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-mode-matrix.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-native-union.mjs'],{stdio:'inherit'});
+ execFileSync(process.execPath,['scripts/browser-startup-loading.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-clearance.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-pdf-import.mjs'],{stdio:'inherit'});
 }

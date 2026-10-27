@@ -333,3 +333,6 @@ Basealpha47 main5dddef8, preserves all alpha42–47 changes. Native source-inter
 
 ## 2026-10-27 — 0.2.0-alpha.48 published and live verified
 PR74 source29b6d13 mergedeb7141c. PR40484372797 SUCCESS276JS/17Rust/freshWASM/browser; main40484635706 build+deploySUCCESS. LIVE actualgerb11493->9668,35duplicates,129CNCsubparts,26nativegroups/2protected,1729->29messagesPARTIAL, bothEPSexact/reimport9668. Coldlive34.3s includesassets/network; local11.0s. LIVE4necessarycutproof/bothEPS/Undo and completeclearanceregressionPASS after fixing observedteststage race; allalgorithm/data/partiallimits retained. Native source-preservation functionalrelease, not a universal gerbhealing claim.
+
+## 2026-10-27 — 0.2.0-alpha.49 startup/EPS loading candidate
+Watchdogactualversion+late-readyrecovery, optionalgeometryremovedfromUIstartupdependency, boundedkernelload/readiness, parallelstreamedGhostscript/MuPDFwithactualbyteprogress/idledeadlines/warmcache. No geometrybinary/algorithm/tolerancechanges. Required284JS/native17/freshWASM/browser/privateEPS/PDF/CI/live stillpending.
