@@ -27,8 +27,9 @@ try{
   await page.waitForFunction(()=>document.querySelector('#busy').hidden);
   await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));
   assert.equal(await page.locator('#apply-changes').isEnabled(),true,'scene must have a real optimized candidate');
-  assert.equal(await page.locator('#compare-before').getAttribute('aria-pressed'),'true',
-    'the imported original and primary diagnostic markers must remain visible');
+  assert.equal(await page.locator('#compare-after').getAttribute('aria-pressed'),'true',
+    'computed AFTER must be selected automatically after preview');
+  await page.locator('#compare-before').click();
   const importedGeometry=await page.locator('#geometry').innerHTML();
   await page.locator('#compare-after').click();
   const rendered=await page.locator('#geometry').innerHTML();
@@ -79,7 +80,8 @@ try{
  };
  const countMoves=async()=>((await cncPage.locator('#geometry .comparison-path').first().getAttribute('d')).match(/M/g)||[]).length;
  await cncReady();
- assert.equal(await cncPage.locator('#compare-before').getAttribute('aria-pressed'),'true');
+ assert.equal(await cncPage.locator('#compare-after').getAttribute('aria-pressed'),'true');
+ await cncPage.locator('#compare-before').click();
  assert.equal(await countMoves(),2,'original CNC ДО must retain both native contours');
  await cncPage.locator('#compare-after').click();
  assert.equal(await countMoves(),1,'CNC AFTER must remove only .04×.05mm inner contour');
