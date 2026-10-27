@@ -13,6 +13,9 @@ try{
  await page.evaluate(()=>{document.querySelector('#smoothing-amount').value=0;document.querySelector('#optimization-tolerance').value=.001;document.querySelector('#merge-overlaps').checked=false;});
  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="20mm" height="10mm" viewBox="0 0 20 10"><path fill="none" stroke="black" stroke-width=".01" d="M 1 2 Q 5 .1 9 2"/><path fill="none" stroke="black" stroke-width=".01" d="M 0 1 L 10 1"/></svg>';
  await page.locator('#file').setInputFiles({name:'clearance.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
+ await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));
+ await page.waitForFunction(()=>document.querySelector('#busy').hidden);
+ await page.locator('#compare-before').click();
  await page.waitForFunction(()=>document.querySelector('#clearance-status').textContent.includes('проверка завершена'));
  assert.equal(await page.locator('#clearance-markers circle').count(),1);
  const geometry=await page.locator('#geometry').innerHTML();

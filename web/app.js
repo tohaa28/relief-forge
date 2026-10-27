@@ -449,7 +449,7 @@ async function buildUnifiedPreview(){
       (st.overlaps.cleanup.reverted?' · '+st.overlaps.cleanup.reverted+
         ' изменений отменено защитой топологии':'')+
       (st.overlaps.skipped?' · неподдерживаемых групп '+st.overlaps.skipped:'')+
-      '. '+(budget.reason?'Булево объединение ограничено защитой узлов. ':st.overlaps.weldedGroups||st.overlaps.normalizedObjects?'Применено булево исправление перекрытий. ':'')+'Точность аппроксимации '+st.overlaps.unionToleranceMm.toFixed(5)+' мм.'+
+      '. '+(budget.reason?'Булево объединение ограничено защитой узлов. ':st.overlaps.weldedGroups||st.overlaps.normalizedObjects?'Применено булево исправление перекрытий. ':'')+'Исходные кривые сохраняются; добавляются только необходимые точки пересечения.'+
       '\nИтоговая оптимизация ПОСЛЕ Union: '+st.refit.originalNodes+' → '+st.refit.finalNodes+
       ' реальных узлов (−'+st.refit.removed+'), кубических сегментов '+st.refit.cubicSegments+
       ', проходов '+st.refit.passes+(st.refit.skipped?' · пропущено объектов '+st.refit.skipped:'')+
