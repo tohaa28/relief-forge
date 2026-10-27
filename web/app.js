@@ -1,31 +1,32 @@
-import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.48';
-import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.48';
-import {issueViewBox} from './issue-focus.js';
-import {visibleHealthyAnchors,circlePath} from './vector-points.js';
-import {screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.48';
-import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.48';
-import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.48';
-import {packedInput} from './auto-repair.js';
-import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js';
-import {removeTinyClosedSubpaths} from './cnc-microfilter.js?v=0.2.0-alpha.48';
-import {beginImportBefore,captureImportBefore,importedComparison} from './import-before.js?v=0.2.0-alpha.48';
-import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js';
-import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.48';
-import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.48';
-import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.48';
-import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.48';
-import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.48';
-import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.48';
-import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.48';
-import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.48';
-import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.48';
-import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.48';
-import {runNativeJob,cancelNativeJobs} from './native-jobs.js?v=0.2.0-alpha.48';
+import {prepareNativeIntersections} from './native-intersections.js?v=0.2.0-alpha.49';
+import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.49';
+import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.49';
+import {issueViewBox} from './issue-focus.js?v=0.2.0-alpha.49';
+import {visibleHealthyAnchors,circlePath} from './vector-points.js?v=0.2.0-alpha.49';
+import {screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.49';
+import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.49';
+import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.49';
+import {packedInput} from './auto-repair.js?v=0.2.0-alpha.49';
+import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js?v=0.2.0-alpha.49';
+import {removeTinyClosedSubpaths} from './cnc-microfilter.js?v=0.2.0-alpha.49';
+import {beginImportBefore,captureImportBefore,importedComparison} from './import-before.js?v=0.2.0-alpha.49';
+import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js?v=0.2.0-alpha.49';
+import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.49';
+import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.49';
+import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.49';
+import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.49';
+import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.49';
+import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.49';
+import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.49';
+import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.49';
+import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.49';
+import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.49';
+import {runNativeJob,cancelNativeJobs} from './native-jobs.js?v=0.2.0-alpha.49';
 const mergeOverlappingObjects=(document,options)=>runNativeJob({action:'union',document,options});
-import {gpuBroadphase} from './gpu-broadphase.js?v=0.2.0-alpha.48';
-import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.48';
-import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.48';
-import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.48';
+import {gpuBroadphase} from './gpu-broadphase.js?v=0.2.0-alpha.49';
+import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.49';
+import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.49';
+import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.49';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 let clearanceKey='',clearanceJob=0,clearanceTimer=null,clearanceWorker=null,clearanceReport=null;
 function updateClearance(document,unit){
@@ -36,7 +37,7 @@ function updateClearance(document,unit){
     clearanceKey=key;clearanceReport=null;clearanceJob++;clearTimeout(clearanceTimer);clearanceWorker?.terminate();clearanceWorker=null;
     label.textContent=threshold?'Измерение расстояний…':'Укажите расстояние больше 0 и не больше 1000 мм.';
     if(threshold&&document.paths.length){const id=clearanceJob;clearanceTimer=setTimeout(()=>{
-      clearanceWorker=new Worker(new URL('./clearance-worker.js?v=0.2.0-alpha.48',import.meta.url),{type:'module'});
+      clearanceWorker=new Worker(new URL('./clearance-worker.js?v=0.2.0-alpha.49',import.meta.url),{type:'module'});
       clearanceWorker.onmessage=({data})=>{if(data.id!==clearanceJob)return;clearanceReport=data.report||null;label.textContent=data.error||('Узкие места < '+threshold+' мм: '+data.report.markers.length+(data.report.complete?' · проверка завершена':' · проверка неполная (лимит или пограничная точность)'));clearanceWorker?.terminate();clearanceWorker=null;render();};
       clearanceWorker.onerror=()=>{if(id!==clearanceJob)return;label.textContent='Измерение расстояний не завершено: ошибка вычисления.';clearanceWorker?.terminate();clearanceWorker=null;};
       clearanceWorker.postMessage({id,document:{paths:document.paths.map(p=>({kind:p.kind,artwork:Boolean(p.artwork),commands:p.commands,points:p.points,closed:p.closed,offset:p.offset}))},threshold});
@@ -171,7 +172,7 @@ function workspaceScan({attemptRepair=false,manual=false}={}){
   state.hidden=health.ok&&!manual;
   state.dataset.health=health.ok?'ok':'warning';
   $('workspace-health-report').value=safeWorkspaceReport(health,{
-    version:'0.2.0-alpha.48',source:lastImportFailure?.source||doc.sourceFileName||'',
+    version:'0.2.0-alpha.49',source:lastImportFailure?.source||doc.sourceFileName||'',
     errors:displayErrors});
   record('workspace-health',{ok:health.ok,issues:health.issues,forceWireframe,attempts:repairs,
     count:health.elementCount,rect:health.canvasRect,bbox:health.geometryBox});
@@ -198,7 +199,7 @@ $('workspace-check').onclick=()=>{
   const health=workspaceScan({attemptRepair:true,manual:true});
   $('workspace-health-report').value=safeWorkspaceReport(health||{
     ok:true,issues:[],note:'Документ не открыт'},{
-    version:'0.2.0-alpha.48',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
+    version:'0.2.0-alpha.49',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
   $('workspace-health-dialog').showModal();
 };
 $('workspace-check-repair').onclick=()=>{
@@ -384,6 +385,8 @@ async function buildUnifiedPreview(){
   const generation=++previewGeneration;
   previewActive=true;lock(true,{coverCanvas:false});
   try{
+    await prepareNativeIntersections();
+    if(generation!==previewGeneration)return;
     const smoothingAmount=Number($('smoothing-amount').value);
     const optimizationTolerance=Number($('optimization-tolerance').value);
     const diagnosticTolerance=Number($('tolerance').value);
@@ -585,6 +588,8 @@ async function buildLargeUnifiedPreview(indices){
     },diagnosticTolerance:tol};
   lock(true,{coverCanvas:false});
   try{
+    await prepareNativeIntersections();
+    if(generation!==previewGeneration)return;
     for(let k=0;k<indices.length;k++){
       if(generation!==previewGeneration)return;
       const index=indices[k],input=source.paths[index];
@@ -1094,9 +1099,9 @@ function stopEps({destroy=false}={}){const picker=$('pdf-page-picker');if(picker
 function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);openingFile=false;lastImportFailure=null;lastImportAttempt={source:name,status:'opened',objects:next.paths.length};forceWireframe=false;syncWireframeControl();if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);importedBefore=beginImportBefore(doc);comparisonSelectionExplicit=false;compareStage='before';fit();scheduleWorkspaceCheck();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;openingFile=true;lastImportFailure=null;lastImportAttempt={source:name,status:'converting',bytes:bytes.byteLength};updateMascot();if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта '+(/\.pdf$/i.test(name)?'PDF':'EPS')+'…';record('vector-import-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.48',import.meta.url));
+  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.49',import.meta.url));
   progressStage(/\.pdf$/i.test(name)?'Импорт PDF: подготовка MuPDF':'Импорт EPS: подготовка интерпретатора',9);
-  const started=performance.now();
+  const started=performance.now();let downloadLoaded=0,lastDownloadLogAt=0;
   const fail=message=>{
     const reason=String(message||'Неизвестная ошибка импорта');
     lastImportFailure={source:name,code:/0 контуров|пустая страница|нет векторных объектов/i.test(reason)?
@@ -1104,11 +1109,11 @@ function importEps(bytes,name,historyStarted=false){
     lastImportAttempt={source:name,status:'failed',bytes:bytes.byteLength};
     stopEps({destroy:true});openingFile=false;updateMascot();lock(false);
     workspaceScan({manual:true});status(reason);$('import-report').textContent='Не удалось открыть '+(/\.pdf$/i.test(name)?'PDF':'EPS')+': '+message;record('vector-import-error',{name,message});updateFileHistory({status:'Ошибка открытия: '+String(message).slice(0,180)});};
-  const armTimer=()=>{clearTimeout(epsTimer);epsTimer=setTimeout(()=>fail('Импорт превысил лимит 120 секунд. Исходный документ сохранён.'),120000);};
+  const armTimer=()=>{clearTimeout(epsTimer);epsTimer=setTimeout(()=>fail('Импорт не сообщал о прогрессе 120 секунд. Исходный документ сохранён.'),120000);};
   armTimer();
   epsWorker.onerror=e=>fail('Ошибка импортера: '+e.message);
   epsWorker.onmessage=({data})=>{
-    if(data.type==='progress'){progressStage(data.message,data.percent);return;}
+    if(data.type==='progress'){if(!data.download||data.download.loaded>downloadLoaded){downloadLoaded=Math.max(downloadLoaded,data.download?.loaded||0);armTimer();if(data.download&&(performance.now()-lastDownloadLogAt>=1000||data.download.total&&downloadLoaded>=data.download.total)){lastDownloadLogAt=performance.now();record('vector-engine-download',{receivedBytes:downloadLoaded,totalBytes:data.download.total||null,elapsedMs:Math.round(performance.now()-started),stage:data.message});}}progressStage(data.message,data.percent);return;}
     if(data.type==='pages'){
       clearTimeout(epsTimer);epsTimer=null;
       const picker=$('pdf-page-picker'),select=$('pdf-page-number');
@@ -1352,4 +1357,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();if(!curveEditing())requestRecalculation();
 });
-record('session-start',{version:'0.2.0-alpha.48'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorReady='true';
+record('session-start',{version:'0.2.0-alpha.49'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorVersion='0.2.0-alpha.49';document.documentElement.dataset.doctorReady='true';document.dispatchEvent(new Event('doctor-ready'));

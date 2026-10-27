@@ -104,7 +104,7 @@ export function exportEps(doc){
 // styles are unchanged; edited paths are rebuilt with their imported solid
 // fill/stroke RGB values. CMYK profiles cannot be reconstructed from SVG and
 // are never silently claimed as preserved after edits.
-import {paintFromArtwork,rgbFromPaint,intactOriginalEps,originalEpsBytes} from './eps-paint.js';
+import {paintFromArtwork,rgbFromPaint,intactOriginalEps,originalEpsBytes} from './eps-paint.js?v=0.2.0-alpha.49';
 export function exportColoredEps(doc,{Parser=globalThis.DOMParser}={}){
   if(intactOriginalEps(doc))return {content:originalEpsBytes(doc),source:'exact-original'};
   const w=Number(doc.width),h=Number(doc.height);

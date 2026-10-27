@@ -21,7 +21,7 @@ test('the actual unified preview and Apply commit point repairs even when smooth
   const changes=[],past=[],history=[];
   const context={doc:structuredClone(source),selected:new Set(),issues:[{kind:'short'}],
     diagnosticComplete:true,busy:false,ready:false,curvePreview:null,previewGeneration:0,previewActive:false,lock:()=>{},comparisonSelectionExplicit:false,importedBefore:null,importedComparison:()=>null,curveEditing:()=>false,
-    gpuBroadphase:async()=>({mode:'cpu',pairs:null,reason:'union-disabled'}),
+    gpuBroadphase:async()=>({mode:'cpu',pairs:null,reason:'union-disabled'}),prepareNativeIntersections:async()=>{},
     removeTinyClosedSubpaths:(document,options)=>({document:structuredClone(document),stats:{...options,removedSubpaths:0,removedObjects:0,removedNodes:0}}),
     $:id=>elements[id],clone:structuredClone,repairVectorPoints,selectedVectorIndices,
     smoothAndOptimizePaths,refitBooleanUnion,protectPreviewNodeBudget,previewBudgetMessage,worldData,render:()=>{},record:()=>{},status:()=>{},

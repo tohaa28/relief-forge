@@ -1,0 +1,76 @@
+import {chromium} from 'playwright';
+import {spawn} from 'node:child_process';
+import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+const version=JSON.parse(readFileSync(new URL('../package.json',import.meta.url))).version;
+const port='8091',base=process.env.STARTUP_URL||'http://localhost:'+port;
+const server=spawn(process.execPath,['scripts/serve.mjs'],{env:{...process.env,PORT:port},stdio:['ignore','pipe','inherit']});
+await new Promise((resolve,reject)=>{server.stdout.once('data',resolve);server.once('error',reject);});
+let browser;
+try{
+ browser=await chromium.launch({headless:true});
+ const context=await browser.newContext(),errors=[];
+ context.on('page',p=>p.on('pageerror',e=>errors.push(e.message)));
+ // Exercise the non-module guard alone with a simulated deadline. This does
+ // not shorten any timers in the real application below.
+ const guard=await context.newPage();
+ await guard.route('**/watchdog-fixture',r=>r.fulfill({contentType:'text/html',body:'<!doctype html><body><script>const originalTimeout=window.setTimeout;window.setTimeout=(f,n,...args)=>originalTimeout(f,n===6500?40:n,...args);</script><script src="bootstrap-watchdog.js?v='+version+'"></script></body>'}));
+ await guard.goto('http://localhost:'+port+'/watchdog-fixture');
+ await guard.locator('#doctor-startup-error button').first().click();
+ let report=JSON.parse(await guard.locator('#doctor-startup-error textarea').inputValue());
+ assert.equal(report.version,version);assert.equal(report.state,'loading');assert.deepEqual(report.errors,[]);
+ assert.match(await guard.locator('#doctor-startup-error strong').innerText(),/ещё загружается/);
+ await guard.evaluate(()=>window.dispatchEvent(new ErrorEvent('error',{message:'synthetic resource failure'})));
+ await guard.locator('#doctor-startup-error button').first().click();
+ report=JSON.parse(await guard.locator('#doctor-startup-error textarea').inputValue());
+ assert.equal(report.state,'resource-error');assert.ok(report.errors.includes('synthetic resource failure'));
+ await guard.evaluate(v=>{document.documentElement.dataset.doctorVersion=v;document.documentElement.dataset.doctorReady='true';document.dispatchEvent(new Event('doctor-ready'));},version);
+ await guard.waitForFunction(()=>!document.querySelector('#doctor-startup-error'));await guard.close();
+
+ let release,seen;const blocked=new Promise(r=>seen=r),gate=new Promise(r=>release=r);let paperRequests=0;
+ await context.route('**/vendor/paper-core.mjs*',async r=>{paperRequests++;seen();await gate;try{await r.abort('timedout');}catch{}});
+ const page=await context.newPage();await page.goto(base,{waitUntil:'commit'});
+ await page.waitForFunction(()=>document.documentElement.dataset.doctorReady==='true',null,{timeout:6000});
+ assert.equal(paperRequests,0,'UI startup must not fetch the optional native geometry bundle');
+ await page.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
+ const svg='<svg xmlns="http://www.w3.org/2000/svg" width="20mm" height="10mm" viewBox="0 0 20 10"><path fill="none" stroke="black" d="M0 0L1 0L2 0"/></svg>';
+ await page.locator('#file').setInputFiles({name:'source.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
+ await blocked;assert.equal(await page.locator('#cancel').isEnabled(),true);
+ await page.locator('#cancel').click();await page.waitForFunction(()=>document.querySelector('#busy').hidden);
+ assert.ok(await page.locator('#geometry [data-path]').count(),'Cancel preserves imported source vectors');
+ assert.equal(await page.locator('#doctor-startup-error').count(),0);
+ release();await context.unroute('**/vendor/paper-core.mjs*');
+ await page.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
+ await page.locator('#file').setInputFiles({name:'source-retry.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
+ await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));
+ await page.waitForFunction(()=>document.querySelector('#busy').hidden);
+ assert.match(await page.locator('#optimization-result').innerText(),/3 → 2/,'actual optimization must use the same prepared lazy-kernel instance');
+ await page.close();
+
+ await context.addInitScript(()=>{const NativeWorker=window.Worker;window.downloadNotices=[];window.Worker=class extends NativeWorker{constructor(...args){super(...args);this.addEventListener('message',e=>{if(e.data?.type==='progress'&&e.data.download)window.downloadNotices.push(e.data);});}};});
+ let gsRequests=0,muRequests=0,parallel=false;
+ context.on('request',r=>{if(r.url().includes('mupdf-wasm.wasm'))muRequests++;});
+ await context.route('**/gs-core.wasm',async r=>{gsRequests++;await new Promise(resolve=>setTimeout(resolve,300));parallel=muRequests>0;await r.fulfill({contentType:'application/wasm',body:readFileSync(new URL('../web/vendor/ghostscript/gs-core.wasm',import.meta.url))});});
+ const epsPage=await context.newPage();await epsPage.goto(base);await epsPage.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
+ const eps=Buffer.from('%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 100 100\n0 0 1 setrgbcolor\nnewpath 10 10 moveto 90 10 lineto 90 90 lineto 10 90 lineto closepath fill\nshowpage\n%%EOF\n');
+ const open=async name=>{await epsPage.locator('#file').setInputFiles({name,mimeType:'application/postscript',buffer:eps});await epsPage.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'),null,{timeout:120000});await epsPage.waitForFunction(()=>document.querySelector('#busy').hidden);};
+ await open('cold-painted.eps');assert.equal(parallel,true,'MuPDF must start before Ghostscript finishes downloading');
+ assert.equal(gsRequests,1);assert.equal(muRequests,1,'MuPDF Module hook must prevent a second hidden binary fetch');
+ const notices=await epsPage.evaluate(()=>window.downloadNotices);
+ assert.ok(notices.length>=2);assert.ok(notices.some(n=>n.download.loaded>20000000));
+ assert.ok(notices.every(n=>n.download.total===0||n.download.loaded<=n.download.total));
+ await open('warm-painted.eps');assert.equal(gsRequests,1);assert.equal(muRequests,1,'warm Worker must reuse both binaries');
+ const failed=await context.newPage();await failed.goto(base);await failed.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
+ await failed.locator('#file').setInputFiles({name:'preserved.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
+ await failed.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));await failed.waitForFunction(()=>document.querySelector('#busy').hidden);
+ await failed.locator('#apply-changes').click();
+ const project=async()=>{const event=failed.waitForEvent('download');await failed.keyboard.press('Control+Shift+s');return JSON.parse(readFileSync(await (await event).path(),'utf8'));};
+ const before=await project();
+ await context.route('**/gs-core.wasm',r=>r.fulfill({status:503,body:'Unavailable'}));
+ await failed.locator('#file').setInputFiles({name:'unavailable-engine.eps',mimeType:'application/postscript',buffer:eps});
+ await failed.waitForFunction(()=>document.querySelector('#import-report').textContent.includes('503'));await failed.waitForFunction(()=>document.querySelector('#busy').hidden);
+ assert.deepEqual((await project()).paths,before.paths,'asset HTTP failure must preserve the previous document');
+ assert.equal(await failed.locator('#open').isEnabled(),true);
+ assert.deepEqual(errors,[]);
+ console.log('PASS startup: current-version loading/error report, late-ready recovery, UI ready with blocked native bundle, Cancel/source preserved, retry optimization; EPS parallel real-byte downloads, single MuPDF WASM fetch, warm reuse and HTTP failure preserves prior vectors');
+}finally{await browser?.close();server.kill();}

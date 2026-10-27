@@ -1,4 +1,4 @@
-import {geometryCommands} from './eps-export.js';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.49';
 export const pointDistance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
 export const lerpPoint=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];
 export function evaluateBezier(controls,t){let q=controls;while(q.length>1)q=q.slice(1).map((p,i)=>lerpPoint(q[i],p,t));return q[0];}

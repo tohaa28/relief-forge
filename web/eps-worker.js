@@ -1,28 +1,59 @@
-/* EPS worker: persist the expensive Ghostscript WASM binary and MuPDF module
- * across independent imports. Never share Ghostscript filesystem state between
- * documents: create a fresh core for each conversion. */
-const send=(percent,message)=>self.postMessage({type:'progress',percent,message});
-let enginesPromise=null,mupdfPromise=null,pendingPdf=null;
-const loadMupdf=()=>mupdfPromise??=(import('./vendor/mupdf/mupdf.js').catch(e=>{mupdfPromise=null;throw e;}));
+/* Expensive importers stay in this Worker; keep warm state between documents. */
+const send=(percent,message,detail={})=>self.postMessage({type:'progress',percent,message,...detail});
+let enginesPromise=null,mupdfPromise=null,pendingPdf=null,sizesPromise=null;
+const megabytes=n=>(n/1048576).toFixed(1)+' МБ';
+function sizes(){
+ if(!sizesPromise){let timer;sizesPromise=Promise.race([
+  fetch(new URL('vendor/versions.json?v=0.2.0-alpha.49',self.location.href)).then(r=>r.ok?r.json():{}).then(x=>x.wasmBytes||{}),
+  new Promise(resolve=>{timer=setTimeout(()=>resolve({}),2000);})
+ ]).catch(()=>({})).finally(()=>clearTimeout(timer));}
+ return sizesPromise;
+}
+async function loadMupdf({onDownload}={}){
+ if(mupdfPromise)return mupdfPromise;
+ mupdfPromise=(async()=>{
+  const {downloadBinary}=await import('./asset-download.js?v=0.2.0-alpha.49');
+  let expected=0;sizes().then(s=>expected=Number(s.mupdf)||0);
+  const wasmBinary=await downloadBinary(new URL('vendor/mupdf/mupdf-wasm.wasm',self.location.href),{label:'MuPDF',onProgress:p=>{
+   const total=expected||p.total;
+   if(onDownload)onDownload({...p,total});
+   else send(12+21*(total?Math.min(1,p.loaded/total):0),'Загрузка MuPDF: '+megabytes(p.loaded)+(total?' / '+megabytes(total):''),{download:{loaded:p.loaded,total}});
+  }});
+  // Supported upstream Emscripten Module hook: provide the already-downloaded
+  // WASM instead of silently fetching the same binary again inside mupdf.js.
+  const config={wasmBinary};self['$libmupdf_wasm_Module']=config;
+  try{return await import('./vendor/mupdf/mupdf.js?v=0.2.0-alpha.49');}
+  finally{if(self['$libmupdf_wasm_Module']===config)delete self['$libmupdf_wasm_Module'];}
+ })().catch(e=>{mupdfPromise=null;throw e;});return mupdfPromise;
+}
 async function loadEngines(){
-  if(enginesPromise)return enginesPromise;
-  enginesPromise=(async()=>{
-    send(3,'Загрузка Ghostscript и MuPDF (только при первом сложном EPS)…');
-    const response=await fetch(new URL('vendor/ghostscript/gs-core.wasm',self.location.href));
-    if(!response.ok)throw Error('Не удалось загрузить Ghostscript WASM: '+response.status);
-    const wasmBinary=new Uint8Array(await response.arrayBuffer());
-    importScripts(new URL('vendor/ghostscript/gs-core.js',self.location.href).href);
-    send(15,'Подготовка векторного импортера…');
-    const mupdf=await loadMupdf();
-    return {wasmBinary,mupdf};
-  })().catch(error=>{enginesPromise=null;throw error;});
-  return enginesPromise;
+ if(enginesPromise)return enginesPromise;
+ enginesPromise=(async()=>{
+  const {downloadBinary}=await import('./asset-download.js?v=0.2.0-alpha.49');
+  const warmMu=Boolean(mupdfPromise),state={ghostscript:{loaded:0,total:0},mupdf:{loaded:0,total:0}},expected={};
+  let muReady=false,reporting=true;
+  const report=()=>{
+   if(!reporting)return;
+   const gs=state.ghostscript,mu=state.mupdf,loaded=gs.loaded+mu.loaded,
+    total=gs.total+(warmMu?0:mu.total),known=gs.total>0&&(warmMu||mu.total>0);
+   const part=(name,p)=>name+': '+megabytes(p.loaded)+(p.total?' / '+megabytes(p.total):'');
+   send(9+12*(known?Math.min(1,loaded/total):0),part('Ghostscript',gs)+' · '+(muReady?'MuPDF: готов':mu.done?'MuPDF: подготовка ('+megabytes(mu.loaded)+')':part('MuPDF',mu)),{download:{loaded,total:known?total:0}});
+  };
+  sizes().then(s=>{Object.assign(expected,s);for(const k of ['ghostscript','mupdf'])state[k].total=Number(s[k])||state[k].total;report();});
+  report();
+  const gs=downloadBinary(new URL('vendor/ghostscript/gs-core.wasm',self.location.href),{label:'Ghostscript',onProgress:p=>{state.ghostscript={...p,total:Number(expected.ghostscript)||p.total};report();}}).then(wasmBinary=>{
+   importScripts(new URL('vendor/ghostscript/gs-core.js',self.location.href).href);return wasmBinary;
+  });
+  const mu=loadMupdf({onDownload:p=>{state.mupdf={...p,total:Number(expected.mupdf)||p.total};report();}}).then(m=>{muReady=true;report();return m;});
+  const [wasmBinary,mupdf]=await Promise.all([gs,mu]).finally(()=>reporting=false);
+  send(22,'Движки загружены. Подготовка векторного импортера…');return {wasmBinary,mupdf};
+ })().catch(error=>{enginesPromise=null;throw error;});return enginesPromise;
 }
 self.onmessage=async({data})=>{
   const started=Date.now();
   try{
     if(data.kind==='pdf'||data.type==='select-pdf-page'){
-      const pdf=await import('./pdf-pipeline.js?v=0.2.0-alpha.48');
+      const pdf=await import('./pdf-pipeline.js?v=0.2.0-alpha.49');
       if(data.kind==='pdf'){
         pendingPdf=pdf.pdfProgram(new Uint8Array(data.bytes)).slice();
         send(12,'Загрузка движка MuPDF для PDF…');
@@ -48,7 +79,7 @@ self.onmessage=async({data})=>{
       self.postMessage({type:'done',result,durationMs:Date.now()-started,format:'pdf'});
       return;
     }
-    const pipeline=await import('./eps-pipeline.js?v=0.2.0-alpha.48');
+    const pipeline=await import('./eps-pipeline.js?v=0.2.0-alpha.49');
     // Path-only files never load heavyweight interpreters at all.
     const direct=pipeline.recoverOutlineOnlyEps(new Uint8Array(data.bytes));
     if(direct){
