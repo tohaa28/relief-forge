@@ -31,11 +31,13 @@ test('document creation tools are in a closed-by-default native disclosure',()=>
 
 
 test('diagnostic legend, issue list and all manual actions are collapsed by default',()=>{
-  for(const id of ['legend-panel','point-controls','issues-panel','manual-repairs']){
+  for(const id of ['legend-panel','point-controls','issues-panel']){
     assert.match(html,new RegExp('<details id="'+id+'"'));
     assert.doesNotMatch(html,new RegExp('<details id="'+id+'"[^>]*\\bopen\\b'));
   }
-  const repairs=html.slice(html.indexOf('id="manual-repairs"'),html.indexOf('</details>',html.indexOf('id="manual-repairs"')));
+  assert.match(html,/<div id="manual-repairs" class="curve-repairs-row"/);
+  assert.doesNotMatch(html,/<details id="manual-repairs"/);
+  const repairs=html.slice(html.indexOf('id="manual-repairs"'),html.indexOf('id="node-context"'));
   for(const action of [1,2,3,4,5,6,7,8])assert.ok(repairs.includes('data-action="'+action+'"'),'manual action '+action);
   assert.match(css,/\.compact-section>summary/);
 });
