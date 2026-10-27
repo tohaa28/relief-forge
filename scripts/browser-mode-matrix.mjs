@@ -47,12 +47,14 @@ try{
   assert.equal(await page.locator('#curve-node-tools').isVisible(),true);
   assert.match(await page.locator('#curve-edit').textContent(),/Редактирование кривой/);
   const manual=page.locator('#manual-repairs');
-  assert.equal(await manual.locator('summary').isVisible(),true);
   assert.equal(await page.locator('aside.right #manual-repairs').count(),0);
-  await manual.locator('summary').click();
   assert.equal(await manual.locator('[data-action="1"]').isVisible(),true);
   assert.equal(await manual.locator('[data-action]').count(),8);
-  await manual.locator('summary').click();
+  const rects=await page.evaluate(()=>({
+    node:document.querySelector('#node-move').getBoundingClientRect().toJSON(),
+    row:document.querySelector('#manual-repairs').getBoundingClientRect().toJSON()
+  }));
+  assert.ok(rects.row.top>=rects.node.bottom-2,'manual repairs must be below node tools, not a popup');
   await page.locator('#node-add').click();
   const plus=await page.locator('#canvas').evaluate(el=>decodeURIComponent(el.style.cursor));
   assert.match(plus,/M16 11V21 M11 16H21/);

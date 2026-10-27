@@ -464,40 +464,40 @@ nav #workspace-check.workspace-check-icon{
   padding:0;display:grid;place-items:center;aspect-ratio:1/1;
 }
 nav #workspace-check .tool-icon{margin:0}
-/* The curve editing tools own the manual action menu: the right settings
-   sidebar never duplicates it. Do not clip the opened menu. */
-#curve-node-tools{overflow:visible;max-height:none;flex-wrap:wrap}
-#curve-node-tools .curve-repairs-menu{position:relative;flex:0 0 auto;z-index:150}
-#curve-node-tools .curve-repairs-menu summary{
-  display:flex;align-items:center;justify-content:center;gap:7px;
-  min-height:38px;box-sizing:border-box;border:1px solid var(--du-border);
-  border-radius:8px;background:#fff;padding:7px 12px;
-  font-size:11px;font-weight:600;line-height:1.25;cursor:pointer;
-}
-#curve-node-tools .curve-repairs-menu[open] summary{border-color:#80c9c5;background:#e4f9f7}
-#curve-node-tools .curve-repairs-dropdown{
-  position:absolute;right:0;top:calc(100% + 6px);
-  z-index:160;width:min(470px,calc(100vw - 24px));
-  max-height:min(65dvh,530px);overflow-y:auto;
-  padding:12px;box-sizing:border-box;
-  display:grid;gap:9px;white-space:normal;
-  border:1px solid var(--du-border);border-radius:12px;
-  background:#fff;box-shadow:0 14px 40px #12394a30;
-}
-#curve-node-tools .curve-repairs-dropdown .repairs{
-  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:6px;align-items:stretch;
-}
-#curve-node-tools .curve-repairs-dropdown button{
-  display:flex;justify-content:flex-start;white-space:normal;
-  text-align:left;min-height:37px;font-size:11px;
-}
-#curve-node-tools .curve-repairs-dropdown button kbd{
-  font-size:9px;white-space:nowrap;margin-left:auto;
-}
-#curve-node-tools .curve-repairs-dropdown label{font-size:11px;display:flex;align-items:center;gap:7px}
-#curve-node-tools .curve-repairs-dropdown label input{width:74px}
-@media(max-width:740px){
-  #curve-node-tools .curve-repairs-dropdown{right:auto;left:0}
-  #curve-node-tools .curve-repairs-dropdown .repairs{grid-template-columns:minmax(0,1fr)}
+
+/* alpha.47: icon is baseline-centered independently from label and shortcut */
+#toggle-info{display:inline-flex;align-items:center;justify-content:flex-start;gap:7px}
+#toggle-info > .tool-icon{display:block;align-self:center;flex:0 0 var(--du-icon-size);
+  width:var(--du-icon-size);height:var(--du-icon-size);margin:0}
+#toggle-info > #toggle-info-label{display:inline-flex;align-items:center;line-height:1}
+#toggle-info > kbd{align-self:center;margin-left:4px}
+
+/* Curve editing is two fixed sections, not a fly-out menu. First row:
+   node tools. Second row: native Rust manual repairs. */
+#curve-node-tools{display:flex;flex-direction:column;align-items:stretch;gap:5px;
+  overflow-y:auto;overflow-x:hidden;max-height:min(37dvh,320px);
+  padding:7px 12px}
+#curve-node-tools[hidden]{display:none}
+#curve-node-tools .curve-tools-main{display:flex;gap:7px;align-items:center;
+  flex-wrap:wrap;min-height:38px;width:100%}
+#curve-node-tools .curve-tools-main #node-hint{flex:1 1 140px}
+#curve-node-tools .curve-tools-main #node-done{margin-left:auto}
+#curve-node-tools .curve-repairs-row{display:flex;align-items:center;gap:7px;
+  border-top:1px solid #cfdee4;padding-top:6px;width:100%;flex:0 0 auto}
+#curve-node-tools .curve-repairs-row .repairs{display:flex;align-items:stretch;
+  gap:5px;flex:1 1 auto;min-width:0;flex-wrap:wrap}
+#curve-node-tools .curve-repairs-row button{display:inline-flex;align-items:center;
+  justify-content:flex-start;gap:5px;min-height:31px;padding:5px 7px;
+  font-size:10px;line-height:1.15;white-space:normal;text-align:left;
+  flex:0 1 auto}
+#curve-node-tools .curve-repairs-row button kbd{margin-left:3px;font-size:8px;
+  min-height:18px;min-width:18px;padding:1px 3px}
+#curve-node-tools .curve-repairs-row > label{margin:0;display:flex;
+  justify-content:flex-start;align-items:center;flex:0 0 auto;gap:5px;
+  font-size:10px;line-height:1.2}
+#curve-node-tools .curve-repairs-row > label input{width:63px;padding:4px}
+@media(max-width:1050px){
+  #curve-node-tools .curve-repairs-row{flex-wrap:wrap}
+  #curve-node-tools .curve-repairs-row .repairs{flex-basis:100%}
+  #curve-node-tools .curve-repairs-row button kbd{display:none}
 }

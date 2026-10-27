@@ -44,7 +44,21 @@ fn main(@builtin(global_invocation_id) id: vec3u) {
     x.y<=y.w+p && y.y<=x.w+p);
 }`;
 
-export async function gpuBroadphase(document,{tolerance=.01,navigatorObject=globalThis.navigator,
+// Driver bugs can leave requestAdapter, shader compilation, or mapAsync
+// unresolved forever (notably on machines with mixed/older GPU drivers).
+// Never allow a graphics driver to block importing a CNC document.
+export function gpuBroadphase(document,options={}){
+  const timeoutMs=Number.isFinite(options.timeoutMs)
+    ?Math.max(1,Math.min(30000,options.timeoutMs)):4500;
+  let timer;
+  const fallback=new Promise(resolve=>{
+    timer=setTimeout(()=>resolve({mode:'cpu',pairs:null,
+      reason:'webgpu-timeout-'+timeoutMs+'ms'}),timeoutMs);
+  });
+  return Promise.race([gpuBroadphaseImpl(document,options),fallback])
+    .finally(()=>clearTimeout(timer));
+}
+async function gpuBroadphaseImpl(document,{tolerance=.01,navigatorObject=globalThis.navigator,
     maxPaths=512,minPaths=16}={}){
   const paths=document?.paths;
   const fallback=(reason)=>({mode:'cpu',pairs:null,reason});
