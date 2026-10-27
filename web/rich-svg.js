@@ -1,5 +1,5 @@
-import svgpath from './vendor/svgpath.mjs?v=0.2.0-alpha.49';
-import {paintFromArtwork} from './eps-paint.js?v=0.2.0-alpha.49';
+import svgpath from './vendor/svgpath.mjs?v=0.2.0-alpha.50';
+import {paintFromArtwork} from './eps-paint.js?v=0.2.0-alpha.50';
 const NS='http://www.w3.org/2000/svg';
 const tags=new Set('svg g defs path image use clipPath mask pattern linearGradient radialGradient stop rect circle ellipse line polyline polygon title desc metadata'.split(' '));
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
