@@ -327,3 +327,6 @@ PDF-only self-contained layer namespace fixes strict browser "Некоррект
 
 ## 2026-10-26 gerb investigation — no release change (0.2.0-alpha.41)
 F-037 native/proxy marker mismatch, F-038 wholeUnionrollback restores35copies, F-039 aggregatequalitycap identified on real gerb.229JSbaseline passes but known cases not covered;5sourceowned reproductions added as diagnostic tool. Runtime unchanged/noalpha42. Actual11493->11170,3284->2642partial,35copies/19pairschecked,all5AFTERselfcross false on native intervals,57protectedtiny parts; EPSroundtripidentical. Full evidence GERB_DIAGNOSTIC_INVESTIGATION_20261026.md.
+
+## 2026-10-27 — 0.2.0-alpha.48 candidate (not published)
+Basealpha47 main5dddef8, preserves all alpha42–47 changes. Native source-interval Union + provenance/independent holes/silhouette gate, verified necessary-cut budget, cancellable Boolean/marker Worker, native diagnostic location/node classes, native optimizer anchor/topology gate and per-job overlap cache. No GPU implementation rollback or unsupported hardware speed claim. Required final CI/live and actual private example verification pending; limitations in F-048.

@@ -291,3 +291,6 @@ PDF-only named-layer namespace fix, all old non-PDF logic identical after versio
 
 ## 2026-10-26 gerb investigation — no release change (0.2.0-alpha.41)
 F-037 native/proxy marker mismatch, F-038 wholeUnionrollback restores35copies, F-039 aggregatequalitycap identified on real gerb.229JSbaseline passes but known cases not covered;5sourceowned reproductions added as diagnostic tool. Runtime unchanged/noalpha42. Actual11493->11170,3284->2642partial,35copies/19pairschecked,all5AFTERselfcross false on native intervals,57protectedtiny parts; EPSroundtripidentical. Full evidence GERB_DIAGNOSTIC_INVESTIGATION_20261026.md.
+
+## 0.2.0-alpha.48 — candidate source, publication pending
+Native L/Q/C Union preserves untouched original segments and reconstructs only necessary intersection subcurves; no generated sample-polyline output/refit. Recomputable provenance + independent finite-sample Clipper XOR/holes check; unproven group rejected independently. Scoped/global node rules admit proven required junctions only. GPU4500ms CPUfallback retained; CPU Boolean/diagnostic geometry off main thread. Native marker witnesses/node classes and optimizer anchor/topology guard. All alpha42–47 CNC/import/UI/Undo/EPS contracts retained. Kernel numerical ambiguity still protected/incomplete; not universal repair.

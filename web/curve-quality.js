@@ -1,4 +1,5 @@
-import {sampledContours} from './rich-svg.js';
+import {sampleNativeParts} from './native-bezier.js';
+import {nativeIntersections} from './native-intersections.js';
 const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
 const cross=(a,b)=>a[0]*b[1]-a[1]*b[0];
 const sub=(a,b)=>[a[0]-b[0],a[1]-b[1]];
@@ -20,61 +21,33 @@ function realSegments(path){
   }
   return out;
 }
-function intersections(parts){
-  const edges=[],found=[];
-  parts.forEach((p,part)=>{
-    const n=p.points.length-Number(!p.closed);
-    for(let i=0;i<n;i++){
-      const a=p.points[i],b=p.points[(i+1)%p.points.length];
-      edges.push({a,b,part,i,n,closed:p.closed,minX:Math.min(a[0],b[0]),maxX:Math.max(a[0],b[0]),minY:Math.min(a[1],b[1]),maxY:Math.max(a[1],b[1])});
-    }
-  });
-  edges.sort((a,b)=>a.minX-b.minX);let work=0;
-  for(let i=0;i<edges.length;i++)for(let j=i+1;j<edges.length&&edges[j].minX<=edges[i].maxX;j++){
-    if(++work>2000000)throw Error('quality-budget');
-    const a=edges[i],b=edges[j];
-    if(a.maxY<b.minY||b.maxY<a.minY)continue;
-    if(a.part===b.part&&(Math.abs(a.i-b.i)===1||(a.closed&&Math.abs(a.i-b.i)===a.n-1)))continue;
-    const r=sub(a.b,a.a),s=sub(b.b,b.a),q=sub(b.a,a.a),den=cross(r,s);
-    if(Math.abs(den)<1e-14){
-      const rr=r[0]*r[0]+r[1]*r[1];
-      if(rr>1e-20&&Math.abs(cross(q,r))<1e-12){
-        const t0=(q[0]*r[0]+q[1]*r[1])/rr,q1=sub(b.b,a.a),t1=(q1[0]*r[0]+q1[1]*r[1])/rr;
-        const lo=Math.max(0,Math.min(t0,t1)),hi=Math.min(1,Math.max(t0,t1));
-        if((hi-lo)*Math.sqrt(rr)>1e-8)found.push({parts:[a.part,b.part].sort((a,b)=>a-b).join(':'),point:[a.a[0]+(lo+hi)/2*r[0],a.a[1]+(lo+hi)/2*r[1]]});
-      }
-      continue;
-    }
-    const t=cross(q,s)/den,u=cross(q,r)/den;
-    if(t>=0&&t<=1&&u>=0&&u<=1){
-      found.push({parts:[a.part,b.part].sort((a,b)=>a-b).join(':'),point:[a.a[0]+t*r[0],a.a[1]+t*r[1]]});
-      if(found.length>10000)throw Error('quality-intersections-limit');
-    }
-  }
-  return found;
-}
 const area=p=>p.points.reduce((s,a,i)=>{const b=p.points[(i+1)%p.points.length];return s+cross(a,b);},0)/2;
 // Independent postcondition, not the optimizer's own error estimate. Checks
-// all subpaths together. Numeric sampled intersections are not an analytic
-// proof for sub-resolution contacts; never label this a full certification.
+// all subpaths together. Intersections have native cubic witnesses; numerical
+// ambiguity rejects the change. Signed areas still use bounded sampling.
 export function validateCurveChange(before,after,{tolerance=.01,nodeTolerance=.01}={}){
   const report={accepted:false,reason:null,samplingMm:Math.max(.0001,Math.min(.0025,tolerance/4)),beforeNodes:0,afterNodes:0};
   try{
     const a=realSegments(before),b=realSegments(after);
     report.beforeNodes=a.length;report.afterNodes=b.length;
     if(b.length>a.length){report.reason='node-increase';return report;}
+    if(JSON.stringify(commands(before))===JSON.stringify(commands(after))){report.accepted=true;report.unchanged=true;return report;}
+    const anchors=p=>{let part=-1;return commands(p).filter(c=>c[0]!=='Z').map(c=>{if(c[0]==='M')part++;return {part,point:c.slice(-2)};});};
+    const sourceAnchors=anchors(before);
+
     const oldShort=a.filter(s=>s.extent<=nodeTolerance);
     if(b.some(s=>s.extent<=nodeTolerance&&!oldShort.some(o=>o.part===s.part&&distance(o.point,s.point)<=tolerance+nodeTolerance))){report.reason='new-short-segment';return report;}
-    const src=sampledContours(before,report.samplingMm),dst=sampledContours(after,report.samplingMm);
+    const src=sampleNativeParts(before,report.samplingMm),dst=sampleNativeParts(after,report.samplingMm);
     if(src.length!==dst.length||src.some((p,i)=>p.closed!==dst[i].closed)){report.reason='closure-or-subpath-change';return report;}
     for(let i=0;i<src.length;i++){
       if(!src[i].closed)continue;
       const x=area(src[i]),y=area(dst[i]);
       if(Math.abs(x)>1e-9&&(Math.abs(y)<1e-9||Math.sign(x)!==Math.sign(y))){report.reason='collapsed-or-reversed-ring';return report;}
     }
-    const old=intersections(src),next=intersections(dst);
+    const old=nativeIntersections([before]),next=nativeIntersections([after]);
     report.beforeIntersections=old.length;report.afterIntersections=next.length;
-    if(next.some(n=>!old.some(o=>o.parts===n.parts&&distance(o.point,n.point)<=2*tolerance+report.samplingMm))){report.reason='new-intersection';return report;}
+    if(next.some(n=>!old.some(o=>o.parts===n.parts&&o.overlap===n.overlap&&distance(o.point,n.point)<=2*tolerance+report.samplingMm))){report.reason='new-intersection';return report;}
+    if(anchors(after).some(p=>!sourceAnchors.some(q=>q.part===p.part&&distance(q.point,p.point)<=1e-9))){report.reason='new-or-moved-anchor';return report;}
     report.accepted=true;return report;
   }catch(error){report.reason=String(error.message);return report;}
 }
@@ -90,7 +63,7 @@ export function validateDocumentCurveChange(before,after,options={}){
       [c[0],...c.slice(1).map((v,i)=>v+(p.offset?.[i%2]||0))]))
   });
   const all=validateCurveChange(combine(before.paths),combine(after.paths),options);
-  if(all.accepted||!/(too complex|слишком сложна|quality-budget|quality-intersections-limit)/i.test(all.reason||''))return all;
+  if(all.accepted||!/(too complex|слишком сложна|quality-budget|quality-intersections-limit|native-topology-curve-budget|native-topology-issue-budget|native-verification-budget)/i.test(all.reason||''))return all;
   if(before.paths.length!==after.paths.length)
     return {...all,reason:'scoped-validation-requires-stable-object-mapping'};
   const changed=[];

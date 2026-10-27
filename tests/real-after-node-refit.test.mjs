@@ -79,17 +79,19 @@ test('Union output is refitted in AFTER, opening node editor commits that exact 
   assert.match(app,/checkPreviewAfter\(pv\)/);
   assert.match(app,/prepareEpsOutput\(chosen\.document\)/);
   assert.match(overlap,/isUnchangedUnion\(path\)/);
-  assert.match(overlap,/unionFlattened:true/);
+  assert.match(overlap,/nativeUnionProof:welded.proof/);
 });
 
-test('real Union of overlapping filled shapes gets a tagged path eligible for accurate refit',()=>{
+test('native Union keeps the exact AFTER and bypasses polygon refit',()=>{
   const p=(x)=>path(commands([[x,0],[x+10,0],[x+10,10],[x,10]]),false);
   const src=doc([p(0),p(5)]);
   const merged=mergeOverlappingObjects(src,{tolerance:.02,cleanupTolerance:.02});
   assert.equal(merged.document.paths.length,1);
-  assert.equal(merged.document.paths[0].unionFlattened,true);
+  assert.equal(merged.document.paths[0].nativeUnionProof.kind,'native-bezier-union-v1');
   const result=refitBooleanUnion(merged.document,.04);
   assert.ok(result.stats.finalNodes<=result.stats.originalNodes);
+  assert.equal(result.stats.refitPaths,0);
+  assert.deepEqual(result.document.paths[0].commands,merged.document.paths[0].commands);
   assert.equal(curveNodes(result.document.paths[0]).length,
     nodeCount(result.document.paths[0]));
 });

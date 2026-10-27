@@ -1,5 +1,6 @@
 import {validateDocumentCurveChange} from './curve-quality.js';
 import {optimizeVectorPath} from './curve-optimizer.js';
+import {verifyNativeUnionProof} from './native-union-proof.js';
 
 // Refit actual Boolean Union AFTER Clipper removes overlaps.
 // Previous flow optimized source C curves then replaced them with many L
@@ -59,6 +60,7 @@ export function refitBooleanUnion(document,tolerance,{maxPasses=4}={}){
   return {document:result,stats:report};
 }
 export function isUnchangedUnion(path){
+  if(path.nativeUnionProof)return verifyNativeUnionProof(path);
   return Boolean(path.unionFlattened&&path.unionStamp&&
     path.unionStamp===JSON.stringify({commands:path.commands,offset:path.offset||[0,0]}));
 }

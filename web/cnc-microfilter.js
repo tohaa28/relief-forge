@@ -145,6 +145,7 @@ export function removeTinyClosedSubpaths(document,{enabled=true,width=.1,height=
       closed:keep.every(p=>p.closed),paint,
       artwork:rebuildArtwork(commands,paint)};
     delete next.unionStamp;delete next.unionFlattened;
+    delete next.nativeUnionProof;delete next.nativeUnionQuality;
     paths.push(next);
   }
   copy.paths=paths;

@@ -1,5 +1,7 @@
 import {refitBooleanUnion} from './union-refit.js';
 import {realNodeCount} from './preview-node-budget.js';
+import {geometryCommands} from './eps-export.js';
+import {verifyNativeUnionProof} from './native-union-proof.js';
 
 // A separate, fail-closed commit gate for every independent Boolean group.
 // A rejected group keeps its native curves and never rolls back other groups.
@@ -18,6 +20,13 @@ export function assessUnionGroup(sourcePaths,candidate,{tolerance=.02,remainingN
     }
     const candidateNodes=realNodeCount({paths:[path]});
     const after=currentNodes-sourceNodes+candidateNodes;
+    if(path.nativeUnionProof){
+      const inputs=new Set(sourcePaths.map(p=>JSON.stringify(geometryCommands(p))));
+      if(!verifyNativeUnionProof(path,inputs))return {accepted:false,reason:'invalid-native-provenance',sourceNodes,candidateNodes};
+      const cuts=path.nativeUnionProof.newJunctions;
+      if(candidateNodes>sourceNodes+cuts||after>globalLimit+cuts)return {accepted:false,reason:'unnecessary-native-nodes',sourceNodes,candidateNodes};
+      return {accepted:true,path,sourceNodes,candidateNodes,after,refit,nativeCuts:cuts};
+    }
     // Real crossings may need new anchors, but not thousands of sampled
     // polygon vertices. Keeping the entire document <= source node count
     // prevents a valid group from inflating the exported overall result.

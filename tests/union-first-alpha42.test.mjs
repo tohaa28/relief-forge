@@ -59,7 +59,7 @@ test('large unchanged documents do not fail only because global sampling exceeds
  const input=doc([long(7001),long(7001),long(7001)]);
  const outcome=validateDocumentCurveChange(input,structuredClone(input),{tolerance:.01});
  assert.equal(outcome.accepted,true,JSON.stringify(outcome));
- assert.equal(outcome.scoped,true);
+ assert.equal(outcome.unchanged,true,'identical native geometry requires no sampled global/pair fallback');
 });
 test('both preview routes run Union before smoothing, and export uses cached AFTER',()=>{
  const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');

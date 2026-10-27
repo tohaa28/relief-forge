@@ -128,3 +128,8 @@ export function filledPathsOverlap(first,second,{tolerance=.01}={}){
     normalizePath(second,tolerance,scale));
 }
 export const polygonUnionEngine='Clipper 6.4.2.2';
+export function createFilledOverlapTester(tolerance=.01){
+  const scale=toScale(tolerance),cache=new WeakMap();
+  const normalized=path=>{if(!cache.has(path))cache.set(path,normalizePath(path,tolerance,scale));return cache.get(path);};
+  return (a,b)=>positiveIntersection(normalized(a),normalized(b));
+}

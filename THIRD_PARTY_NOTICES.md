@@ -17,3 +17,5 @@ MuPDF npm gitHead and source tag 1.28.1 both resolve to `20061bd45183f5a2bff8f43
 MuPDF JavaScript/WASM package and source: https://www.npmjs.com/package/mupdf/v/1.28.1 and https://github.com/ArtifexSoftware/mupdf . Follow the pinned release's build instructions/submodule revisions for corresponding MuPDF C sources. MuPDF distribution is copied unmodified. Engine adapters and complete application source: https://github.com/tohaa28/relief-forge .
 
 Reproduce application assets: Node 24, `npm ci && npm run vendor`. Reproduce the Rust engine: Rust 1.85.1 with wasm32-unknown-unknown, `bash scripts/build.sh`. Build-time esbuild and test-only xmldom are listed and pinned in package-lock.json; their upstream licenses remain in node_modules when installed.
+
+Native geometry: Paper.js / paper 0.16.0, MIT, https://github.com/paperjs/paper.js . Pinned package-lock source, geometry-only local esbuild core, vendor/LICENSE-paper. Node DOM/canvas emulation excluded. Candidate output independently reconstructed from native source subcurves and checked against Clipper; no sampled output stored.
