@@ -26,7 +26,7 @@ test('manual repairs are in visible second editing toolbar row, with all keyboar
  assert.match(html,/>Редактирование кривой<kbd>E<\/kbd>/);
  assert.doesNotMatch(html,/>Узлы кривой<kbd>E<\/kbd>/);
  assert.match(app,/document\.querySelectorAll\('\[data-action\]'\)/);
- assert.match(css,/#curve-node-tools \.curve-repairs-dropdown/);
+ assert.match(css,/#curve-node-tools \.curve-repairs-row/);
 });
 test('different 32px-target cursor SVGs have a central + and X, NOT minus or font glyph',()=>{
  assert.match(app,/const plusCursor=nodeCursor\('add'\),minusCursor=nodeCursor\('remove'\)/);
