@@ -1,3 +1,5 @@
+import {geometryCommands} from './eps-export.js';
+import {verifyNativeUnionProof} from './native-union-proof.js';
 // Bound final editable nodes by the original document. Valid Union may need
 // more intersection anchors than the intermediate optimized curves.
 export function realNodeCount(document){
@@ -12,7 +14,17 @@ export function realNodeCount(document){
 export function protectPreviewNodeBudget(source,preUnion,postRefit){
  const before=realNodeCount(source),optimized=realNodeCount(preUnion),after=realNodeCount(postRefit);
  if(optimized>before)return {document:structuredClone(source),reason:'optimized-node-growth',before,optimized,after,final:before};
- if(after>before)return {document:structuredClone(preUnion),reason:'union-node-growth',before,optimized,after,final:optimized};
+ if(after>before){
+  const inputs=new Set(preUnion.paths.filter(p=>p.kind!=='image').map(p=>JSON.stringify(geometryCommands(p))));
+  let junctions=0;
+  const proven=postRefit.paths.every(p=>{
+   if(p.kind==='image'||inputs.has(JSON.stringify(geometryCommands(p))))return true;
+   if(!verifyNativeUnionProof(p,inputs))return false;
+   junctions+=p.nativeUnionProof.newJunctions;return true;
+  });
+  if(!proven||after-before>junctions)return {document:structuredClone(preUnion),reason:'union-node-growth',before,optimized,after,final:optimized};
+  return {document:postRefit,reason:null,before,optimized,after,final:after,nativeJunctions:junctions};
+ }
  return {document:postRefit,reason:null,before,optimized,after,final:after};
 }
 export function previewBudgetMessage(report){

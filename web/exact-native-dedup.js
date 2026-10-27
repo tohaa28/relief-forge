@@ -1,3 +1,4 @@
+import {nativeParts} from './native-bezier.js';
 import {geometryCommands} from './eps-export.js';
 
 // An opaque later copy fully covers the earlier identical solid fill. Remove
@@ -5,7 +6,7 @@ import {geometryCommands} from './eps-export.js';
 // the relative order of the retained (last) copy and other artwork.
 function safeFill(p){
   const ink=p?.paint;
-  return p?.kind==='vector' && p.closed===true && ink &&
+  return p?.kind==='vector' && nativeParts(p).length>0 && nativeParts(p).every(p=>p.closed) && ink &&
     !ink.unsupported && typeof ink.fill==='string' &&
     ink.fill.toLowerCase()!=='none' && !/url\s*\(/i.test(ink.fill) &&
     (!ink.stroke||ink.stroke.toLowerCase()==='none') &&

@@ -37,18 +37,21 @@ test('Clipper is vendored and true Union cuts away internal overlapping boundari
   assert.deepEqual(before,original);
   assert.match(exportEps(result.document),/%%RF-OutlinePaths: 1/);
 });
-test('two closed cubic Bézier fills may only be unioned when output passes local and global node guards',()=>{
+test('overlapping cubic fills retain native curves and pass scoped node guards',()=>{
   const curve=shift=>path([
     ['M',shift,0],['C',shift+2,-1,shift+6,-1,shift+8,0],
     ['L',shift+8,10],['C',shift+6,11,shift+2,11,shift,10],['Z']]);
   const a=curve(0),b=curve(4),original=d([a,b]);
   assert.equal(filledPathsOverlap(a,b,{tolerance:.01}),true);
   const r=mergeOverlappingObjects(original,{tolerance:.01});
+  assert.equal(r.stats.weldedGroups,1,'native candidate must succeed for this analytic curve fixture');
   if(r.stats.weldedGroups){
     assert.equal(r.document.paths.length,1);
     assert.equal(r.document.paths[0].commands.filter(c=>c[0]==='M').length,1);
     assert.ok(r.stats.nodesAfterUnion<=r.stats.nodesBefore);
     assert.equal(r.document.paths[0].paint.fillRule,'evenodd');
+    assert.equal(r.document.paths[0].commands.filter(c=>c[0]==='C').length,4);
+    assert.equal(r.stats.flattenedVertices,0);
   }else{
     assert.ok(r.stats.rejectedGroups>0,'rejected candidate must explain a scoped rollback');
     assert.deepEqual(r.document.paths[0].commands,a.commands);

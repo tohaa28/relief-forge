@@ -1,12 +1,14 @@
+import {nativeUnionPaths} from './native-boolean.js';
+import {nativeParts} from './native-bezier.js';
 import {geometryCommands} from './eps-export.js';
 import {sampledContours} from './rich-svg.js';
-import {filledPathsOverlap,unionFilledPaths,findUnionEquivalentSource} from './polygon-union.js?v=0.2.0-alpha.47';
+import {createFilledOverlapTester,findUnionEquivalentSource} from './polygon-union.js?v=0.2.0-alpha.48';
 import {isUnchangedUnion} from './union-refit.js';
 import {deduplicateExactVectors} from './exact-native-dedup.js';
 import {assessUnionGroup} from './union-group-budget.js';
 import {realNodeCount} from './preview-node-budget.js';
-// Clipper performs true area union for *closed filled* Bézier polygons,
-// including holes. Unfilled strokes retain their original cubic path data.
+// Candidate Union retains native Bézier source subcurves; sampled polygons
+// only verify fill/holes. Unfilled strokes retain original cubic path data.
 // No paint-mode conversion or joining unlike-colored artwork.
 const EPS=1e-8;
 const cross=(a,b,c,d)=>(b[0]-a[0])*(d[1]-c[1])-(b[1]-a[1])*(d[0]-c[0]);
@@ -63,7 +65,7 @@ function filledEligible(path){
   const paint=path.paint;
   return path.kind!=='image'&&paint&&typeof paint.fill==='string'&&
     paint.fill.toLowerCase()!=='none'&&(!paint.stroke||paint.stroke.toLowerCase()==='none')&&
-    !paint.unsupported&&path.closed===true&&Number(paint.opacity??1)===1&&
+    !paint.unsupported&&nativeParts(path).length>0&&nativeParts(path).every(p=>p.closed)&&Number(paint.opacity??1)===1&&
     Number(paint.fillOpacity??1)===1;
 }
 function styleKey(p){
@@ -154,7 +156,7 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
   const safeDocument=structuredClone(exact.document);
   const doc=exact.document,pathCount=doc.paths.length;
   const globalLimit=realNodeCount(document);
-  let currentNodes=realNodeCount(doc);
+  let currentNodes=realNodeCount(doc),nativeAllowance=0;
   let gpuKeys=null;
   if(gpuPairs?.mode==='webgpu'&&gpuPairs.sourceCount===document.paths.length&&
      Array.isArray(gpuPairs.pairs)){
@@ -176,14 +178,16 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
   const parent=doc.paths.map((_,i)=>i);
   function root(i){while(parent[i]!==i){parent[i]=parent[parent[i]];i=parent[i];}return i;}
   const join=(i,j)=>{const a=root(i),b=root(j);if(a!==b)parent[b]=a;};
-  let candidatePairs=0;
+  let candidatePairs=0;const filledOverlap=createFilledOverlapTester(tolerance);
   for(let i=0;i<pathCount;i++)for(let j=i+1;j<pathCount;j++){
     if(!geometry[i]||!geometry[j]||styleKey(doc.paths[i])!==styleKey(doc.paths[j]))continue;
     if(gpuKeys&&!gpuKeys.has(i+':'+j))continue;
+    const a=geometry[i].bbox,b=geometry[j].bbox;
+    if(a.maxX<b.minX||b.maxX<a.minX||a.maxY<b.minY||b.maxY<a.minY)continue;
     if(++candidatePairs>25000)throw Error('Очень много сочетаний наложенных объектов');
     if(filledEligible(doc.paths[i])&&filledEligible(doc.paths[j])){
       try{
-        if(filledPathsOverlap(doc.paths[i],doc.paths[j],{tolerance}))join(i,j);
+        if(filledOverlap(doc.paths[i],doc.paths[j]))join(i,j);
       }catch{
         // A failed polygon evaluation never licenses an unsafe merge.
       }
@@ -210,36 +214,41 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
         JSON.stringify(geometryCommands(group[0])));
       let out;
       if(allFilled&&!identical){
-        const dominant=findUnionEquivalentSource(group,{tolerance});
+        const welded=nativeUnionPaths(group);
+        let dominant=findUnionEquivalentSource(group,{tolerance});
+        if(dominant>=0){
+          const lengths=group.map(p=>nativeParts(p).reduce((n,p)=>n+p.segments.length,0)),lo=lengths.slice(0,dominant).reduce((a,b)=>a+b,0),hi=lo+lengths[dominant];
+          const pieces=welded.proof.rings.flat();
+          if(welded.proof.newJunctions||pieces.length!==lengths[dominant]||pieces.some(p=>p.spans||p.source<lo||p.source>=hi||Math.min(p.from,p.to)!==0||Math.max(p.from,p.to)!==1)||new Set(pieces.map(p=>p.source)).size!==lengths[dominant])dominant=-1;
+        }
         if(dominant>=0){
           // Existing source curve already represents the whole filled area.
           // Preserve every native Bézier handle; do not polygonize it.
           out={welded:true,removedExact:0,path:structuredClone(group[dominant]),
             holes:0,vertices:0};
         }else{
-        const welded=unionFilledPaths(group,{tolerance,cleanupTolerance});
         addCleanup(welded.cleanup);
         const d=welded.commands.map(c=>c.join(' ')).join(' ');
         const paint=structuredClone(group[0].paint);
         paint.fillRule='evenodd';
         out={welded:true,removedExact:0,path:{
-          kind:'vector',unionFlattened:true,commands:welded.commands,offset:[0,0],
+          kind:'vector',nativeUnionProof:welded.proof,nativeUnionQuality:welded.quality,commands:welded.commands,offset:[0,0],
           points:welded.commands.filter(c=>c[0]!=='Z').map(c=>c.slice(-2)),
           closed:true,paint,
           artwork:'<path d="'+d+'" fill="none" stroke="#34465b" stroke-width="0.07" fill-rule="evenodd"/>'
-        },holes:welded.holes,vertices:welded.vertices};
+        },holes:welded.holes,vertices:0};
         }
       }else out=asCompound(group);
       const gate=assessUnionGroup(group,out.path,{
-        tolerance:cleanupTolerance,globalLimit,currentNodes});
+        tolerance:cleanupTolerance,globalLimit:globalLimit+nativeAllowance,currentNodes});
       if(!gate.accepted){reject(gate.reason);continue;}
-      out.path=gate.path;currentNodes=gate.after;acceptedGroups++;
+      out.path=gate.path;currentNodes=gate.after;nativeAllowance+=gate.nativeCuts||0;acceptedGroups++;
       replacements.set(ids[0],out.path);
       // This group was normalized and refitted already; do not flatten again.
       for(const i of ids.slice(1))drop.add(i);
       mergedObjects+=ids.length-1;removedExact+=out.removedExact;
       if(out.welded){weldedGroups++;holes+=out.holes||0;flattenedVertices+=out.vertices||0;}
-    }catch{skipped++;}
+    }catch(error){reject(/исходной кривой Безье|разрыв|неподтверждённое/.test(error.message)?'native-source-provenance':'union-evaluation-error');}
   }
   const surviving=doc.paths.map((_,i)=>i).filter(i=>!drop.has(i));
   const selectedIndices=surviving.flatMap((old,i)=>!selected||selected.has(old)?[i]:[]);
@@ -255,21 +264,21 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
     const parts=sampledGeometry(path,tolerance)?.parts;
     if(!parts||parts.length<2||parts.some(part=>!part.closed))continue;
     try{
-      const union=unionFilledPaths([path],{tolerance,cleanupTolerance});
+      const union=nativeUnionPaths([path]);
       const paint=structuredClone(path.paint);
       paint.fillRule='evenodd';
       const commands=union.commands,d=commands.map(c=>c.join(' ')).join(' ');
-      const candidate={kind:'vector',unionFlattened:true,commands,offset:[0,0],
+      const candidate={kind:'vector',nativeUnionProof:union.proof,nativeUnionQuality:union.quality,commands,offset:[0,0],
         points:commands.filter(c=>c[0]!=='Z').map(c=>c.slice(-2)),closed:true,
         paint,artwork:'<path d="'+d+'" fill="none" stroke="#34465b" stroke-width="0.07" fill-rule="evenodd"/>'};
       const gate=assessUnionGroup([path],candidate,{
-        tolerance:cleanupTolerance,globalLimit,currentNodes});
+        tolerance:cleanupTolerance,globalLimit:globalLimit+nativeAllowance,currentNodes});
       if(!gate.accepted){reject(gate.reason);continue;}
-      doc.paths[i]=gate.path;currentNodes=gate.after;acceptedGroups++;
+      doc.paths[i]=gate.path;currentNodes=gate.after;nativeAllowance+=gate.nativeCuts||0;acceptedGroups++;
       addCleanup(union.cleanup);
-      normalizedObjects++;holes+=union.holes;flattenedVertices+=union.vertices;
+      normalizedObjects++;holes+=union.holes;flattenedVertices+=0;
     }catch(error){
-      skipped++;
+      reject(/исходной кривой Безье|разрыв|неподтверждённое/.test(error.message)?'native-source-provenance':'union-evaluation-error');
     }
   }
   return {document:doc,safeDocument,safeSelectedIndices,selectedIndices,
@@ -281,6 +290,6 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
     gpuMode:gpuKeys?'webgpu':'cpu',gpuCandidates:gpuKeys?.size??0,
     nodesBefore:globalLimit,nodesAfterUnion:currentNodes,
     holes,flattenedVertices,cleanup:cleanupStats,
-    booleanEngine:'Clipper 6.4.2.2',
+    booleanEngine:'Paper 0.16.0 / native provenance / Clipper verification',
     unionToleranceMm:Math.max(.0002,Math.min(.005,tolerance*.05))}};
 }

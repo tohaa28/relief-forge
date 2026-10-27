@@ -1,6 +1,6 @@
 {
   "name": "relief-forge-web",
-  "version": "0.2.0-alpha.47",
+  "version": "0.2.0-alpha.48",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,6 +13,7 @@
   "dependencies": {
     "@wasm-zoo/ghostscript": "0.7.2",
     "mupdf": "1.28.1",
+    "paper": "0.16.0",
     "svgpath": "2.6.0"
   },
   "devDependencies": {
