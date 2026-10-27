@@ -98,7 +98,9 @@ try{
     mimeType:'image/svg+xml',buffer:Buffer.from(duplicateSvg)});
   await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'),{},{timeout:120000});
   await page.waitForFunction(()=>document.querySelector('#busy').hidden);
-  assert.equal(await page.locator('#compare-before').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('#compare-after').getAttribute('aria-pressed'),'true',
+    'default must show AFTER as soon as calculated');
+  await page.locator('#compare-before').click();
   assert.equal(await page.locator('#geometry .comparison-path.before').count(),2);
   const originalIssues=Number(await page.locator('#issue-count').textContent());
   const originalRings=await page.locator('#markers .problem-marker').count();
@@ -119,8 +121,9 @@ try{
   await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'),{},{timeout:120000});
   await page.waitForFunction(()=>document.querySelector('#busy').hidden);
   assert.equal(await page.locator('#workspace-filename').textContent(),'closed-batch-regression.svg');
-  assert.equal(await page.locator('#compare-before').getAttribute('aria-pressed'),'true',
-    'after import and asynchronous repairs DO must remain selected');
+  assert.equal(await page.locator('#compare-after').getAttribute('aria-pressed'),'true',
+    'after import and asynchronous repairs AFTER must be selected by default');
+  await page.locator('#compare-before').click();
   const before=await page.locator('#geometry .comparison-path').first().getAttribute('d');
   assert.ok(before);
   assert.ok(!(await page.locator('#issues').textContent()).includes('Открытый контур'));
