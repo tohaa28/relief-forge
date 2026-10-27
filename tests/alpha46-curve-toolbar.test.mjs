@@ -16,7 +16,7 @@ test('workspace diagnostics icon is alone in a square rightmost toolbar control'
  assert.match(css,/margin-left:auto/);
  assert.match(css,/aspect-ratio:1\/1/);
 });
-test('manual problem actions are only in the curve editing toolbar menu, with all keyboard actions intact',()=>{
+test('manual repairs are in visible second editing toolbar row, with all keyboard actions intact',()=>{
  const main=html.indexOf('<main id="main-layout"'),tool=html.indexOf('id="curve-node-tools"'),
        menu=html.indexOf('id="manual-repairs"');
  assert.ok(menu>tool&&menu<main,'manual actions must be inside editor toolbar, not right sidebar');
