@@ -68,9 +68,10 @@ test('file history presents date / original filename / result in a closed sectio
 
 test('unified autoheal has one Apply action, problems and both smoothing/optimization sizes',()=>{
  const start=html.indexOf('<aside class="right">');
- const manual=html.indexOf('<details id="manual-repairs"',start);
- assert.ok(start>0&&manual>start);
- const area=html.slice(start,manual);
+ const end=html.indexOf('</aside></main>',start);
+ assert.ok(start>0&&end>start);
+ const area=html.slice(start,end);
+ assert.ok(!area.includes('id="manual-repairs"'),'manual problem tools belong in editor only');
  assert.match(area,/<h2>Автоисправление<\/h2>/);
  for(const id of ['issues-panel','issues','issue-count','summary','tolerance',
                   'smoothing-amount','optimization-tolerance','optimization-range','apply-changes'])
@@ -80,7 +81,7 @@ test('unified autoheal has one Apply action, problems and both smoothing/optimiz
  assert.match(area, /<button id="apply-changes" class="primary" disabled>[^]*?Применить изменения<\/button>/);
  for(const id of ['auto-heal','auto-apply','auto-discard','optimize-preview','optimize-apply','optimize-cancel','diagnose'])
    assert.ok(!html.includes('id="'+id+'"'),id);
- assert.match(app,/function buildUnifiedPreview\(\)/);
+ assert.match(app,/async function buildUnifiedPreview\(\)/);
  assert.match(app,/function applyUnifiedChanges\(\)/);
  assert.match(app,/repairVectorPoints\(doc,scope,diagnosticTolerance\)/);
  assert.match(app,/smoothAndOptimizePaths\(refitted.document,merged.selectedIndices,smoothingAmount,optimizationTolerance,diagnosticTolerance\)/);

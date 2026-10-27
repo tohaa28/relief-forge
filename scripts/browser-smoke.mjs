@@ -55,7 +55,7 @@ try{
     const bad=await page.evaluate(()=>{
       const errors=[];
       const keys=['#open','#export-eps','#toggle-info','#fit','#zoom-in','#zoom-out',
-        '#curve-edit','#compare-before','#compare-after','#toggle-points','#toggle-markers','#apply-changes'];
+        '#curve-edit','#workspace-check','#compare-before','#compare-after','#toggle-points','#toggle-markers','#apply-changes'];
       for(const sel of keys){
         const button=document.querySelector(sel),icon=button?.querySelector(':scope > .tool-icon');
         if(!button||!icon||!button.getClientRects().length)continue;
@@ -68,6 +68,11 @@ try{
             errors.push(sel+' icon overlaps shortcut');}
         if(button.scrollWidth>button.clientWidth+2)errors.push(sel+' horizontal overflow');
       }
+      const wc=document.querySelector('#workspace-check');
+      const nav=document.querySelector('nav').getBoundingClientRect(),cb=wc.getBoundingClientRect();
+      if(Math.abs(cb.width-cb.height)>1||nav.right-cb.right>25)
+        errors.push('workspace check must be square and at far right');
+      if(wc.textContent.trim())errors.push('workspace check has visible label');
       const badge=document.querySelector('#workspace-file'),r=badge.getBoundingClientRect(),
         w=document.querySelector('#drop-target').getBoundingClientRect();
       if(badge.hidden||r.left<w.left-1||r.right>w.right+1||r.bottom>w.bottom+1)
@@ -98,7 +103,9 @@ try{
     mimeType:'image/svg+xml',buffer:Buffer.from(duplicateSvg)});
   await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'),{},{timeout:120000});
   await page.waitForFunction(()=>document.querySelector('#busy').hidden);
-  assert.equal(await page.locator('#compare-before').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('#compare-after').getAttribute('aria-pressed'),'true',
+    'default must show AFTER as soon as calculated');
+  await page.locator('#compare-before').click();
   assert.equal(await page.locator('#geometry .comparison-path.before').count(),2);
   const originalIssues=Number(await page.locator('#issue-count').textContent());
   const originalRings=await page.locator('#markers .problem-marker').count();
@@ -119,8 +126,9 @@ try{
   await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'),{},{timeout:120000});
   await page.waitForFunction(()=>document.querySelector('#busy').hidden);
   assert.equal(await page.locator('#workspace-filename').textContent(),'closed-batch-regression.svg');
-  assert.equal(await page.locator('#compare-before').getAttribute('aria-pressed'),'true',
-    'after import and asynchronous repairs DO must remain selected');
+  assert.equal(await page.locator('#compare-after').getAttribute('aria-pressed'),'true',
+    'after import and asynchronous repairs AFTER must be selected by default');
+  await page.locator('#compare-before').click();
   const before=await page.locator('#geometry .comparison-path').first().getAttribute('d');
   assert.ok(before);
   assert.ok(!(await page.locator('#issues').textContent()).includes('Открытый контур'));

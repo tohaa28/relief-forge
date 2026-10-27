@@ -38,12 +38,13 @@ test('initial diagnosis snapshot never changes when later edits and re-diagnosti
  assert.equal(incoming.issues,null);
  assert.equal(importedComparison(incoming,original),null);
 });
-test('APP sets DO after initial import and keeps selection stable across preview and AFTER check',()=>{
+test('APP preserves original DO while auto-selecting AFTER unless user explicitly chooses DO',()=>{
  const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
- assert.match(app,/importedBefore=beginImportBefore\(doc\);compareStage='before';fit\(\)/);
+ assert.match(app,/importedBefore=beginImportBefore\(doc\);comparisonSelectionExplicit=false;compareStage='before';fit\(\)/);
  assert.match(app,/importedBefore=captureImportBefore\(importedBefore,issues,complete\)/);
  assert.match(app,/beforeDoc:clone\(doc\),afterDoc:after,beforeIssues:clone\(issues\)/);
- assert.match(app,/curvePreview=pv;compareStage='before';/);
+ assert.match(app,/curvePreview=pv;if\(!comparisonSelectionExplicit\)compareStage='after';/);
  assert.doesNotMatch(app,/markersVisible=true;compareStage='after';/);
+ assert.match(app,/comparisonSelectionExplicit=true;compareStage='before';/);
  assert.match(app,/importedComparison\(importedBefore,after\)/);
 });

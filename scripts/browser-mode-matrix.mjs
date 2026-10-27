@@ -27,8 +27,9 @@ try{
   await page.waitForFunction(()=>document.querySelector('#busy').hidden);
   await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));
   assert.equal(await page.locator('#apply-changes').isEnabled(),true,'scene must have a real optimized candidate');
-  assert.equal(await page.locator('#compare-before').getAttribute('aria-pressed'),'true',
-    'the imported original and primary diagnostic markers must remain visible');
+  assert.equal(await page.locator('#compare-after').getAttribute('aria-pressed'),'true',
+    'computed AFTER must be selected automatically after preview');
+  await page.locator('#compare-before').click();
   const importedGeometry=await page.locator('#geometry').innerHTML();
   await page.locator('#compare-after').click();
   const rendered=await page.locator('#geometry').innerHTML();
@@ -44,6 +45,22 @@ try{
   assert.equal(await page.locator('#apply-changes').isEnabled(),false,'EPS save already applied the exact preview with Undo');
   await page.locator('#curve-edit').click();
   assert.equal(await page.locator('#curve-node-tools').isVisible(),true);
+  assert.match(await page.locator('#curve-edit').textContent(),/Редактирование кривой/);
+  const manual=page.locator('#manual-repairs');
+  assert.equal(await manual.locator('summary').isVisible(),true);
+  assert.equal(await page.locator('aside.right #manual-repairs').count(),0);
+  await manual.locator('summary').click();
+  assert.equal(await manual.locator('[data-action="1"]').isVisible(),true);
+  assert.equal(await manual.locator('[data-action]').count(),8);
+  await manual.locator('summary').click();
+  await page.locator('#node-add').click();
+  const plus=await page.locator('#canvas').evaluate(el=>decodeURIComponent(el.style.cursor));
+  assert.match(plus,/M16 11V21 M11 16H21/);
+  assert.match(plus,/\) 16 16, crosshair/);
+  await page.locator('#node-remove').click();
+  const targetX=await page.locator('#canvas').evaluate(el=>decodeURIComponent(el.style.cursor));
+  assert.match(targetX,/M12 12L20 20 M20 12L12 20/);
+  assert.notEqual(plus,targetX);
   await page.locator('#node-done').click();
   await page.waitForTimeout(250); // Wait for the documented editor-close debounce.
   await page.waitForFunction(()=>document.querySelector('#busy').hidden);
@@ -79,7 +96,8 @@ try{
  };
  const countMoves=async()=>((await cncPage.locator('#geometry .comparison-path').first().getAttribute('d')).match(/M/g)||[]).length;
  await cncReady();
- assert.equal(await cncPage.locator('#compare-before').getAttribute('aria-pressed'),'true');
+ assert.equal(await cncPage.locator('#compare-after').getAttribute('aria-pressed'),'true');
+ await cncPage.locator('#compare-before').click();
  assert.equal(await countMoves(),2,'original CNC ДО must retain both native contours');
  await cncPage.locator('#compare-after').click();
  assert.equal(await countMoves(),1,'CNC AFTER must remove only .04×.05mm inner contour');
