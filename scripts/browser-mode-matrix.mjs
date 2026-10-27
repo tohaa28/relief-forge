@@ -45,6 +45,22 @@ try{
   assert.equal(await page.locator('#apply-changes').isEnabled(),false,'EPS save already applied the exact preview with Undo');
   await page.locator('#curve-edit').click();
   assert.equal(await page.locator('#curve-node-tools').isVisible(),true);
+  assert.match(await page.locator('#curve-edit').textContent(),/Редактирование кривой/);
+  const manual=page.locator('#manual-repairs');
+  assert.equal(await manual.locator('summary').isVisible(),true);
+  assert.equal(await page.locator('aside.right #manual-repairs').count(),0);
+  await manual.locator('summary').click();
+  assert.equal(await manual.locator('[data-action="1"]').isVisible(),true);
+  assert.equal(await manual.locator('[data-action]').count(),8);
+  await manual.locator('summary').click();
+  await page.locator('#node-add').click();
+  const plus=await page.locator('#canvas').evaluate(el=>decodeURIComponent(el.style.cursor));
+  assert.match(plus,/M16 11V21 M11 16H21/);
+  assert.match(plus,/\) 16 16, crosshair/);
+  await page.locator('#node-remove').click();
+  const targetX=await page.locator('#canvas').evaluate(el=>decodeURIComponent(el.style.cursor));
+  assert.match(targetX,/M12 12L20 20 M20 12L12 20/);
+  assert.notEqual(plus,targetX);
   await page.locator('#node-done').click();
   await page.waitForTimeout(250); // Wait for the documented editor-close debounce.
   await page.waitForFunction(()=>document.querySelector('#busy').hidden);
