@@ -455,3 +455,49 @@ button>.tool-icon,button>.tool-icon.approved-icon{flex-shrink:0;overflow:hidden}
 
 /* Zoom controls use complete vector glyphs; approved PNG originals are untouched. */
 #zoom-in>.zoom-symbol,#zoom-out>.zoom-symbol{display:block;width:22px;height:22px;flex:0 0 22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;overflow:visible}
+
+
+/* alpha.46: minimal icon check at the far right of the navigation line. */
+nav #workspace-check.workspace-check-icon{
+  margin-left:auto;order:99;flex:0 0 var(--du-control-height);
+  width:var(--du-control-height);height:var(--du-control-height);min-width:var(--du-control-height);
+  padding:0;display:grid;place-items:center;aspect-ratio:1/1;
+}
+nav #workspace-check .tool-icon{margin:0}
+/* The curve editing tools own the manual action menu: the right settings
+   sidebar never duplicates it. Do not clip the opened menu. */
+#curve-node-tools{overflow:visible;max-height:none;flex-wrap:wrap}
+#curve-node-tools .curve-repairs-menu{position:relative;flex:0 0 auto;z-index:150}
+#curve-node-tools .curve-repairs-menu summary{
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  min-height:38px;box-sizing:border-box;border:1px solid var(--du-border);
+  border-radius:8px;background:#fff;padding:7px 12px;
+  font-size:11px;font-weight:600;line-height:1.25;cursor:pointer;
+}
+#curve-node-tools .curve-repairs-menu[open] summary{border-color:#80c9c5;background:#e4f9f7}
+#curve-node-tools .curve-repairs-dropdown{
+  position:absolute;right:0;top:calc(100% + 6px);
+  z-index:160;width:min(470px,calc(100vw - 24px));
+  max-height:min(65dvh,530px);overflow-y:auto;
+  padding:12px;box-sizing:border-box;
+  display:grid;gap:9px;white-space:normal;
+  border:1px solid var(--du-border);border-radius:12px;
+  background:#fff;box-shadow:0 14px 40px #12394a30;
+}
+#curve-node-tools .curve-repairs-dropdown .repairs{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:6px;align-items:stretch;
+}
+#curve-node-tools .curve-repairs-dropdown button{
+  display:flex;justify-content:flex-start;white-space:normal;
+  text-align:left;min-height:37px;font-size:11px;
+}
+#curve-node-tools .curve-repairs-dropdown button kbd{
+  font-size:9px;white-space:nowrap;margin-left:auto;
+}
+#curve-node-tools .curve-repairs-dropdown label{font-size:11px;display:flex;align-items:center;gap:7px}
+#curve-node-tools .curve-repairs-dropdown label input{width:74px}
+@media(max-width:740px){
+  #curve-node-tools .curve-repairs-dropdown{right:auto;left:0}
+  #curve-node-tools .curve-repairs-dropdown .repairs{grid-template-columns:minmax(0,1fr)}
+}
