@@ -119,8 +119,8 @@ try{
     'returning to DO must preserve original marker locations');
   console.log('PASS imported DO: original geometry and '+originalIssues+
     ' primary issue markers persist across comparison');
-  // Source-owned large closed contour forces batch splitting, without private artwork.
-  const points=Array.from({length:2444},(_,i)=>[110+100*Math.cos(i*2*Math.PI/2444),110+100*Math.sin(i*2*Math.PI/2444)]);
+  // Source-owned 2650-node contour forces the COOPERATIVE preview path even if Rust diagnosis completes. This guards real hangs with dense EPS.
+  const points=Array.from({length:2650},(_,i)=>[110+100*Math.cos(i*2*Math.PI/2650),110+100*Math.sin(i*2*Math.PI/2650)]);
   const svg='<svg xmlns="http://www.w3.org/2000/svg" width="220mm" height="220mm" viewBox="0 0 220 220"><path fill="none" stroke="black" d="M '+points.map(p=>p.join(' ')).join(' L ')+' Z"/></svg>';
   await page.locator('#file').setInputFiles({name:'closed-batch-regression.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
   await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'),{},{timeout:120000});
