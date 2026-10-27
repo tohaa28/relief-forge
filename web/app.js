@@ -901,7 +901,7 @@ function at(e){const p=new DOMPoint(e.clientX,e.clientY).matrixTransform($('canv
 function setMode(m){if(currentComparison()){status('Закройте режим ДО/ПОСЛЕ перед редактированием.');return;}mode=m;draft=[];for(const key of ['select','line','rect','circle'])$(key).classList.toggle('active',key===mode);render();}
 function startCurveEditor(){
   if(busy)return;
-  if(curveEditing()){$('manual-repairs').open=false;mode='select';activeCurveNode=null;render();requestRecalculation();return;}
+  if(curveEditing()){mode='select';activeCurveNode=null;render();requestRecalculation();return;}
   // In AFTER, edit actual optimized geometry, never throw away the preview
   // and silently return to the original dense input document.
   if(curvePreview&&compareStage==='after'){
@@ -1074,7 +1074,7 @@ $('compare-exit').onclick=()=>{if(busy)return;comparisonSelectionExplicit=false;
 $('toggle-info').onclick=()=>{if(busy)return;const panel=$('info-panel'),expanded=panel.hidden;panel.hidden=!expanded;$('main-layout').classList.toggle('left-collapsed',!expanded);$('toggle-info').setAttribute('aria-expanded',String(expanded));$('toggle-info-label').textContent=expanded?'Сведения ◂':'Сведения ▸';record('info-panel-toggle',{expanded});};
 $('toggle-points').onclick=()=>{pointsVisible=!pointsVisible;record('toggle-all-anchors',{visible:pointsVisible});render();};
 $('toggle-markers').onclick=()=>{if(busy||!(displayedIssues.length||clearanceReport?.markers.length))return;markersVisible=!markersVisible;record('toggle-issue-markers',{visible:markersVisible});render();};
-document.querySelectorAll('[data-action]').forEach(e=>e.onclick=()=>{$('manual-repairs').open=false;calculate(Number(e.dataset.action));});
+document.querySelectorAll('[data-action]').forEach(e=>e.onclick=()=>{calculate(Number(e.dataset.action));});
 $('cancel').onclick=()=>{++diagnosticGeneration;++readGeneration;++previewGeneration;++afterDiagnosticGeneration;if(previewActive){previewActive=false;lock(false);status('Оптимизация отменена, оригинальные кривые сохранены.');return;}if(readActive){readActive=false;openingFile=false;updateMascot();lock(false);status('Чтение файла отменено.');return;}if(epsImportActive){stopEps({destroy:true});openingFile=false;updateMascot();lock(false);record('vector-import-cancel');status('Импорт отменён. Предыдущий документ сохранён.');return;}worker.terminate();pending=null;ready=false;suppressNextDiagnostic=true;lock(false);record('engine-cancel');status('Расчёт отменён, документ сохранён.');spawnWorker();};
 $('undo').onclick=()=>{if(!past.length||busy)return;future.push(clone(doc));doc=past.pop();if(curveEditing())selected=new Set([...selected].filter(i=>doc.paths[i]&&doc.paths[i].kind!=='image'));else selected.clear();changed('undo');};
 $('redo').onclick=()=>{if(!future.length||busy)return;past.push(clone(doc));doc=future.pop();if(curveEditing())selected=new Set([...selected].filter(i=>doc.paths[i]&&doc.paths[i].kind!=='image'));else selected.clear();changed('redo');};
