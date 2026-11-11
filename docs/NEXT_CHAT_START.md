@@ -1,3 +1,9 @@
+# 0.2.0-alpha.51 PUBLISHED AND LIVE VERIFIED — 2026-11-11T08:16:39.016Z
+Functional PR https://github.com/tohaa28/relief-forge/pull/78 merged 5c8169a50e319caf92df8170953c8ee4ebef7aa5 (source81a804e). PR CI https://github.com/tohaa28/relief-forge/actions/runs/42985250210 SUCCESS 288JS/17Rust/freshWASM/Chromium suite. Main https://github.com/tohaa28/relief-forge/actions/runs/42985447239 build + deploy SUCCESS. Site https://tohaa28.github.io/relief-forge/?v=alpha51 . Post-deploy Chromium PASS: one 0.006 mm native branch pair on both original anchors in DO and AFTER; parallel contours no coincident point flags.
+F-051: true coordinate coincidence separated from near_node; unrelated subpaths rely on pink clearance, densely spaced local runs excluded by control-polygon upper bound. Witness coordinates and distance are double precision in mm, display five significant digits. Near-node marker substitutes only the two actual owner+coordinate anchors. Other diagnostics and repair/export geometry unchanged. Local original gerb project snapshot (not a new EPS import): source1686/after25 vs alpha50 source1729/after29, same 11493->9668 anchors and exact paths/paint, both downloaded EPS matching-after9668. 25 remaining include9near/1coincident and unchanged crossings/overlaps; two Boolean groups still protected. ArtCAM parity and user's exact discrepancy not verified.
+Next: if user still sees discrepancy, obtain same file/marked location and ArtCAM settings; do not widen eps, change curve geometry or remove legitimate diagnostics to force count parity. Preserve alpha50 parallel engine download/cancellation fixes, native provenance, exact AFTER exports and Undo. Base rollback b2f8116.
+
+
 # 0.2.0-alpha.51 candidate — not published
 
 ## 0.2.0-alpha.51 candidate — 2026-11-11T08:11:51.589Z
