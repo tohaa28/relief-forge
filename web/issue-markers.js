@@ -1,4 +1,4 @@
-import {issueColors,issueLabels} from './vector-points.js?v=0.2.0-alpha.50';
+import {issueColors,issueLabels} from './vector-points.js?v=0.2.0-alpha.51';
 
 // SVG uses xMidYMid meet: the limiting viewport dimension determines the
 // actual scale. Width alone makes markers shrink on tall/letterboxed sheets.
@@ -75,6 +75,9 @@ export function issueWithinContourBounds(issue,contours,tolerance=0.01){
   return createIssueBoundsValidator(contours,tolerance)(issue);
 }
 
+export function issueDistanceLabel(issue){
+  return Number.isFinite(issue.distanceMm)?' · расстояние '+String(Number(issue.distanceMm.toPrecision(5))).replace('.',',')+' мм':'';
+}
 export function renderIssueMarkers(parent,issues,unitsPerPixel,bounds=null){
   const unit=Number.isFinite(unitsPerPixel)&&unitsPerPixel>0?unitsPerPixel:1;
   const create=(tag,attrs,container)=>{
@@ -89,12 +92,17 @@ export function renderIssueMarkers(parent,issues,unitsPerPixel,bounds=null){
     if(!Array.isArray(issue.point)||issue.point.length!==2||!issue.point.every(Number.isFinite))return;
     const [x,y]=issue.point,color=issueColors[issue.kind]||'#64748b';
     const label=(index+1)+'. '+(issueLabels[issue.kind]||'Проблема')+
-      ' · X '+x.toFixed(3)+' · Y '+y.toFixed(3)+' мм';
+      ' · X '+x.toFixed(3)+' · Y '+y.toFixed(3)+' мм'+issueDistanceLabel(issue);
     const group=create('g',{'data-issue':index,class:'problem-marker',role:'button',tabindex:0,'aria-label':label},parent);
     create('title',{},group).textContent=label+' — нажмите, чтобы приблизить';
     create('circle',{cx:x,cy:y,r:8*unit,class:'issue-halo'},group);
     create('circle',{cx:x,cy:y,r:7*unit,class:'issue-ring',stroke:color},group);
     create('circle',{cx:x,cy:y,r:2.5*unit,class:'problem issue-core',style:'fill:'+color},group);
+    if(issue.nodePoints?.length===2){
+      // Keep both measured anchors visible, without drawing a fictitious segment.
+      for(const [cx,cy] of issue.nodePoints)if(cx!==x||cy!==y)
+        create('circle',{cx,cy,r:2.5*unit,class:'problem issue-core',style:'fill:'+color},group);
+    }
     // Numbers clutter the entire engraving when hundreds of markers overlap.
     // Use titles/accessible labels and display on-canvas numbers only for small sets.
     if(subset.length<=60)create('text',{x:x+10*unit,y:y-9*unit,'font-size':12*unit,fill:color,class:'issue-number'},group).textContent=index+1;

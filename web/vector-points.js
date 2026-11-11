@@ -1,11 +1,11 @@
 // SVG visualization uses the real Bezier anchors, never the sampled diagnostic polyline.
 export const issueColors=Object.freeze({
-  open:'#1976d2',coincident:'#dd8b16',short:'#d73b4d',
+  open:'#1976d2',coincident:'#dd8b16',near_node:'#dd8b16',short:'#d73b4d',
   duplicate:'#8053cb',overlap:'#8053cb',
   self_intersection:'#cb2679',intersection:'#cb5924'
 });
 export const issueLabels=Object.freeze({
-  open:'Незамкнутый контур',coincident:'Совпадающие точки',short:'Короткий сегмент',
+  open:'Незамкнутый контур',coincident:'Совпадающие точки',near_node:'Сближенные узлы',short:'Короткий сегмент',
   duplicate:'Дублирующий контур',overlap:'Наложение',
   self_intersection:'Самопересечение',intersection:'Пересечение объектов'
 });
@@ -23,7 +23,15 @@ export function anchors(path){
 export function visibleHealthyAnchors(doc,issues,tolerance){
   const tol=Math.max(1e-8,Number(tolerance)||0.01),grid=new Map(),cell=tol;
   function key(x,y){return Math.floor(x/cell)+','+Math.floor(y/cell);}
+  const witnessed=new Map();
+  const mark=(owner,point)=>{
+    if(!witnessed.has(owner))witnessed.set(owner,new Set());
+    witnessed.get(owner).add(point.join(','));
+  };
   for(const issue of issues){
+    if(issue.nativeWitness&&issue.nodePoints?.length===2){
+      mark(issue.path,issue.nodePoints[0]);mark(issue.other,issue.nodePoints[1]);continue;
+    }
     if(!Array.isArray(issue.point))continue;
     const [x,y]=issue.point;
     if(!Number.isFinite(x)||!Number.isFinite(y))continue;
@@ -32,7 +40,7 @@ export function visibleHealthyAnchors(doc,issues,tolerance){
   const result=[];
   for(const [i,p] of doc.paths.entries()){
     for(const pt of anchors(p)){
-      if(!Number.isFinite(pt[0])||!Number.isFinite(pt[1]))continue;
+      if(!Number.isFinite(pt[0])||!Number.isFinite(pt[1])||witnessed.get(i)?.has(pt.join(',')))continue;
       const gx=Math.floor(pt[0]/cell),gy=Math.floor(pt[1]/cell);
       let sick=false;
       for(let dx=-1;dx<=1&&!sick;dx++)for(let dy=-1;dy<=1&&!sick;dy++){
