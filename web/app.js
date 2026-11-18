@@ -35,6 +35,12 @@ let clearanceKey='',clearanceJob=0,clearanceTimer=null,clearanceWorker=null,clea
 function updateClearance(document,unit){
   const layer=$('clearance-markers'),label=$('clearance-status'),raw=settingNumber('clearance-threshold');
   const threshold=Number.isFinite(raw)&&raw>0&&raw<=1000?raw:null;
+  if(curveEditing()){
+    // Manual edits must never launch a full-document clearance Worker.
+    layer.replaceChildren();
+    label.textContent='Редактор узлов: повторная проверка только вокруг курсора; общий анализ зазоров приостановлен.';
+    return;
+  }
   const key=JSON.stringify([threshold,document.paths.map(p=>[p.kind,p.artwork?p.commands:p.points,p.closed,p.offset])]);
   if(key!==clearanceKey){
     clearanceKey=key;clearanceReport=null;clearanceJob++;clearTimeout(clearanceTimer);clearanceWorker?.terminate();clearanceWorker=null;
@@ -1052,7 +1058,7 @@ function at(e){const p=new DOMPoint(e.clientX,e.clientY).matrixTransform($('canv
 function setMode(m){if(currentComparison()){status('Закройте режим ДО/ПОСЛЕ перед редактированием.');return;}mode=m;draft=[];for(const key of ['select','line','rect','circle'])$(key).classList.toggle('active',key===mode);render();}
 function startCurveEditor(){
   if(busy)return;
-  if(curveEditing()){clearTimeout(manualLocalTimer);++manualLocalGeneration;mode='select';activeCurveNode=null;render();requestRecalculation();return;}
+  if(curveEditing()){clearTimeout(manualLocalTimer);++manualLocalGeneration;clearanceKey='';mode='select';activeCurveNode=null;render();requestRecalculation();return;}
   // After applying the preview, the editable document is AFTER. Capture its
   // diagnosed witnesses BEFORE applyUnifiedChanges clears the old issue list.
   // An already-applied comparison also refers to the current editable AFTER.
@@ -1073,6 +1079,8 @@ function startCurveEditor(){
     }
   }
   clearTimeout(settingsTimeout);clearTimeout(manualLocalTimer);++manualLocalGeneration;
+  clearTimeout(clearanceTimer);clearanceWorker?.terminate();clearanceWorker=null;
+  ++clearanceJob;clearanceKey='';
   curvePreview=null;appliedComparison=null;compareStage='before';
   mode='nodes';nodeTool='move';activeCurveNode=null;draft=[];
   if(useAfter){issues=manual.issues;diagnosticComplete=manual.complete;}
