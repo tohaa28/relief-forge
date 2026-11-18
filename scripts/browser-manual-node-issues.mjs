@@ -46,7 +46,9 @@ try{
   assert.equal(events.pointer,'none','overlay must never take pointer events from Bézier nodes');
   assert.equal(events.count,0,'passive rings have no interactive focus targets');
 
-  await page.locator('#issues .issue').filter({hasText:'Открытый контур'}).first().click();
+  // The right-hand issue list is collapsed by default: use the actual node
+  // on the canvas rather than clicking a hidden off-screen button.
+  assert.ok(await page.locator('#geometry .curve-node').count()>0);
   await page.locator('#geometry .curve-node').first().click();
   await page.locator('#node-close').click();
   await page.waitForFunction(()=>
