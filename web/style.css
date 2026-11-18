@@ -514,3 +514,54 @@ nav #workspace-check .tool-icon{margin:0}
 .curve-editing .problem-marker .issue-ring{stroke-width:1.8px;stroke-dasharray:4 2}
 .curve-editing .problem-marker .issue-core{opacity:.78}
 .curve-editing .problem-marker .issue-number{display:none}
+
+
+/* alpha54: one dense settings card in the right inspector. All long help
+   moves to native tooltips on each setting row and numeric input. */
+aside.right{padding:9px 10px;display:flex;flex-direction:column;gap:5px}
+aside.right>.panel-title{margin:0 0 3px;gap:8px}
+aside.right>.panel-title h2{font-size:13px;margin:0}
+aside.right>.panel-title small{font-size:10px}
+aside.right>.panel-title .cross{font-size:22px}
+.settings-card{display:grid;gap:4px;padding:8px;border:1px solid #c6dde2;
+  border-radius:11px;background:#f7fcfd;box-shadow:0 1px 4px #0f3a5011}
+.settings-heading{display:flex;align-items:baseline;justify-content:space-between;
+  gap:6px;margin-bottom:2px}
+.settings-heading strong{font-size:11px;color:#254b58}
+.settings-heading small{font-size:9px;color:#617c89;text-align:right}
+.settings-card .setting-row{display:grid;grid-template-columns:minmax(0,1fr) 91px;
+  gap:6px;min-height:29px;align-items:center;margin:0;padding:3px 4px;
+  border:1px solid transparent;border-radius:6px;color:#365563;font-size:10.2px;
+  cursor:help}
+.settings-card .setting-row:hover,.settings-card .setting-row:focus-within{
+  background:#e8f5f7;border-color:#c8e2e8}
+.settings-card .setting-row>span:first-child{min-width:0;line-height:1.25}
+.settings-card input[type=number]{height:25px;width:91px;min-width:0;padding:3px 6px;
+  font-size:11px;text-align:right}
+.settings-card .setting-check input[type=checkbox]{justify-self:end;cursor:pointer;
+  width:15px;height:15px;margin-right:4px}
+.settings-card .setting-optimizer{display:flex;align-items:center;gap:4px;min-width:0}
+.settings-card #optimization-range{min-width:0;width:58px;flex:1}
+.settings-card .setting-optimizer input[type=number]{width:62px;flex:0 0 62px}
+.settings-card .setting-row:has(.setting-optimizer){grid-template-columns:minmax(0,1fr) 145px}
+.settings-card .setting-pair{display:grid;grid-template-columns:1fr 1fr;gap:4px;
+  padding:3px 2px;border-top:1px solid #d9e9ec}
+.settings-card .setting-pair .setting-row{grid-template-columns:1fr 64px;gap:3px;padding:2px}
+.settings-card .setting-pair .setting-row input{width:64px;font-size:10px}
+.settings-card .settings-pending{font-size:10px;line-height:1.3;
+  color:#476c75;margin:3px 2px 1px}
+.settings-card .settings-pending.unsaved{color:#a45517;font-weight:650}
+.settings-card #apply-changes{min-height:36px;padding:7px 10px;margin-top:2px;
+  font-weight:700}
+aside.right #auto-status,aside.right #summary,aside.right #marker-status,
+aside.right .compact-status{font-size:10px;line-height:1.35;margin:2px 1px}
+aside.right .compact-section{margin:0}
+aside.right .compact-section>summary{font-size:10.5px;padding:6px 8px}
+aside.right #processing-report #optimization-result{max-height:32dvh;
+  overflow:auto;padding:5px;white-space:pre-wrap;font-size:10px}
+aside.right #issues-panel #issues{max-height:26dvh;overflow:auto}
+@media(max-width:1100px){
+  aside.right{padding:7px}
+  .settings-card{padding:6px;gap:3px}
+  .settings-card .setting-row{font-size:9.8px}
+}
