@@ -107,7 +107,9 @@ function finalizePendingSettingsApply(preview){
   if(!pendingSettingsApply||preview!==curvePreview)return;
   pendingSettingsApply=false;
   if(preview.hasGeometryChange){
-    if(!applyUnifiedChanges())status('Результат рассчитан, но не применён. Проверьте параметры.');
+    if(applyUnifiedChanges())
+      $('settings-pending').textContent='Параметры применены; геометрия обновлена. Ctrl+Z — отмена.';
+    else status('Результат рассчитан, но не применён. Проверьте параметры.');
   }else{
     $('settings-pending').textContent='Параметры применены; форма кривых не изменилась.';
     status('Настройки применены без изменения геометрии.');
