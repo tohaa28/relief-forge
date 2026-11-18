@@ -52,26 +52,36 @@ try{
   await page.locator('#geometry .curve-node').first().click();
   await page.locator('#node-close').click();
   await page.waitForFunction(()=>
-    document.querySelector('#summary').textContent.includes('Идёт повторная проверка'),
-    {},{timeout:30000});
-  assert.match(await page.locator('#issues').textContent(),/Открытый контур/,
-    'old witness must not disappear before the new calculation finishes');
-  await page.waitForFunction(()=>
-    document.querySelector('#busy').hidden&&
-    !document.querySelector('#summary').textContent.includes('Идёт повторная проверка')
-  ,{},{timeout:120000});
+    document.querySelector('#status').textContent.startsWith('Локальная проверка:') &&
+    !document.querySelector('#summary').textContent.includes('Идёт повторная проверка'),
+    {},{timeout:120000});
+  assert.equal(await page.locator('#busy').isVisible(),false,
+    'manual close must not lock the entire document for a full scan');
   assert.doesNotMatch(await page.locator('#issues').textContent(),/Открытый контур/,
     'successful rescan must remove manually resolved open defect');
 
   // Undo is inside the collapsed Creation menu; use the real Ctrl+Z shortcut.
   await page.keyboard.press('Control+z');
   await page.waitForFunction(()=>
-    document.querySelector('#busy').hidden&&
+    document.querySelector('#status').textContent.startsWith('Локальная проверка:')&&
     !document.querySelector('#summary').textContent.includes('Идёт повторная проверка')&&
     document.querySelector('#issues').textContent.includes('Открытый контур')
   ,{},{timeout:120000});
   assert.ok(await page.locator('.problem-marker[aria-hidden="true"]').count()>0,
     'Undo restores a current, visible marker');
+  await page.locator('#node-remove').click();
+  const cursor=await page.locator('#canvas').evaluate(el=>el.style.cursor);
+  assert.match(decodeURIComponent(cursor),/M6 6L10 10/);
+  assert.doesNotMatch(decodeURIComponent(cursor),/<circle/,'remove cursor must not mask node center');
+  await page.locator('#curve-edit').click();
+  await page.locator('#smoothing-amount').fill('0.08');
+  await page.locator('#smoothing-amount').dispatchEvent('input');
+  assert.match(await page.locator('#settings-pending').textContent(),/не применены/);
+  assert.equal(await page.locator('#apply-changes').isEnabled(),true);
+  await page.waitForTimeout(250);
+  assert.equal(await page.locator('#busy').isVisible(),false,'typing settings must not start a global computation');
+  const help=await page.locator('#tolerance').getAttribute('title');
+  assert.ok(help.length>65,'each setting must explain its units and meaning');
   assert.deepEqual(errors,[]);
   console.log('PASS manual nodes: passive persistent markers, close -> rescan clears, Undo restores');
 }finally{await browser?.close();server.kill();}
