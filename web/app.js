@@ -360,9 +360,18 @@ function scheduleManualLocalRecheck(){
       'Локальная проверка не подтверждена ('+report.reason+'). Прежние маркеры сохранены.');
   },50);
 }
-function fit(){const pad=Math.max(doc.width,doc.height)*.07;$('canvas').setAttribute('viewBox',`${-pad} ${-pad} ${doc.width+pad*2} ${doc.height+pad*2}`);render();}
+function fit(){const pad=Math.max(doc.width,doc.height)*.07;
+  $('canvas').setAttribute('viewBox',`${-pad} ${-pad} ${doc.width+pad*2} ${doc.height+pad*2}`);
+  if(curveEditing())drawLocalEditorOverlay();else render();
+}
 const currentComparison=()=>curvePreview?.comparisonData||appliedComparison;
-function zoom(factor,center){const box=$('canvas').viewBox.baseVal,view=zoomBox({x:box.x,y:box.y,width:box.width,height:box.height},factor,center);if(!view)return; $('canvas').setAttribute('viewBox',`${view.x} ${view.y} ${view.width} ${view.height}`);render();}
+function zoom(factor,center){
+  const box=$('canvas').viewBox.baseVal,
+    view=zoomBox({x:box.x,y:box.y,width:box.width,height:box.height},factor,center);
+  if(!view)return;
+  $('canvas').setAttribute('viewBox',`${view.x} ${view.y} ${view.width} ${view.height}`);
+  if(curveEditing())drawLocalEditorOverlay();else render();
+}
 function focusIssue(issue){
   const canvas=$('canvas'),view=canvas.viewBox.baseVal;
   const rawTolerance=settingNumber('tolerance');
@@ -372,7 +381,8 @@ function focusIssue(issue){
   if(!currentComparison())selected=new Set([issue.path,issue.other].filter(i=>Number.isInteger(i)&&i>=0&&i<doc.paths.length));
   canvas.setAttribute('viewBox',`${next.x} ${next.y} ${next.width} ${next.height}`);
   record('focus-issue',{kind:issue.kind,path:issue.path,other:issue.other,point:issue.point});
-  render();
+  if(curveEditing()){manualFocus={path:issue.path,point:[...issue.point]};drawLocalEditorOverlay();}
+  else render();
 }
 function el(tag,attrs,parent){const e=document.createElementNS(ns,tag);for(const [k,v]of Object.entries(attrs))e.setAttribute(k,v);parent.append(e);return e;}
 const pathData=worldData;
@@ -798,9 +808,9 @@ async function applySettingsAndChanges(){
       return;
     }
     if(curveEditing()){
-      $('settings-pending').textContent='Параметры сохранены. В редакторе узлов нет полного пересчёта: проверяется только область курсора.';
-      if(manualFocus){manualDiagnosticsPending=true;scheduleManualLocalRecheck();}
-      render();status('Параметры сохранены для следующей операции. Ручная проверка остаётся локальной.');
+      $('settings-pending').textContent='Параметры сохранены. Проверка и полное обновление — после «Готово».';
+      drawLocalEditorOverlay();
+      status('Параметры изменены, но исходная фигура и диагностика не обновлялись.');
       return;
     }
     // Explicit commit is the only point where new settings may trigger a
@@ -1341,7 +1351,9 @@ $('markers').addEventListener('keydown',e=>{
   const issue=marker&&displayedIssues[Number(marker.dataset.issue)];
   if(issue){e.preventDefault();e.stopPropagation();focusIssue(issue);}
 });
-window.addEventListener('resize',()=>render());
+window.addEventListener('resize',()=>{
+  if(curveEditing())drawLocalEditorOverlay();else render();
+});
 $('canvas').addEventListener('pointerdown',e=>{
   if(busy)return;const pos=at(e);const canvas=$('canvas');
   if(e.button===1){e.preventDefault();pan={pos};const b=canvas.viewBox.baseVal;pan.view=[b.x,b.y,b.width,b.height];canvas.setPointerCapture(e.pointerId);return;}
@@ -1494,8 +1506,24 @@ $('compare-before').onclick=()=>{if(!currentComparison())return;comparisonSelect
 $('compare-after').onclick=()=>{if(!currentComparison())return;comparisonSelectionExplicit=true;compareStage='after';record('compare-stage',{stage:'after'});render();};
 $('compare-exit').onclick=()=>{if(busy)return;comparisonSelectionExplicit=false;appliedComparison=null;curvePreview=null;compareStage='before';record('compare-close');render();status('Сравнение закрыто, редактирование доступно.');};
 $('toggle-info').onclick=()=>{if(busy)return;const panel=$('info-panel'),expanded=panel.hidden;panel.hidden=!expanded;$('main-layout').classList.toggle('left-collapsed',!expanded);$('toggle-info').setAttribute('aria-expanded',String(expanded));$('toggle-info-label').textContent=expanded?'Сведения ◂':'Сведения ▸';record('info-panel-toggle',{expanded});};
-$('toggle-points').onclick=()=>{pointsVisible=!pointsVisible;record('toggle-all-anchors',{visible:pointsVisible});render();};
-$('toggle-markers').onclick=()=>{if(busy||!(displayedIssues.length||clearanceReport?.markers.length))return;markersVisible=!markersVisible;record('toggle-issue-markers',{visible:markersVisible});render();};
+$('toggle-points').onclick=()=>{
+  pointsVisible=!pointsVisible;record('toggle-all-anchors',{visible:pointsVisible});
+  if(curveEditing()){
+    $('toggle-points-label').textContent=pointsVisible?'Скрыть здоровые точки':'Показать здоровые точки';
+    $('manual-glyphs').hidden=!pointsVisible;return;
+  }
+  render();
+};
+$('toggle-markers').onclick=()=>{
+  if(busy||!(displayedIssues.length||clearanceReport?.markers.length))return;
+  markersVisible=!markersVisible;record('toggle-issue-markers',{visible:markersVisible});
+  if(curveEditing()){
+    $('markers').hidden=!markersVisible;
+    $('toggle-markers-label').textContent=markersVisible?'Скрыть маркеры':'Показать маркеры';
+    return;
+  }
+  $('markers').hidden=!markersVisible;render();
+};
 document.querySelectorAll('[data-action]').forEach(e=>e.onclick=()=>{calculate(Number(e.dataset.action));});
 $('cancel').onclick=()=>{pendingSettingsApply=false;clearTimeout(manualLocalTimer);++manualLocalGeneration;cancelNativeJobs();++diagnosticGeneration;++readGeneration;++previewGeneration;++afterDiagnosticGeneration;if(previewActive){previewActive=false;lock(false);status('Оптимизация отменена, оригинальные кривые сохранены.');return;}if(readActive){readActive=false;openingFile=false;updateMascot();lock(false);status('Чтение файла отменено.');return;}if(epsImportActive){stopEps({destroy:true});openingFile=false;updateMascot();lock(false);record('vector-import-cancel');status('Импорт отменён. Предыдущий документ сохранён.');return;}worker.terminate();pending=null;ready=false;suppressNextDiagnostic=true;lock(false);record('engine-cancel');status('Расчёт отменён, документ сохранён.');spawnWorker();};
 $('undo').onclick=()=>{
