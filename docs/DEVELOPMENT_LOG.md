@@ -1,3 +1,7 @@
+# 0.2.0-alpha.52 candidate — complex Corel EPS full contour intake, 2026-11-18
+- User sample 8101921-1.eps: 1933 M, 12965 C, 46 L, DOS EPS with TIFF preview; single compound converted SVG path can exceed 20k sampled points and previously trigger a silent diagnostic skip. New sample logic resets safety counter per genuine M subpath; sequential 2k Rust windows still cover all successfully sampled vertices and incomplete cross-window verification is explicitly flagged. Early complexity warning is shown before conversion; processed and checked batch counts separated.
+- Source candidate PR #79; root cause, real conversion probe, scope boundaries, CI attempts and rollback in docs/history/ALPHA52_LARGE_EPS_WORKLOG.md. Not published yet; alpha.51 production remains reference.
+
 # 0.2.0-alpha.46 PUBLISHED — UI curve editor menu + default AFTER, 2026-10-27
 - Functional PR [#70](https://github.com/tohaa28/relief-forge/pull/70) merged to main as [bdf7ea3](https://github.com/tohaa28/relief-forge/commit/bdf7ea3a8c2d131406384e1cb822f941c3b69a51).
 - Source branch PR CI [40465207030](https://github.com/tohaa28/relief-forge/actions/runs/40465207030) **SUCCESS**: 259/259 JS tests, 17/17 native Rust tests, fresh WASM and full browser EPS/PDF/Undo checks, actual node editor, eight manual repair buttons, add/delete reticle cursors, responsive toolbar at 1440/1024/820/390px, CNC filtering and mode matrix.
