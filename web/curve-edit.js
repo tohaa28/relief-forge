@@ -346,3 +346,12 @@ export function breakCurveAtNode(path,index,options){
   }
   return saveEditedCurve(path,commands,options);
 }
+
+// Finalize a deferred manual-edit session ONCE, after leaving node mode.
+// Reuse the existing full SVG transform/paint-preserving writer, never
+// serialize the customer's compound artwork in pointermove or pointerup.
+export function finishDeferredCurveCommands(path,commands,nodeKinds,options){
+  const output=saveEditedCurve(path,commands,options);
+  output.nodeKinds={...nodeKinds};
+  return output;
+}
