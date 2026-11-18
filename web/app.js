@@ -482,18 +482,18 @@ function lock(value,{coverCanvas=true}={}){
 // "start/cancel" action. Only Apply commits a candidate to the document.
 async function buildUnifiedPreview(){
   if(busy||!doc.paths.length||curveEditing())return;
-  const scope=selectedVectorIndices(doc,selected,$('selection-only').checked);
+  const scope=selectedVectorIndices(doc,selected,settingChecked('selection-only'));
   if(!scope.length){curvePreview=null;$('optimization-result').textContent='Нет векторных кривых для обработки.';render();return;}
   const generation=++previewGeneration;
   previewActive=true;lock(true,{coverCanvas:false});
   try{
     await prepareNativeIntersections();
     if(generation!==previewGeneration)return;
-    const smoothingAmount=Number($('smoothing-amount').value);
-    const optimizationTolerance=Number($('optimization-tolerance').value);
-    const diagnosticTolerance=Number($('tolerance').value);
+    const smoothingAmount=settingNumber('smoothing-amount');
+    const optimizationTolerance=settingNumber('optimization-tolerance');
+    const diagnosticTolerance=settingNumber('tolerance');
     const repaired=repairVectorPoints(doc,scope,diagnosticTolerance);
-    const gpu=$('merge-overlaps').checked
+    const gpu=settingChecked('merge-overlaps')
       ?await gpuBroadphase(repaired.document,{tolerance:diagnosticTolerance})
       :{mode:'cpu',pairs:null,reason:'union-disabled'};
     if(generation!==previewGeneration)return;
@@ -502,7 +502,7 @@ async function buildUnifiedPreview(){
       :'GPU: CPU fallback ('+gpu.reason+')';
     // Union MUST precede post-Union smoothing/optimization. Keep independent
     // native dedup even if a later Boolean group is rejected by node budget.
-    const merged=$('merge-overlaps').checked?
+    const merged=settingChecked('merge-overlaps')?
       await mergeOverlappingObjects(repaired.document,{indices:scope,tolerance:diagnosticTolerance,
          cleanupTolerance:optimizationTolerance,gpuPairs:{...gpu,sourceCount:repaired.document.paths.length}}):
       {document:repaired.document,safeDocument:repaired.document,selectedIndices:scope,safeSelectedIndices:scope,
@@ -525,13 +525,13 @@ async function buildUnifiedPreview(){
       }
     }
     const filtered=removeTinyClosedSubpaths(budget.document,{
-      enabled:$('remove-micro')?.checked??true,
-      width:Number($('micro-width')?.value??.1),height:Number($('micro-height')?.value??.1)});
+      enabled:settingChecked('remove-micro'),
+      width:settingNumber('micro-width'),height:settingNumber('micro-height')});
     const after=filtered.document;
     const actualCount=document=>document.paths.reduce((n,p)=>n+
       (p.kind==='image'?0:p.commands?.filter(c=>c[0]==='M'||c[0]==='L'||c[0]==='C'||c[0]==='Q').length??p.points.length),0);
     const st={...optimized.stats,scope:[...scope],gpu,refit:refitted.stats,budget,
-      actualNodesBefore:actualCount(doc),actualNodesAfter:actualCount(after),micro:filtered.stats,overlaps:merged.stats,mergeOverlaps:$('merge-overlaps').checked,pointRepairs:repaired.stats,diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
+      actualNodesBefore:actualCount(doc),actualNodesAfter:actualCount(after),micro:filtered.stats,overlaps:merged.stats,mergeOverlaps:settingChecked('merge-overlaps'),pointRepairs:repaired.stats,diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
       smoothingDeviation:optimized.stats.smoothingError};
     const different=JSON.stringify(doc.paths.map(worldData))!==JSON.stringify(after.paths.map(worldData));
     const msg='ИТОГОВЫЕ реальные узлы: '+st.actualNodesBefore+' → '+st.actualNodesAfter+'.'+
