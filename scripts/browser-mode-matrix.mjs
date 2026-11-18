@@ -8,6 +8,13 @@ let browser;
 try{
  browser=await chromium.launch({headless:true});
  const errors=[],svg='<svg xmlns="http://www.w3.org/2000/svg" width="50mm" height="40mm" viewBox="0 0 50 40"><path fill="red" d="M 1 1 L 10 1 L 10 10 L 1 10 Z"/><path fill="red" d="M 5 5 L 15 5 L 15 15 L 5 15 Z"/><path fill="none" stroke="black" d="M 20 20 L 21 20 L 22 20 L 25 20"/></svg>';
+ const applyDraft=async page=>{
+  assert.equal(await page.locator('#apply-changes').isEnabled(),true);
+  await page.locator('#apply-changes').click();
+  await page.waitForFunction(()=>document.querySelector('#busy').hidden&&
+    document.querySelector('#settings-pending').textContent==='Текущие параметры применены.',
+    {},{timeout:120000});
+ };
  let modes=0;
  for(const union of [false,true])for(const smoothing of [0,.05])for(const selection of [false,true]){
   const page=await browser.newPage({viewport:{width:1280,height:1000}});page.on('pageerror',e=>errors.push(e.message));
@@ -17,6 +24,9 @@ try{
    document.querySelector('#merge-overlaps').checked=union;
    document.querySelector('#smoothing-amount').value=smoothing;
    document.querySelector('#selection-only').checked=selection;
+   document.querySelector('#merge-overlaps').dispatchEvent(new Event('change',{bubbles:true}));
+   document.querySelector('#smoothing-amount').dispatchEvent(new Event('input',{bubbles:true}));
+   document.querySelector('#selection-only').dispatchEvent(new Event('change',{bubbles:true}));
   },{union,smoothing,selection});
   await page.locator('#file').setInputFiles({name:'mode-matrix.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
   await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));
@@ -26,7 +36,8 @@ try{
   await page.waitForTimeout(300); // Explicit application debounce is 180 ms.
   await page.waitForFunction(()=>document.querySelector('#busy').hidden);
   await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));
-  assert.equal(await page.locator('#apply-changes').isEnabled(),true,'scene must have a real optimized candidate');
+  await applyDraft(page);
+  assert.equal(await page.locator('#apply-changes').isEnabled(),false,'explicit Apply commits the candidate once');
   assert.equal(await page.locator('#compare-after').getAttribute('aria-pressed'),'true',
     'computed AFTER must be selected automatically after preview');
   await page.locator('#compare-before').click();
@@ -61,7 +72,8 @@ try{
   assert.match(plus,/\) 16 16, crosshair/);
   await page.locator('#node-remove').click();
   const targetX=await page.locator('#canvas').evaluate(el=>decodeURIComponent(el.style.cursor));
-  assert.match(targetX,/M12 12L20 20 M20 12L12 20/);
+  assert.match(targetX,/M6 6L10 10 M14 14L18 18/);
+  assert.doesNotMatch(targetX,/<circle/);
   assert.notEqual(plus,targetX);
   await page.locator('#node-done').click();
   await page.waitForTimeout(250); // Wait for the documented editor-close debounce.
@@ -105,19 +117,20 @@ try{
  assert.equal(await countMoves(),1,'CNC AFTER must remove only .04×.05mm inner contour');
  assert.match(await cncPage.locator('#optimization-result').textContent(),/CNC: удалено малых замкнутых подконтуров 1/);
  await cncPage.locator('#remove-micro').uncheck();
+ await applyDraft(cncPage);
  await cncPage.waitForFunction(()=>document.querySelector('#optimization-result').textContent.includes('фильтр отключён'));
- await cncReady();await cncPage.locator('#compare-after').click();
+ await cncPage.locator('#compare-after').click();
  assert.equal(await countMoves(),2,'disabled microfilter must preserve tiny detail');
  await cncPage.locator('#remove-micro').check();
  await cncPage.locator('#micro-width').fill('0.02');
- await cncPage.locator('#micro-width').press('Tab');
+ await applyDraft(cncPage);
  await cncPage.waitForFunction(()=>document.querySelector('#optimization-result').textContent.includes('размер строго меньше 0.02 × 0.1 мм')&&!document.querySelector('#optimization-result').textContent.includes('фильтр отключён'));
- await cncReady();await cncPage.locator('#compare-after').click();
+ await cncPage.locator('#compare-after').click();
  assert.equal(await countMoves(),2,'width threshold .02mm must retain .04mm detail');
  await cncPage.locator('#micro-width').fill('0.1');
- await cncPage.locator('#micro-width').press('Tab');
+ await applyDraft(cncPage);
  await cncPage.waitForFunction(()=>document.querySelector('#optimization-result').textContent.includes('размер строго меньше 0.1 × 0.1 мм')&&!document.querySelector('#optimization-result').textContent.includes('фильтр отключён'));
- await cncReady();await cncPage.locator('#compare-after').click();
+ await cncPage.locator('#compare-after').click();
  assert.equal(await countMoves(),1,'restoring .1mm threshold removes tiny detail');
  await cncPage.locator('#compare-before').click();
  assert.equal(await countMoves(),2,'filter must never alter raw imported ДО');
