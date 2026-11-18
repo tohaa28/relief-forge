@@ -565,3 +565,13 @@ aside.right #issues-panel #issues{max-height:26dvh;overflow:auto}
   .settings-card{padding:6px;gap:3px}
   .settings-card .setting-row{font-size:9.8px}
 }
+
+
+/* alpha55: live native-edit overlay is only the incident one/two segments.
+   No full geometry DOM tree changes during pointermove. */
+#geometry .manual-live-patch{fill:none!important;stroke:#06a597!important;
+ stroke-width:2.8px;vector-effect:non-scaling-stroke;
+ stroke-linecap:round;stroke-linejoin:round;pointer-events:none;
+ filter:drop-shadow(0 0 1.5px #ffffff)}
+#geometry .manual-live-patch[hidden]{display:none}
+.curve-editing #geometry .curve-node{cursor:crosshair}
