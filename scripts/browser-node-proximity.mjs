@@ -14,11 +14,17 @@ try{
   document.querySelector('#merge-overlaps').checked=false;
   document.querySelector('#smoothing-amount').value='0';
   document.querySelector('#optimization-tolerance').value='.00001';
+  for(const id of ['merge-overlaps','smoothing-amount','optimization-tolerance'])
+    document.querySelector('#'+id).dispatchEvent(new Event('change',{bubbles:true}));
  });
  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="20mm" height="20mm" viewBox="0 0 20 20"><g fill="none" stroke="black"><path d="M1 2L12 2"/><path d="M1 2.006L11 2.006"/><path d="M1 8.2L3 8L9 8L10 9L9 10L3 8.006L1 9"/></g></svg>';
  await page.locator('#file').setInputFiles({name:'native-node-gaps.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
  await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));
  await page.waitForFunction(()=>document.querySelector('#busy').hidden&&document.querySelector('#status').textContent.startsWith('ПОСЛЕ:'));
+ await page.locator('#apply-changes').click();
+ await page.waitForFunction(()=>document.querySelector('#busy').hidden&&
+   !document.querySelector('#settings-pending').textContent.includes('Выполняется'),
+   {},{timeout:120000});
  for(const stage of ['before','after']){
   await page.locator('#compare-'+stage).click();
   const near=page.locator('.problem-marker[aria-label*="Сближенные узлы"]');
