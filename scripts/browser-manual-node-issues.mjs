@@ -17,11 +17,7 @@ try{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('http://localhost:'+port);
   await page.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
-  await page.evaluate(()=>{
-    document.querySelector('#merge-overlaps').checked=false;
-    document.querySelector('#smoothing-amount').value='0';
-    document.querySelector('#optimization-tolerance').value='.00001';
-  });
+  // Use real committed defaults; changing fields without Apply is intentionally inert.
   const svg='<svg xmlns="http://www.w3.org/2000/svg" width="30mm" height="30mm" viewBox="0 0 30 30"><path fill="none" stroke="black" d="M 2 2 L 20 2 L 20 20"/></svg>';
   await page.locator('#file').setInputFiles({
     name:'manual-open-curve.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)
