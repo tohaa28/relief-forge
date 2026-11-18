@@ -1373,14 +1373,21 @@ $('canvas').addEventListener('pointerdown',e=>{
     if(index!==null){
       activeCurveNode={path:i,index};
       if(target.dataset.curveHandle&&nodeTool==='handles'){
-        drag={local:true,curveHandle:target.dataset.curveHandle,curveNode:index,path:i,
-          live:editor.viewPatch(index,target.dataset.curveHandle),localTarget:[...pos]};
+        const side=target.dataset.curveHandle,live=editor.viewPatch(index,side);
+        const initialTarget=side==='in'?live?.incoming?.at(-2):live?.outgoing?.[1];
+        drag={local:true,curveHandle:side,curveNode:index,path:i,
+          live,localTarget:initialTarget?[...initialTarget]:[...pos],
+          initialTarget:initialTarget?[...initialTarget]:[...pos],
+          startPointer:[...pos]};
         canvas.setPointerCapture(e.pointerId);
       }else if(nodeTool==='remove'&&!target.dataset.curveHandle){
         runLocalNodeEdit(i,'remove',{index,point:[...pos]});return;
       }else if(nodeTool==='move'&&!target.dataset.curveHandle){
+        const live=editor.viewPatch(index);
         drag={local:true,curveNode:index,path:i,
-          live:editor.viewPatch(index),localTarget:[...pos]};
+          live,localTarget:live?[...live.point]:[...pos],
+          initialTarget:live?[...live.point]:[...pos],
+          startPointer:[...pos]};
         canvas.setPointerCapture(e.pointerId);
       }
     }else if(nodeTool==='add'){
@@ -1434,7 +1441,8 @@ $('canvas').addEventListener('pointermove',e=>{
   if(drag.live&&(drag.curveHandle||drag.curveNode!==undefined)){
     // No model mutation, SVG reconstruction, Bézier parse or diagnostic
     // Worker occurs in the pointermove hot path.
-    drag.localTarget=[...pos];scheduleLiveDrag();
+    drag.localTarget=drag.initialTarget.map((v,i)=>v+pos[i]-drag.startPointer[i]);
+    scheduleLiveDrag();
   }else if(drag.curveHandle){
     try{doc.paths[drag.path]=moveCurveHandle(drag.before.paths[drag.path],drag.curveNode,drag.curveHandle,pos);scheduleDragRender();}
     catch(error){status(error.message);}
@@ -1452,17 +1460,19 @@ $('canvas').addEventListener('pointerup',e=>{
   flushDragRender();flushLiveDrag();
   if(pan){pan=null;return;}if(!drag)return;
   if(drag.local){
-    const pos=at(e),editor=localEditor(drag.path);
+    const pos=at(e),editor=localEditor(drag.path),
+      target=drag.initialTarget.map((v,i)=>v+pos[i]-drag.startPointer[i]);
     drag.livePath?.remove();
     drag.visualNode?.removeAttribute('transform');
     if(editor&&drag.live&&
-       Math.hypot(pos[0]-drag.live.point[0],pos[1]-drag.live.point[1])>1e-10){
+       Math.hypot(target[0]-drag.initialTarget[0],target[1]-drag.initialTarget[1])>1e-10){
       try{
         const changed=drag.curveHandle?
-          editor.moveHandle(drag.curveNode,drag.curveHandle,pos):
-          editor.moveAnchor(drag.curveNode,pos);
+          editor.moveHandle(drag.curveNode,drag.curveHandle,target):
+          editor.moveAnchor(drag.curveNode,target);
         if(changed.length){
-          manualFocus={path:drag.path,point:[...pos]};
+          manualFocus={path:drag.path,point:drag.curveHandle?
+            [...(editor.nodePosition(drag.curveNode)||pos)]:[...target]};
           localEditorModified(drag.path,drag.curveHandle?'handle':'move');
         }else drawLocalEditorOverlay();
       }catch(error){status(error.message);drawLocalEditorOverlay();}
