@@ -72,7 +72,8 @@ test('Persistent EPS engine, transfer buffers and animation-frame rendering are 
   assert.match(app,/stopEps\(\{destroy:true\}\)/);
   assert.match(app,/epsImportActive/);
   assert.match(app,/requestAnimationFrame/);
-  assert.match(app,/buildAnchorIndex\(curveNodesTyped\(path\)\)/);\n  assert.match(app,/nearbyAnchors\(indexed,focus,/);
+  assert.match(app,/buildAnchorIndex\(curveNodesTyped\(path\)\)/);
+  assert.match(app,/nearbyAnchors\(indexed,focus,/);
   assert.match(app,/eps-import-time/);
   assert.doesNotMatch(worker,/createGhostscriptCore\(\{wasmBinary\}\)/);
 });
