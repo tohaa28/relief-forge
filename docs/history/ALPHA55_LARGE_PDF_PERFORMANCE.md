@@ -1,3 +1,8 @@
+## Подтверждённый результат (добавлено после слияния PR #84)
+- PR84 main merge 29b8efc9f879d9a7c04e2e51f4adf8199b507fb0; test run 44391463361 SUCCESS: **307 JavaScript, 17 Rust**, fresh WASM and all Chromium gates. Synthetic 2300 C browser: 40 pointermove produced 0 global DOM childList modifications and max240 displayed nodes; mouseup, local diagnostics and Undo pass.
+- Реальный `gerb2.pdf` прочитан для структурного анализа (1 объект, 7545 C), но не загружался в публичный GitHub и не проходил прямой browser acceptance; не подменять синтетический тест утверждением о проверке исходного PDF.
+- **Остаточная работа:** полная сериализация сложной кривой однажды на mouseup, и локальная диагностика прочитывает nativeParts одного пути; дальнейшее ускорение при накоплении большого числа правок относится к отдельному следующему циклу. Дизайнер работает без полной перерисовки в движении.
+
 # Alpha.55 — ускорение ручного редактирования составных PDF (2026-11-18)
 
 ## Проверенный пример
