@@ -102,7 +102,14 @@ function validatedDraft(){
 }
 let manualWorker=null,manualJob=0,lastManualPoint=null,lastManualPath=-1;
 function scheduleManualDiagnostic(point=lastManualPoint,path=lastManualPath){
-  if(!curveEditing()||!Array.isArray(point)||point.some(n=>!Number.isFinite(n)))return;
+  if(!curveEditing())return;
+  if(!Array.isArray(point)||point.length!==2||point.some(n=>!Number.isFinite(n))){
+    record('manual-local-diagnose-skip',{reason:'missing-point',path,point});
+    manualDiagnosticsPending=false;render();
+    status('Локальная проверка не началась: не определена координата изменённого узла.');
+    return;
+  }
+  status('Локальная проверка: подготовка области вокруг узла…');
   const canvas=$('canvas'),view=canvas.viewBox.baseVal,tol=activeSetting('tolerance');
   const radius=manualCheckRadius(view,canvas.clientWidth,canvas.clientHeight,tol);
   const id=++manualJob;
