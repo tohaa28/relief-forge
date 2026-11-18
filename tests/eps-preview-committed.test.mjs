@@ -37,8 +37,10 @@ test('smoothing changes Bezier control handles even without deleting an anchor, 
 });
 
 test('AFTER always displays remaining errors and saves precisely the cached optimized result',()=>{
-  assert.match(html,/<button id="apply-changes" class="primary" disabled>[^]*?Применить изменения<\/button>/);
-  assert.match(app,/\$\('apply-changes'\)\.onclick=applyUnifiedChanges/);
+  assert.match(html,/<button id="apply-changes" class="primary" disabled[^>]*>[^]*?Применить изменения<\/button>/);
+  assert.match(app,/\$\('apply-changes'\)\.onclick=\(\)=>\{/);
+  assert.match(app,/finishSettingsApply\(preview\)/);
+  assert.match(app,/if\(!settingsDirty\)\{[^]*?applyUnifiedChanges\(\)/);
   assert.match(app,/checkpoint\(baseline\);doc=clone\(pv.result\)/);
   assert.match(app,/diagnoseAfterDocument\(preview.result,/);
   assert.match(app,/preview.comparisonData.afterIssues=report.issues/);

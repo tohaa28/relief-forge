@@ -13,6 +13,7 @@ test('actual editor commits one checkpoint per operation, refuses invalid deleti
   source.sourceFileName='client.eps';
   const buttons={undo:{}},past=[],messages=[];
   const context={doc:structuredClone(source),selected:new Set([0]),activeCurveNode:null,
+    lastManualPoint:null,lastManualPath:-1,
     past,future:[],busy:false,clone:structuredClone,curveEditing:()=>true,
     checkpoint:before=>past.push(structuredClone(before||context.doc)),changed:()=>{},
     status:message=>messages.push(message),$:id=>buttons[id]};

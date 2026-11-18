@@ -63,15 +63,17 @@ test('changed Bézier nodes invalidate cached union stamp; untouched nodes do no
   assert.equal(isUnchangedUnion(altered),false);
 });
 
-test('Union output is refitted in AFTER, opening node editor commits that exact snapshot with Undo',()=>{
+test('Union output is refitted in AFTER, but node editor never implicitly commits an unapproved preview',()=>{
   const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
   const overlap=readFileSync(new URL('../web/overlap-merge.js',import.meta.url),'utf8');
   assert.match(app,/refitBooleanUnion\(merged\.document,optimizationTolerance\)/);
   assert.match(app,/let budget=protectPreviewNodeBudget\(doc,merged\.safeDocument,optimized\.document\)/);
   assert.match(app,/const after=filtered\.document/);
   assert.match(app,/removeTinyClosedSubpaths\(budget\.document/);
-  assert.match(app,/if\(curvePreview&&compareStage==='after'\)/);
-  assert.match(app,/!applyUnifiedChanges\(\)/);
+  assert.match(app,/if\(curvePreview&&compareStage==='after'&&curvePreview\.hasGeometryChange\)/);
+  assert.match(app,/Для редактирования результата ПОСЛЕ сначала нажмите/);
+  assert.match(app,/\$\('apply-changes'\)\.onclick=\(\)=>\{/);
+  assert.match(app,/if\(preview\?\.hasGeometryChange\)applyUnifiedChanges\(\)/);
   assert.match(app,/mode='nodes';nodeTool='move'/);
   assert.match(app,/curveNodesTyped\(p\)/);
   assert.match(app,/actualNodesBefore:actualCount\(doc\)/);

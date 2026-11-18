@@ -80,7 +80,9 @@ test('unified autoheal has one Apply action, problems and both smoothing/optimiz
    assert.ok(area.includes('id="'+id+'"'),id);
  assert.equal((area.match(/<button\b/g)||[]).length,3,
    'only Apply plus two visibility toggles, no old start/cancel/preview buttons');
- assert.match(area, /<button id="apply-changes" class="primary" disabled>[^]*?Применить изменения<\/button>/);
+ assert.match(area, /<button id="apply-changes" class="primary" disabled[^>]*>[^]*?Применить изменения<\/button>/);
+ assert.match(area, /id="editor-settings"/);
+ assert.match(area, /class="settings-grid"/);
  for(const id of ['auto-heal','auto-apply','auto-discard','optimize-preview','optimize-apply','optimize-cancel','diagnose'])
    assert.ok(!html.includes('id="'+id+'"'),id);
  assert.match(app,/async function buildUnifiedPreview\(\)/);
@@ -89,7 +91,8 @@ test('unified autoheal has one Apply action, problems and both smoothing/optimiz
  assert.match(app,/smoothAndOptimizePaths\(refitted.document,merged.selectedIndices,smoothingAmount,optimizationTolerance,diagnosticTolerance\)/);
  assert.match(app,/const different=JSON\.stringify\(doc\.paths\.map\(worldData\)\)/);
  assert.match(app,/task\.action===0\)buildUnifiedPreview\(\)/);
- assert.match(app,/if\(!action\.startsWith\('import-'\)&&action!=='unified-apply'\)requestRecalculation\(\)/);
+ assert.match(app,/else if\(!action\.startsWith\('import-'\)&&action!=='unified-apply'\)requestRecalculation\(\)/);
+ assert.match(app,/if\(local\)scheduleManualDiagnostic\(\)/);
  assert.match(app,/if\(ready&&doc\.paths\.some\(p=>p\.kind!=='image'\)\)calculate\(0\)/);
  assert.match(app,/class:'comparison-path '/);
  assert.match(app,/class:'comparison-ghost'/);
