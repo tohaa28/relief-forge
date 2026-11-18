@@ -88,7 +88,11 @@ export function createDeferredCurveEditor(path){
   function incident(index){
     const entry=byIndex.get(index);if(!entry)return null;
     const p=parts[entry.part],n=entry.ordinal;
-    return {inbound:n?p.segments[n-1]:p.closed?p.segments.at(-1):null,
+    const last=p.segments.at(-1),start=endpoint(commands[p.start]);
+    // An implicit Z edge is not the last actual Bézier command. Moving its
+    // start must not silently bend the unrelated last real segment.
+    const seam=p.closed&&last!==undefined&&same(endpoint(commands[last]),start);
+    return {inbound:n?p.segments[n-1]:p.closed&&seam?last:null,
       outbound:p.segments[n]??null,part:p};
   }
   function viewPatch(index,side=null){
@@ -274,6 +278,11 @@ export function createDeferredCurveEditor(path){
     const p=parts[entry.part],n=entry.ordinal,count=p.segments.length+(p.closed?0:1);
     if(count<=2)throw Error('В кривой должны остаться минимум два узла');
     const before=snapshotStructure();
+    if(p.closed&&n===p.segments.length){
+      // This node is followed by an implicit Z edge rather than a native
+      // Bézier segment. A simple two-curve merge would delete the wrong edge.
+      throw Error('Удаление узла перед неявным замыканием Z требует отдельной топологической операции');
+    }
     if(!p.closed&&n===0){
       const first=p.segments[0];
       commands[p.start]=['M',...endpoint(commands[first])];commands.splice(first,1);
