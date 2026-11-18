@@ -73,7 +73,8 @@ test('Union output is refitted in AFTER, opening node editor commits that exact 
   assert.match(app,/if\(curvePreview&&compareStage==='after'\)/);
   assert.match(app,/!applyUnifiedChanges\(\)/);
   assert.match(app,/mode='nodes';nodeTool='move'/);
-  assert.match(app,/curveNodesTyped\(p\)/);
+  assert.match(app,/buildAnchorIndex\(curveNodesTyped\(path\)\)/);
+  assert.match(app,/nearbyAnchors\(indexed,focus,/);
   assert.match(app,/actualNodesBefore:actualCount\(doc\)/);
   assert.match(app,/actualNodesAfter:actualCount\(after\)/);
   assert.match(app,/checkPreviewAfter\(pv\)/);

@@ -1,35 +1,36 @@
-import {prepareNativeIntersections} from './native-intersections.js?v=0.2.0-alpha.54';
-import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.54';
-import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.54';
-import {issueViewBox} from './issue-focus.js?v=0.2.0-alpha.54';
-import {visibleHealthyAnchors,circlePath} from './vector-points.js?v=0.2.0-alpha.54';
-import {issueDistanceLabel,screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.54';
-import {issuesForManualEditor,resolveManualIssues,retainsIssuesDuringManualChange} from './manual-issue-state.js?v=0.2.0-alpha.54';
-import {diagnoseLocalNodeArea,localNodeRadius} from './local-node-diagnostics.js?v=0.2.0-alpha.54';
-import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.54';
-import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.54';
-import {packedInput} from './auto-repair.js?v=0.2.0-alpha.54';
-import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js?v=0.2.0-alpha.54';
-import {removeTinyClosedSubpaths} from './cnc-microfilter.js?v=0.2.0-alpha.54';
-import {beginImportBefore,captureImportBefore,importedComparison} from './import-before.js?v=0.2.0-alpha.54';
-import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js?v=0.2.0-alpha.54';
-import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.54';
-import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.54';
-import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.54';
-import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.54';
-import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.54';
-import {inspectDocumentComplexity,largeFileWarning} from './complexity-preflight.js?v=0.2.0-alpha.54';
-import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.54';
-import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.54';
-import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.54';
-import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.54';
-import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.54';
-import {runNativeJob,cancelNativeJobs} from './native-jobs.js?v=0.2.0-alpha.54';
+import {prepareNativeIntersections} from './native-intersections.js?v=0.2.0-alpha.55';
+import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.55';
+import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.55';
+import {issueViewBox} from './issue-focus.js?v=0.2.0-alpha.55';
+import {visibleHealthyAnchors,circlePath} from './vector-points.js?v=0.2.0-alpha.55';
+import {issueDistanceLabel,screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.55';
+import {issuesForManualEditor,resolveManualIssues,retainsIssuesDuringManualChange} from './manual-issue-state.js?v=0.2.0-alpha.55';
+import {diagnoseLocalNodeArea,localNodeRadius} from './local-node-diagnostics.js?v=0.2.0-alpha.55';
+import {buildAnchorIndex,nearbyAnchors,createLiveCurvePatch,drawLiveCurvePatch} from './manual-edit-performance.js?v=0.2.0-alpha.55';
+import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.55';
+import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.55';
+import {packedInput} from './auto-repair.js?v=0.2.0-alpha.55';
+import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js?v=0.2.0-alpha.55';
+import {removeTinyClosedSubpaths} from './cnc-microfilter.js?v=0.2.0-alpha.55';
+import {beginImportBefore,captureImportBefore,importedComparison} from './import-before.js?v=0.2.0-alpha.55';
+import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js?v=0.2.0-alpha.55';
+import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.55';
+import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.55';
+import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.55';
+import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.55';
+import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.55';
+import {inspectDocumentComplexity,largeFileWarning} from './complexity-preflight.js?v=0.2.0-alpha.55';
+import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.55';
+import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.55';
+import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.55';
+import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.55';
+import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.55';
+import {runNativeJob,cancelNativeJobs} from './native-jobs.js?v=0.2.0-alpha.55';
 const mergeOverlappingObjects=(document,options)=>runNativeJob({action:'union',document,options});
-import {gpuBroadphase} from './gpu-broadphase.js?v=0.2.0-alpha.54';
-import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.54';
-import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.54';
-import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.54';
+import {gpuBroadphase} from './gpu-broadphase.js?v=0.2.0-alpha.55';
+import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.55';
+import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.55';
+import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.55';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 let clearanceKey='',clearanceJob=0,clearanceTimer=null,clearanceWorker=null,clearanceReport=null;
 function updateClearance(document,unit){
@@ -46,7 +47,7 @@ function updateClearance(document,unit){
     clearanceKey=key;clearanceReport=null;clearanceJob++;clearTimeout(clearanceTimer);clearanceWorker?.terminate();clearanceWorker=null;
     label.textContent=threshold?'Измерение расстояний…':'Укажите расстояние больше 0 и не больше 1000 мм.';
     if(threshold&&document.paths.length){const id=clearanceJob;clearanceTimer=setTimeout(()=>{
-      clearanceWorker=new Worker(new URL('./clearance-worker.js?v=0.2.0-alpha.54',import.meta.url),{type:'module'});
+      clearanceWorker=new Worker(new URL('./clearance-worker.js?v=0.2.0-alpha.55',import.meta.url),{type:'module'});
       clearanceWorker.onmessage=({data})=>{if(data.id!==clearanceJob)return;clearanceReport=data.report||null;label.textContent=data.error||('Узкие места < '+threshold+' мм: '+data.report.markers.length+(data.report.complete?' · проверка завершена':' · проверка неполная (лимит или пограничная точность)'));clearanceWorker?.terminate();clearanceWorker=null;render();};
       clearanceWorker.onerror=()=>{if(id!==clearanceJob)return;label.textContent='Измерение расстояний не завершено: ошибка вычисления.';clearanceWorker?.terminate();clearanceWorker=null;};
       clearanceWorker.postMessage({id,document:{paths:document.paths.map(p=>({kind:p.kind,artwork:Boolean(p.artwork),commands:p.commands,points:p.points,closed:p.closed,offset:p.offset}))},threshold});
@@ -120,6 +121,12 @@ function finalizePendingSettingsApply(preview){
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',near_node:'Сближенные узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
 let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null,manualDiagnosticsPending=false;
 let manualFocus=null,manualLocalTimer=null,manualLocalGeneration=0;
+let anchorViewportCache=new WeakMap();
+function editorAnchorCache(path){
+  let indexed=anchorViewportCache.get(path);
+  if(!indexed){indexed=buildAnchorIndex(curveNodesTyped(path));anchorViewportCache.set(path,indexed);}
+  return indexed;
+}
 let importedBefore=null;
 let comparisonSelectionExplicit=false; // user choice wins over automated re-diagnosis
 let doc={format:'relief-forge',version:1,width:300,height:200,paths:[]},selected=new Set(),issues=[],metrics=[],past=[],future=[],mode='select',draft=[],drag=null,pan=null,worker,ready=false,pending=null,sequence=0,busy=false;
@@ -279,7 +286,7 @@ function workspaceScan({attemptRepair=false,manual=false}={}){
   state.hidden=health.ok&&!manual;
   state.dataset.health=health.ok?'ok':'warning';
   $('workspace-health-report').value=safeWorkspaceReport(health,{
-    version:'0.2.0-alpha.54',source:lastImportFailure?.source||doc.sourceFileName||'',
+    version:'0.2.0-alpha.55',source:lastImportFailure?.source||doc.sourceFileName||'',
     errors:displayErrors});
   record('workspace-health',{ok:health.ok,issues:health.issues,forceWireframe,attempts:repairs,
     count:health.elementCount,rect:health.canvasRect,bbox:health.geometryBox});
@@ -306,7 +313,7 @@ $('workspace-check').onclick=()=>{
   const health=workspaceScan({attemptRepair:true,manual:true});
   $('workspace-health-report').value=safeWorkspaceReport(health||{
     ok:true,issues:[],note:'Документ не открыт'},{
-    version:'0.2.0-alpha.54',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
+    version:'0.2.0-alpha.55',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
   $('workspace-health-dialog').showModal();
 };
 $('workspace-check-repair').onclick=()=>{
@@ -416,7 +423,13 @@ function render(){
             'data-path':i,'data-curve-node':activeCurveNode.index,'data-curve-handle':handle.side},$('geometry'));
         }
       }
-      curveNodesTyped(p).forEach(node=>{
+      const indexed=editorAnchorCache(p);
+      const focus=manualFocus?.path===i?manualFocus.point:
+        visibleIssues.find(x=>x.path===i||x.other===i)?.point||
+        [view.x+view.width/2,view.y+view.height/2];
+      const workingNodes=nearbyAnchors(indexed,focus,Math.max(markerUnit*135,settingNumber('tolerance')*3),
+        {limit:240,includeIndex:activeCurveNode?.path===i?activeCurveNode.index:null});
+      workingNodes.forEach(node=>{
         const [cx,cy]=node.point,kind=node.type,chosen=activeCurveNode?.path===i&&activeCurveNode.index===node.index;
         const common={'data-path':i,'data-curve-node':node.index,class:'curve-node'+(chosen?' chosen':'')};
         if(kind==='smooth')el('circle',{...common,cx,cy,r:markerUnit*4.5},$('geometry'));
@@ -679,7 +692,7 @@ $('apply-changes').onclick=()=>{void applySettingsAndChanges();};
 
 function spawnWorker(){
   ready=false;$('engine').textContent='○ Загрузка Rust / WASM…';
-  worker=new Worker(new URL('worker.js?v=0.2.0-alpha.54',import.meta.url),{type:'module'});
+  worker=new Worker(new URL('worker.js?v=0.2.0-alpha.55',import.meta.url),{type:'module'});
   worker.onmessage=({data})=>{
     if(data.id===0){ready=!data.error;$('engine').textContent=ready?'● Rust / WASM готов':'○ WASM не собран';status(data.error||'Rust-ядро готово');render();if(ready&&doc.paths.length&&!currentComparison()&&!suppressNextDiagnostic)calculate(0);suppressNextDiagnostic=false;return;}
     if(!pending||data.id!==pending.id)return;
@@ -1192,17 +1205,27 @@ $('canvas').addEventListener('pointerdown',e=>{
     if(index!==null){
       activeCurveNode={path:i,index};
       if(target.dataset.curveHandle&&nodeTool==='handles'){
-        drag={curveHandle:target.dataset.curveHandle,curveNode:index,path:i,before:clone(doc)};
+        const node=editorAnchorCache(doc.paths[i]).nodes.find(n=>n.index===index);
+        drag={curveHandle:target.dataset.curveHandle,curveNode:index,path:i,before:clone(doc),
+          live:createLiveCurvePatch(doc.paths[i],node,{handle:target.dataset.curveHandle,type:node?.type||'cusp'}),
+          originalPoint:[...pos],localTarget:[...pos]};
         canvas.setPointerCapture(e.pointerId);
       }else if(nodeTool==='remove'&&!target.dataset.curveHandle){removeActiveCurveNode();return;}
-      else if(nodeTool==='move'&&!target.dataset.curveHandle){drag={curveNode:index,path:i,before:clone(doc)};canvas.setPointerCapture(e.pointerId);}
+      else if(nodeTool==='move'&&!target.dataset.curveHandle){
+        const node=editorAnchorCache(doc.paths[i]).nodes.find(n=>n.index===index);
+        drag={curveNode:index,path:i,before:clone(doc),
+          live:createLiveCurvePatch(doc.paths[i],node),originalPoint:[...pos],localTarget:[...pos]};
+        canvas.setPointerCapture(e.pointerId);
+      }
     }else if(nodeTool==='add'){
       const nearest=nearestCurveSegment(doc.paths[i],pos),view=canvas.viewBox.baseVal;
       const hit=screenUnitsPerPixel(view,canvas.clientWidth,canvas.clientHeight)*12;
       if(nearest&&nearest.distance<=hit)changeCurveNode(i,'add',p=>addCurveNode(p,nearest.index,nearest.t));
       else status('Нажмите ближе к кривой, чтобы добавить узел.');
     }else activeCurveNode=null;
-    render();return;
+    render();
+    if(drag?.live)attachLiveCurvePatch();
+    return;
   }
   if(mode==='line'){draft.push(pos);render();return;}
   if(mode==='rect'||mode==='circle'){drag={start:pos,before:clone(doc),shape:mode};canvas.setPointerCapture(e.pointerId);return;}
@@ -1213,14 +1236,36 @@ $('canvas').addEventListener('pointerdown',e=>{
     canvas.setPointerCapture(e.pointerId);
   }else selected.clear();render();
 });
-let dragRenderFrame=0;
+let dragRenderFrame=0,liveDragFrame=0;
 const scheduleDragRender=()=>{if(!dragRenderFrame)dragRenderFrame=requestAnimationFrame(()=>{dragRenderFrame=0;render();});};
 const flushDragRender=()=>{if(dragRenderFrame){cancelAnimationFrame(dragRenderFrame);dragRenderFrame=0;}};
+function attachLiveCurvePatch(){
+  if(!drag?.live||!curveEditing())return;
+  drag.livePath=el('path',{d:'',class:'manual-live-patch'},$('geometry'));
+  drag.visualNode=$('geometry').querySelector('[data-path="'+drag.path+'"][data-curve-node="'+drag.curveNode+'"]:not([data-curve-handle])');
+  paintLiveCurvePatch();
+}
+function paintLiveCurvePatch(){
+  if(!drag?.live||!drag.livePath?.isConnected)return;
+  drag.livePath.setAttribute('d',drawLiveCurvePatch(drag.live,drag.localTarget));
+  if(drag.visualNode&&!drag.curveHandle){
+    const dx=drag.localTarget[0]-drag.live.point[0],dy=drag.localTarget[1]-drag.live.point[1];
+    drag.visualNode.setAttribute('transform','translate('+dx+' '+dy+')');
+  }
+}
+const scheduleLiveDrag=()=>{
+  if(!liveDragFrame)liveDragFrame=requestAnimationFrame(()=>{liveDragFrame=0;paintLiveCurvePatch();});
+};
+const flushLiveDrag=()=>{if(liveDragFrame){cancelAnimationFrame(liveDragFrame);liveDragFrame=0;}};
 $('canvas').addEventListener('pointermove',e=>{
   const pos=at(e);$('coords').textContent=`X ${pos[0].toFixed(2)} · Y ${pos[1].toFixed(2)} мм`;
   if(pan){const b=$('canvas').viewBox.baseVal;const dx=pos[0]-pan.pos[0],dy=pos[1]-pan.pos[1];b.x-=dx;b.y-=dy;return;}
   if(!drag||busy)return;
-  if(drag.curveHandle){
+  if(drag.live&&(drag.curveHandle||drag.curveNode!==undefined)){
+    // No model mutation, SVG reconstruction, Bézier parse or diagnostic
+    // Worker occurs in the pointermove hot path.
+    drag.localTarget=[...pos];scheduleLiveDrag();
+  }else if(drag.curveHandle){
     try{doc.paths[drag.path]=moveCurveHandle(drag.before.paths[drag.path],drag.curveNode,drag.curveHandle,pos);scheduleDragRender();}
     catch(error){status(error.message);}
   }else if(drag.curveNode!==undefined){
@@ -1234,13 +1279,24 @@ function makeShape(d){const [x,y]=d.start,[a,b]=d.end||d.start;
   return d.shape==='rect'?{closed:true,points:[[x,y],[a,y],[a,b],[x,b]]}:{closed:true,points:Array.from({length:96},(_,i)=>{const t=i*Math.PI*2/96,r=Math.hypot(a-x,b-y);return [x+r*Math.cos(t),y+r*Math.sin(t)];})};
 }
 $('canvas').addEventListener('pointerup',e=>{
-  flushDragRender();
+  flushDragRender();flushLiveDrag();
   if(pan){pan=null;return;}if(!drag)return;
+  if(drag.live&&(drag.curveHandle||drag.curveNode!==undefined)){
+    // Perform the expensive native command serialization once, at mouseup.
+    const pos=at(e);
+    if(Math.hypot(pos[0]-drag.live.point[0],pos[1]-drag.live.point[1])>1e-10){
+      try{
+        doc.paths[drag.path]=drag.curveHandle
+          ?moveCurveHandle(drag.before.paths[drag.path],drag.curveNode,drag.curveHandle,pos)
+          :moveCurveNode(drag.before.paths[drag.path],drag.curveNode,pos);
+      }catch(error){status(error.message);doc=drag.before;}
+    }
+  }
   if(drag.shape&&drag.end&&Math.hypot(drag.end[0]-drag.start[0],drag.end[1]-drag.start[1])>.001){doc.paths.push(makeShape(drag));selected=new Set([doc.paths.length-1]);}
   if(curveEditing()&&(drag.curveHandle||drag.curveNode!==undefined))manualFocus={path:drag.path,point:at(e)};
   if(JSON.stringify(doc)!==JSON.stringify(drag.before)){checkpoint(drag.before);changed(drag.curveHandle?'curve-node-handle':drag.curveNode!==undefined?'curve-node-move':drag.shape?'draw-'+drag.shape:'move-nodes');}else render();drag=null;
 });
-$('canvas').addEventListener('pointercancel',()=>{flushDragRender();if(drag)doc=drag.before;drag=null;pan=null;render();});
+$('canvas').addEventListener('pointercancel',()=>{flushDragRender();flushLiveDrag();if(drag)doc=drag.before;drag=null;pan=null;render();});
 $('canvas').addEventListener('wheel',e=>{if(busy)return;e.preventDefault();zoom(e.deltaY>0?1.15:1/1.15,at(e));},{passive:false});
 document.addEventListener('keydown',e=>{
   if(busy||e.target.matches('input,textarea,select')||e.target.isContentEditable)return;
@@ -1275,7 +1331,7 @@ function stopEps({destroy=false}={}){const picker=$('pdf-page-picker');if(picker
 function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);openingFile=false;lastImportFailure=null;lastImportAttempt={source:name,status:'opened',objects:next.paths.length};forceWireframe=false;syncWireframeControl();if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);clearTimeout(manualLocalTimer);++manualLocalGeneration;manualFocus=null;mode='select';doc=next;selected.clear();changed('import-'+name);importedBefore=beginImportBefore(doc);comparisonSelectionExplicit=false;compareStage='before';fit();scheduleWorkspaceCheck();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;openingFile=true;lastImportFailure=null;lastImportAttempt={source:name,status:'converting',bytes:bytes.byteLength};updateMascot();if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта '+(/\.pdf$/i.test(name)?'PDF':'EPS')+'…';record('vector-import-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.54',import.meta.url));
+  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.55',import.meta.url));
   progressStage(/\.pdf$/i.test(name)?'Импорт PDF: подготовка MuPDF':'Импорт EPS: подготовка интерпретатора',9);
   const started=performance.now();let downloadLoaded=0,lastDownloadLogAt=0;
   const fail=message=>{
@@ -1537,4 +1593,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();if(!curveEditing())requestRecalculation();
 });
-record('session-start',{version:'0.2.0-alpha.54'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorVersion='0.2.0-alpha.54';document.documentElement.dataset.doctorReady='true';document.dispatchEvent(new Event('doctor-ready'));
+record('session-start',{version:'0.2.0-alpha.55'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorVersion='0.2.0-alpha.55';document.documentElement.dataset.doctorReady='true';document.dispatchEvent(new Event('doctor-ready'));
