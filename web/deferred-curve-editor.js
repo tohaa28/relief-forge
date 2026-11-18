@@ -103,6 +103,7 @@ export function createDeferredCurveEditor(path){
     for(const [i,c] of frame.entries)commands[i]=cp(c);
     kinds={...frame.kinds};dirty=frame.dirty;
     for(const [i,p] of frame.positions){const node=nodeMap.get(i);if(node)node.point=[...p];}
+    for(const node of nodes)if(kinds[node.index])node.type=kinds[node.index];
     for(const i of frame.touched)touched.add(i);
   }
   function capture(ids){
@@ -176,9 +177,32 @@ export function createDeferredCurveEditor(path){
   }
   function setKind(index,kind){
     if(!['cusp','smooth','symmetric'].includes(kind))throw Error('Недопустимый тип узла');
-    const around=incident(index);if(!around)throw Error('Не найден узел');
+    const around=incident(index),node=getNode(index);
+    if(!around||!node)throw Error('Не найден узел');
     const ids=[around.inbound,around.outbound].filter(x=>x!==null);
-    return perform(ids,()=>{kinds[index]=kind;const n=getNode(index);if(n)n.type=kind;});
+    if(kind!=='cusp'&&ids.length<2)throw Error('Сглаживание требует два смежных сегмента');
+    return perform(ids,()=>{
+      if(kind!=='cusp'){
+        const ensure=id=>{
+          const data=segment(id);
+          if(command(id)[0]!=='C')commands[id]=toCommand(cubic(
+            data.controls.map(p=>p.map((v,i)=>v-offset[i]))));
+          return command(id);
+        };
+        const left=ensure(around.inbound),right=ensure(around.outbound);
+        const at=node.point.map((v,i)=>v-offset[i]);
+        const vin=[left[3]-at[0],left[4]-at[1]],
+          vout=[right[1]-at[0],right[2]-at[1]];
+        const m1=Math.hypot(...vin),m2=Math.hypot(...vout);
+        const dir=m2>1e-12?vout.map(v=>v/m2):
+          m1>1e-12?vin.map(v=>-v/m1):[1,0];
+        const lin=kind==='symmetric'?(m1+m2)/2:m1,
+          lout=kind==='symmetric'?lin:m2;
+        left[3]=at[0]-dir[0]*lin;left[4]=at[1]-dir[1]*lin;
+        right[1]=at[0]+dir[0]*lout;right[2]=at[1]+dir[1]*lout;
+      }
+      kinds[index]=kind;node.type=kind;
+    });
   }
   function affectedSVG(){
     const paths=[];
@@ -223,7 +247,7 @@ export function createDeferredCurveEditor(path){
   }
   function changedStructural(before){
     const after=commands.map(cp);
-    undo.push({structure:true,before,after});redo.length=0;
+    undo.push({structure:true,before,after,kindsAfter:{...kinds}});redo.length=0;
     dirty=true;rebuildNodeIndex();
     touched.clear();
     return true;
@@ -288,6 +312,24 @@ export function createDeferredCurveEditor(path){
     touched.add(Math.max(1,index-1));
     return true;
   }
+  function reversePart(index){
+    const entry=byIndex.get(index);if(!entry)throw Error('Узел не найден');
+    const p=parts[entry.part],before=snapshotStructure();
+    const last=p.segments.at(-1),start=p.start,
+      hasZ=commands[last+1]?.[0]==='Z';
+    const originals=p.segments.map(id=>segment(id).controls.map(q=>q.map((v,i)=>v-offset[i])));
+    if(!originals.length)throw Error('Пустой контур');
+    const closing=p.closed&&!same(originals.at(-1).at(-1),endpoint(commands[start]))
+      ?[[...originals.at(-1).at(-1)],[...endpoint(commands[start])]]:null;
+    if(closing)originals.push(closing);
+    const newStart=p.closed?endpoint(commands[start]):originals.at(-1).at(-1);
+    const reversed=[['M',...newStart],...originals.reverse().map(segment=>{
+      const controls=segment.toReversed();
+      return toCommand(controls);
+    }),...(p.closed?[['Z']]:[])];
+    commands.splice(start,last-start+1+Number(hasZ),...reversed);
+    changedStructural(before);return true;
+  }
   function closeAt(index){
     const entry=byIndex.get(index);if(!entry)throw Error('Узел не найден');
     const part=parts[entry.part];if(part.closed)throw Error('Контур уже замкнут');
@@ -331,7 +373,7 @@ export function createDeferredCurveEditor(path){
   function redoLocal(){
     const op=redo.pop();if(!op)return false;
     if(op.structure){
-      commands=op.after.map(cp);rebuildNodeIndex();touched.clear();
+      commands=op.after.map(cp);kinds={...op.kindsAfter};rebuildNodeIndex();touched.clear();
     }else restore(op.after);
     undo.push(op);dirty=true;return true;
   }
@@ -341,6 +383,6 @@ export function createDeferredCurveEditor(path){
     return {commands:commands.map(cp),nodeKinds:{...kinds},dirty};
   }
   return {moveAnchor,moveHandle,setKind,setSegment,viewPatch,affectedSVG,nodePosition,nodeList,
-    addSegment,removeAnchor,closeAt,breakAt,nearestSegment,
+    addSegment,removeAnchor,closeAt,breakAt,reversePart,nearestSegment,
     modified,undoLocal,redoLocal,historySize,finish,getNode,incident};
 }
