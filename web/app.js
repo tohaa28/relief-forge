@@ -16,6 +16,7 @@ import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.51';
 import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.51';
 import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.51';
 import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.51';
+import {inspectDocumentComplexity,largeFileWarning} from './complexity-preflight.js?v=0.2.0-alpha.52';
 import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.51';
 import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.51';
 import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.51';
@@ -87,6 +88,13 @@ function progressStage(stage,percent,detail=''){
   $('task-percent').textContent=n+'%';$('task-count').textContent=detail;
 }
 function endProgress(){if(!busy)$('task-status').hidden=true;}
+function showLargeFileNotice(report){
+  const node=$('large-file-warning');
+  const message=largeFileWarning(report);
+  node.hidden=!message;
+  node.textContent=message;
+  if(message)record('large-file-warning',{contours:report.contours||0,segments:(report.curves||0)+(report.lines||0),points:report.totalPoints||0});
+}
 const yieldForUi=()=>new Promise(resolve=>setTimeout(resolve,0));
 function checkpoint(before=doc){past.push(clone(before));if(past.length>100)past.shift();future=[];}
 function renderFileHistory(){
@@ -808,6 +816,7 @@ async function runProgressiveDiagnostics(indices,tolerance){
     }
     if(generation!==diagnosticGeneration)return;
     const plan=planDiagnosticBatches(contours,scope);
+    if(plan.batches.length>1||plan.totalPoints>2000)showLargeFileNotice({large:true,totalPoints:plan.totalPoints});
     if(!plan.batches.length){
       diagnosticComplete=false;issues=[];metrics=[];
       curvePreview=null;
@@ -815,7 +824,7 @@ async function runProgressiveDiagnostics(indices,tolerance){
       status('Не удалось проверить контуры: нет доступных расчётных сегментов.');
       return;
     }
-    let nextIndex=0,checked=0,complete=!plan.partial&&!unreadable.length,misplaced=0;
+    let nextIndex=0,processed=0,checked=0,failedBatches=0,complete=!plan.partial&&!unreadable.length,misplaced=0;
     const results=[],pathMetrics=doc.paths.map(()=>null);
     const dispatch=async()=>{
       if(generation!==diagnosticGeneration)return;
@@ -831,16 +840,17 @@ async function runProgressiveDiagnostics(indices,tolerance){
           appliedComparison=importedComparison(importedBefore,doc,issues);
         }
         if(!comparisonSelectionExplicit)compareStage='before';
-        progressStage('Диагностика завершена',100,checked+' расчётных точек');
+        progressStage('Диагностика завершена',100,processed+' расчётных точек пройдено');
         record('diagnose-large',{batchCount:plan.batches.length,totalPoints:plan.totalPoints,
-          checked,issues:issues.length,complete,skipped:unreadable.length+plan.skipped.length,
+          processed,checked,failedBatches,issues:issues.length,complete,skipped:unreadable.length+plan.skipped.length,
           split:plan.split,misplaced});
         updateFileHistory({diagnosis:{count:issues.length,complete,
           selected:Boolean($('selection-only').checked)}});
         lock(false);
-        status('Проверено '+checked+' расчётных точек в '+plan.batches.length+
-          ' блоках; найдено '+issues.length+' замечаний.'+
-          (complete?'':' Проверка частичная: взаимодействия между блоками не исключены.')+
+        status('Пройдено '+processed+' расчётных точек в '+plan.batches.length+
+          ' блоках; успешно проверено '+checked+'; найдено '+issues.length+' замечаний.'+
+          (complete?'':' Проверка частичная: межблочные связи, лимит замечаний или ошибки не исключены.')+
+          (failedBatches?' Блоков с ошибкой: '+failedBatches+'.':'')+
           (misplaced?' Исключены '+misplaced+' маркеров вне соответствующих контуров.':''));
         // Large EPS files may pass Rust diagnostics completely while still
         // containing tens of thousands of original Bézier segments. Running
@@ -860,10 +870,11 @@ async function runProgressiveDiagnostics(indices,tolerance){
       pending={id,largeDiagnostic:true,onResponse:data=>{
         if(generation!==diagnosticGeneration)return;
         if(data.error||!Array.isArray(data.output?.issues)){
-          complete=false;
+          complete=false;failedBatches++;
           record('diagnostic-batch-error',{batch:ordinal,message:data.error||'Некорректный результат Rust'});
         }else{
           complete=complete&&data.output.diagnosticComplete===true;
+          checked+=batch.points;
           for(const issue of data.output.issues){
             if(results.length>=10000){complete=false;break;}
             if(!issueInBounds(issue)){
@@ -874,15 +885,15 @@ async function runProgressiveDiagnostics(indices,tolerance){
           }
           data.output.paths?.forEach((p,i)=>{pathMetrics[batch.scope[i]]=p;});
         }
-        checked+=batch.points;nextIndex++;
+        processed+=batch.points;nextIndex++;
         progressStage('Поиск дефектных точек · блок '+nextIndex+'/'+plan.batches.length,
           35+64*nextIndex/plan.batches.length,
-          checked.toLocaleString('ru-RU')+' / '+plan.totalPoints.toLocaleString('ru-RU')+' точек');
+          processed.toLocaleString('ru-RU')+' / '+plan.totalPoints.toLocaleString('ru-RU')+' точек');
         setTimeout(dispatch,0);
       }};
       progressStage('Диагностика: блок '+ordinal+' / '+plan.batches.length,
         35+64*nextIndex/plan.batches.length,
-        checked.toLocaleString('ru-RU')+' точек обработано');
+        processed.toLocaleString('ru-RU')+' точек пройдено');
       worker.postMessage({id,input:packedInput(batch.paths,tolerance,0)});
     };
     dispatch();
@@ -1171,6 +1182,7 @@ function importEps(bytes,name,historyStarted=false){
 async function importUserFile(file,origin='dialog'){
   if(!file||busy||readActive)return;
   if(!isSupportedDrop(file)){status('Поддерживаются PDF, EPS, PS, SVG и проекты JSON.');return;}
+  showLargeFileNotice(null);
   if(file.size>64*1024*1024){status('Файл превышает 64 МБ. Импорт отклонён.');return;}
   clearTimeout(settingsTimeout); // Import commits its own recalculation; discard the old settings job.
   beginFileHistory(file.name);
@@ -1194,6 +1206,9 @@ async function importUserFile(file,origin='dialog'){
     }finally{reader.releaseLock();}
     const bytes=new Uint8Array(size);let pos=0;
     for(const part of parts){bytes.set(part,pos);pos+=part.byteLength;}
+    const complexity=inspectDocumentComplexity(bytes,file.name);
+    if(complexity.large)showLargeFileNotice(complexity);
+    record('file-complexity-preflight',{name:file.name,...complexity});
     readActive=false;lock(false);
     if(/\.(eps|epsf|epsi|ps|pdf)$/i.test(file.name))importEps(bytes,file.name,true);
     else{
