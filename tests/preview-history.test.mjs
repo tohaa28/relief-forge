@@ -15,7 +15,8 @@ test('Undo and Redo operate on committed documents while an automatic preview ex
     $:id=>buttons[id]};
   context.changed=()=>{context.curvePreview=null;};
   vm.createContext(context);
-  const availability=app.split(/\r?\n/).find(line=>line.includes("$('undo').disabled="));
+  const availability=app.split(/\r?\n/).find(line=>
+    line.includes("$('undo').disabled=")&&line.includes("$('redo').disabled="));
   const handler=id=>{
     const begin=app.indexOf(`$('${id}').onclick=()=>{`);
     assert.ok(begin>=0);
