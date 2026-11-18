@@ -6,6 +6,7 @@ import {visibleHealthyAnchors,circlePath} from './vector-points.js?v=0.2.0-alpha
 import {issueDistanceLabel,screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.54';
 import {issuesForManualEditor,resolveManualIssues,retainsIssuesDuringManualChange} from './manual-issue-state.js?v=0.2.0-alpha.54';
 import {diagnoseLocalNodeArea,localNodeRadius} from './local-node-diagnostics.js?v=0.2.0-alpha.54';
+import {buildAnchorIndex,nearbyAnchors,createLiveCurvePatch,drawLiveCurvePatch} from './manual-edit-performance.js?v=0.2.0-alpha.54';
 import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.54';
 import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.54';
 import {packedInput} from './auto-repair.js?v=0.2.0-alpha.54';
@@ -120,6 +121,12 @@ function finalizePendingSettingsApply(preview){
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',near_node:'Сближенные узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
 let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null,manualDiagnosticsPending=false;
 let manualFocus=null,manualLocalTimer=null,manualLocalGeneration=0;
+let anchorViewportCache=new WeakMap();
+function editorAnchorCache(path){
+  let indexed=anchorViewportCache.get(path);
+  if(!indexed){indexed=buildAnchorIndex(curveNodesTyped(path));anchorViewportCache.set(path,indexed);}
+  return indexed;
+}
 let importedBefore=null;
 let comparisonSelectionExplicit=false; // user choice wins over automated re-diagnosis
 let doc={format:'relief-forge',version:1,width:300,height:200,paths:[]},selected=new Set(),issues=[],metrics=[],past=[],future=[],mode='select',draft=[],drag=null,pan=null,worker,ready=false,pending=null,sequence=0,busy=false;
@@ -416,7 +423,13 @@ function render(){
             'data-path':i,'data-curve-node':activeCurveNode.index,'data-curve-handle':handle.side},$('geometry'));
         }
       }
-      curveNodesTyped(p).forEach(node=>{
+      const indexed=editorAnchorCache(p);
+      const focus=manualFocus?.path===i?manualFocus.point:
+        visibleIssues.find(x=>x.path===i||x.other===i)?.point||
+        [view.x+view.width/2,view.y+view.height/2];
+      const workingNodes=nearbyAnchors(indexed,focus,Math.max(markerUnit*135,settingNumber('tolerance')*3),
+        {limit:240,includeIndex:activeCurveNode?.path===i?activeCurveNode.index:null});
+      workingNodes.forEach(node=>{
         const [cx,cy]=node.point,kind=node.type,chosen=activeCurveNode?.path===i&&activeCurveNode.index===node.index;
         const common={'data-path':i,'data-curve-node':node.index,class:'curve-node'+(chosen?' chosen':'')};
         if(kind==='smooth')el('circle',{...common,cx,cy,r:markerUnit*4.5},$('geometry'));
@@ -1192,17 +1205,27 @@ $('canvas').addEventListener('pointerdown',e=>{
     if(index!==null){
       activeCurveNode={path:i,index};
       if(target.dataset.curveHandle&&nodeTool==='handles'){
-        drag={curveHandle:target.dataset.curveHandle,curveNode:index,path:i,before:clone(doc)};
+        const node=editorAnchorCache(doc.paths[i]).nodes.find(n=>n.index===index);
+        drag={curveHandle:target.dataset.curveHandle,curveNode:index,path:i,before:clone(doc),
+          live:createLiveCurvePatch(doc.paths[i],node,{handle:target.dataset.curveHandle,type:node?.type||'cusp'}),
+          originalPoint:[...pos],localTarget:[...pos]};
         canvas.setPointerCapture(e.pointerId);
       }else if(nodeTool==='remove'&&!target.dataset.curveHandle){removeActiveCurveNode();return;}
-      else if(nodeTool==='move'&&!target.dataset.curveHandle){drag={curveNode:index,path:i,before:clone(doc)};canvas.setPointerCapture(e.pointerId);}
+      else if(nodeTool==='move'&&!target.dataset.curveHandle){
+        const node=editorAnchorCache(doc.paths[i]).nodes.find(n=>n.index===index);
+        drag={curveNode:index,path:i,before:clone(doc),
+          live:createLiveCurvePatch(doc.paths[i],node),originalPoint:[...pos],localTarget:[...pos]};
+        canvas.setPointerCapture(e.pointerId);
+      }
     }else if(nodeTool==='add'){
       const nearest=nearestCurveSegment(doc.paths[i],pos),view=canvas.viewBox.baseVal;
       const hit=screenUnitsPerPixel(view,canvas.clientWidth,canvas.clientHeight)*12;
       if(nearest&&nearest.distance<=hit)changeCurveNode(i,'add',p=>addCurveNode(p,nearest.index,nearest.t));
       else status('Нажмите ближе к кривой, чтобы добавить узел.');
     }else activeCurveNode=null;
-    render();return;
+    render();
+    if(drag?.live)attachLiveCurvePatch();
+    return;
   }
   if(mode==='line'){draft.push(pos);render();return;}
   if(mode==='rect'||mode==='circle'){drag={start:pos,before:clone(doc),shape:mode};canvas.setPointerCapture(e.pointerId);return;}
@@ -1213,14 +1236,36 @@ $('canvas').addEventListener('pointerdown',e=>{
     canvas.setPointerCapture(e.pointerId);
   }else selected.clear();render();
 });
-let dragRenderFrame=0;
+let dragRenderFrame=0,liveDragFrame=0;
 const scheduleDragRender=()=>{if(!dragRenderFrame)dragRenderFrame=requestAnimationFrame(()=>{dragRenderFrame=0;render();});};
 const flushDragRender=()=>{if(dragRenderFrame){cancelAnimationFrame(dragRenderFrame);dragRenderFrame=0;}};
+function attachLiveCurvePatch(){
+  if(!drag?.live||!curveEditing())return;
+  drag.livePath=el('path',{d:'',class:'manual-live-patch'},$('geometry'));
+  drag.visualNode=$('geometry').querySelector('[data-path="'+drag.path+'"][data-curve-node="'+drag.curveNode+'"]:not([data-curve-handle])');
+  paintLiveCurvePatch();
+}
+function paintLiveCurvePatch(){
+  if(!drag?.live||!drag.livePath?.isConnected)return;
+  drag.livePath.setAttribute('d',drawLiveCurvePatch(drag.live,drag.localTarget));
+  if(drag.visualNode&&!drag.curveHandle){
+    const dx=drag.localTarget[0]-drag.live.point[0],dy=drag.localTarget[1]-drag.live.point[1];
+    drag.visualNode.setAttribute('transform','translate('+dx+' '+dy+')');
+  }
+}
+const scheduleLiveDrag=()=>{
+  if(!liveDragFrame)liveDragFrame=requestAnimationFrame(()=>{liveDragFrame=0;paintLiveCurvePatch();});
+};
+const flushLiveDrag=()=>{if(liveDragFrame){cancelAnimationFrame(liveDragFrame);liveDragFrame=0;}};
 $('canvas').addEventListener('pointermove',e=>{
   const pos=at(e);$('coords').textContent=`X ${pos[0].toFixed(2)} · Y ${pos[1].toFixed(2)} мм`;
   if(pan){const b=$('canvas').viewBox.baseVal;const dx=pos[0]-pan.pos[0],dy=pos[1]-pan.pos[1];b.x-=dx;b.y-=dy;return;}
   if(!drag||busy)return;
-  if(drag.curveHandle){
+  if(drag.live&&(drag.curveHandle||drag.curveNode!==undefined)){
+    // No model mutation, SVG reconstruction, Bézier parse or diagnostic
+    // Worker occurs in the pointermove hot path.
+    drag.localTarget=[...pos];scheduleLiveDrag();
+  }else if(drag.curveHandle){
     try{doc.paths[drag.path]=moveCurveHandle(drag.before.paths[drag.path],drag.curveNode,drag.curveHandle,pos);scheduleDragRender();}
     catch(error){status(error.message);}
   }else if(drag.curveNode!==undefined){
@@ -1234,13 +1279,24 @@ function makeShape(d){const [x,y]=d.start,[a,b]=d.end||d.start;
   return d.shape==='rect'?{closed:true,points:[[x,y],[a,y],[a,b],[x,b]]}:{closed:true,points:Array.from({length:96},(_,i)=>{const t=i*Math.PI*2/96,r=Math.hypot(a-x,b-y);return [x+r*Math.cos(t),y+r*Math.sin(t)];})};
 }
 $('canvas').addEventListener('pointerup',e=>{
-  flushDragRender();
+  flushDragRender();flushLiveDrag();
   if(pan){pan=null;return;}if(!drag)return;
+  if(drag.live&&(drag.curveHandle||drag.curveNode!==undefined)){
+    // Perform the expensive native command serialization once, at mouseup.
+    const pos=at(e);
+    if(Math.hypot(pos[0]-drag.live.point[0],pos[1]-drag.live.point[1])>1e-10){
+      try{
+        doc.paths[drag.path]=drag.curveHandle
+          ?moveCurveHandle(drag.before.paths[drag.path],drag.curveNode,drag.curveHandle,pos)
+          :moveCurveNode(drag.before.paths[drag.path],drag.curveNode,pos);
+      }catch(error){status(error.message);doc=drag.before;}
+    }
+  }
   if(drag.shape&&drag.end&&Math.hypot(drag.end[0]-drag.start[0],drag.end[1]-drag.start[1])>.001){doc.paths.push(makeShape(drag));selected=new Set([doc.paths.length-1]);}
   if(curveEditing()&&(drag.curveHandle||drag.curveNode!==undefined))manualFocus={path:drag.path,point:at(e)};
   if(JSON.stringify(doc)!==JSON.stringify(drag.before)){checkpoint(drag.before);changed(drag.curveHandle?'curve-node-handle':drag.curveNode!==undefined?'curve-node-move':drag.shape?'draw-'+drag.shape:'move-nodes');}else render();drag=null;
 });
-$('canvas').addEventListener('pointercancel',()=>{flushDragRender();if(drag)doc=drag.before;drag=null;pan=null;render();});
+$('canvas').addEventListener('pointercancel',()=>{flushDragRender();flushLiveDrag();if(drag)doc=drag.before;drag=null;pan=null;render();});
 $('canvas').addEventListener('wheel',e=>{if(busy)return;e.preventDefault();zoom(e.deltaY>0?1.15:1/1.15,at(e));},{passive:false});
 document.addEventListener('keydown',e=>{
   if(busy||e.target.matches('input,textarea,select')||e.target.isContentEditable)return;
