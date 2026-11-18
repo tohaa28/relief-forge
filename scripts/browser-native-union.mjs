@@ -18,7 +18,7 @@ try{
  await page.locator('#file').setInputFiles({name:'native-cuts.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
  await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));
  await page.waitForFunction(()=>document.querySelector('#busy').hidden);
- assert.match(await page.locator('#optimization-result').innerText(),/8 → 12/);
+ assert.match(await page.locator('#optimization-result').textContent(),/8 → 12/);
  const displayed=await page.locator('#geometry').innerHTML(),eps=[];
  for(const mode of ['outline','original']){
   const pending=page.waitForEvent('download');await page.locator('#export-eps').click();
