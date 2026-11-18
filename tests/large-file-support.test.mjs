@@ -81,3 +81,10 @@ test('Large-document preflight warning is visible before conversion and remains 
   assert.match(app,/processed\+=batch.points;nextIndex\+\+/);
   assert.match(app,/failedBatches\+\+/);
 });
+
+test('Rust diagnostic traverses beyond 10000 issue-display ceiling',()=>{
+  const rust=readFileSync(new URL('../src/lib.rs',import.meta.url),'utf8');
+  const diag=rust.slice(rust.indexOf('pub fn diagnose('),rust.indexOf('pub fn remove_duplicates('));
+  assert.match(diag,/if out\.len\(\) < 10000/);
+  assert.doesNotMatch(diag,/return out;/,'marker overflow must not abort remaining geometric pairs');
+});
