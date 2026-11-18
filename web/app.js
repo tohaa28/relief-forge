@@ -7,6 +7,7 @@ import {issueDistanceLabel,screenUnitsPerPixel,renderIssueMarkers,createIssueBou
 import {issuesForManualEditor,resolveManualIssues,retainsIssuesDuringManualChange} from './manual-issue-state.js?v=0.2.0-alpha.55';
 import {diagnoseLocalNodeArea,localNodeRadius} from './local-node-diagnostics.js?v=0.2.0-alpha.55';
 import {buildAnchorIndex,nearbyAnchors,createLiveCurvePatch,drawLiveCurvePatch} from './manual-edit-performance.js?v=0.2.0-alpha.55';
+import {createDeferredCurveEditor} from './deferred-curve-editor.js?v=0.2.0-alpha.55';
 import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.55';
 import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.55';
 import {packedInput} from './auto-repair.js?v=0.2.0-alpha.55';
@@ -16,7 +17,7 @@ import {beginImportBefore,captureImportBefore,importedComparison} from './import
 import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js?v=0.2.0-alpha.55';
 import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.55';
 import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.55';
-import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.55';
+import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode,finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.55';
 import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.55';
 import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.55';
 import {inspectDocumentComplexity,largeFileWarning} from './complexity-preflight.js?v=0.2.0-alpha.55';
@@ -121,6 +122,132 @@ function finalizePendingSettingsApply(preview){
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',near_node:'Сближенные узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
 let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null,manualDiagnosticsPending=false;
 let manualFocus=null,manualLocalTimer=null,manualLocalGeneration=0;
+
+let localEditors=new Map(),localEditUndo=[],localEditRedo=[],localEditCount=0;
+let localEditorIndexes=new Map();
+function localEditor(path){
+  if(!doc.paths[path]||doc.paths[path].kind==='image')return null;
+  if(!localEditors.has(path)){
+    const editor=createDeferredCurveEditor(doc.paths[path]);
+    localEditors.set(path,editor);
+    localEditorIndexes.set(path,buildAnchorIndex(editor.nodeList()));
+  }
+  return localEditors.get(path);
+}
+function resetLocalEditors(){
+  localEditors.clear();localEditorIndexes.clear();
+  localEditUndo=[];localEditRedo=[];localEditCount=0;
+  $('manual-patches').replaceChildren();
+  $('manual-glyphs').replaceChildren();
+  document.body.classList.remove('local-editor-active');
+}
+function localEditorToolbar(){
+  const active=curveEditing()&&activeCurveNode;
+  for(const name of ['move','add','remove','handles'])
+    $('node-'+name).classList.toggle('active',nodeTool===name);
+  $('canvas').dataset.nodeTool=curveEditing()?nodeTool:'';
+  $('canvas').style.cursor=curveEditing()?
+    (nodeTool==='add'?plusCursor:nodeTool==='remove'?minusCursor:nodeTool==='handles'?'crosshair':''):'';
+  for(const name of ['cusp','smooth','symmetric','line','curve','break','close','reverse'])
+    $('node-'+name).disabled=busy||!active;
+  $('undo').disabled=busy||!(localEditUndo.length||past.length);
+  $('redo').disabled=busy||!(localEditRedo.length||future.length);
+  $('node-hint').textContent=active?
+    'Локальное редактирование узла '+(active.index+1)+' · изменения фигуры и диагностика после выхода.':
+    'Локальный режим: выберите узел. Исходная фигура не изменяется до кнопки «Готово».';
+}
+function drawLocalEditorOverlay(){
+  if(!curveEditing()||!localEditors.size)return;
+  document.body.classList.add('local-editor-active');
+  const layer=$('manual-patches');layer.replaceChildren();
+  for(const [path,editor] of localEditors){
+    for(const piece of editor.affectedSVG())
+      el('path',{class:'manual-staged-segment',d:piece.d,'data-local-path':path,
+        'data-local-segment':piece.key},layer);
+  }
+  const glyphs=$('manual-glyphs');glyphs.replaceChildren();
+  if(!manualFocus)return;
+  const path=manualFocus.path,editor=localEditor(path);
+  if(!editor)return;
+  let indexed=localEditorIndexes.get(path);
+  if(!indexed){indexed=buildAnchorIndex(editor.nodeList());localEditorIndexes.set(path,indexed);}
+  const view=$('canvas').viewBox.baseVal,
+    unit=screenUnitsPerPixel(view,$('canvas').clientWidth,$('canvas').clientHeight);
+  const focus=manualFocus.point;
+  const near=nearbyAnchors(indexed,focus,Math.max(unit*135,settingNumber('tolerance')*3),
+    {limit:200,includeIndex:activeCurveNode?.path===path?activeCurveNode.index:null});
+  const seen=new Set();
+  for(const n of near){
+    const pos=editor.nodePosition(n.index)||n.point;
+    seen.add(n.index);
+    const selected=activeCurveNode?.path===path&&activeCurveNode.index===n.index,
+      kind=editor.getNode(n.index)?.type||n.type;
+    const attrs={'data-path':path,'data-curve-node':n.index,
+      class:'curve-node'+(selected?' chosen':'')};
+    if(kind==='smooth')el('circle',{...attrs,cx:pos[0],cy:pos[1],r:unit*4.5},glyphs);
+    else if(kind==='symmetric')el('polygon',{...attrs,
+      points:[[pos[0],pos[1]-unit*5.2],[pos[0]+unit*5.2,pos[1]],
+        [pos[0],pos[1]+unit*5.2],[pos[0]-unit*5.2,pos[1]]]
+        .map(p=>p.join(',')).join(' ')},glyphs);
+    else el('rect',{...attrs,x:pos[0]-unit*4.2,y:pos[1]-unit*4.2,
+      width:unit*8.4,height:unit*8.4},glyphs);
+  }
+  if(activeCurveNode?.path===path){
+    const patch=editor.viewPatch(activeCurveNode.index);
+    if(patch){
+      for(const [side,points] of [['in',patch.incoming],['out',patch.outgoing]]){
+        if(!points||points.length<2)continue;
+        const control=side==='in'?points.at(-2):points[1],anchor=patch.point;
+        el('path',{d:'M'+anchor.join(' ')+'L'+control.join(' '),
+          class:'curve-tangent-guide'},glyphs);
+        el('circle',{cx:control[0],cy:control[1],r:unit*4.5,
+          class:'curve-control-handle','data-path':path,
+          'data-curve-node':activeCurveNode.index,'data-curve-handle':side},glyphs);
+      }
+    }
+  }
+  localEditorToolbar();
+}
+function localEditorModified(path,action){
+  if(!curveEditing())return;
+  localEditUndo.push(path);localEditRedo=[];localEditCount++;
+  manualDiagnosticsPending=true;diagnosticComplete=false;
+  record('manual-staged-'+action,{path,edits:localEditCount,
+    geometryCommitted:false,fullDiagnosticDeferred:true});
+  localEditorIndexes.set(path,buildAnchorIndex(localEditors.get(path).nodeList()));
+  drawLocalEditorOverlay();
+  status('Локальная правка сохранена в редакторе ('+localEditCount+
+    '). Общий пересчёт и проверка только после «Готово».');
+}
+function exitDeferredCurveEditor(){
+  clearTimeout(manualLocalTimer);++manualLocalGeneration;
+  clearTimeout(clearanceTimer);clearanceWorker?.terminate();clearanceWorker=null;
+  ++clearanceJob;clearanceKey='';
+  const updated=new Map();
+  try{
+    for(const [path,editor] of localEditors){
+      if(!editor.modified())continue;
+      const snapshot=editor.finish();
+      updated.set(path,finishDeferredCurveCommands(
+        doc.paths[path],snapshot.commands,snapshot.nodeKinds));
+    }
+  }catch(error){
+    status('Не удалось сохранить локальные изменения: '+error.message+
+      '. Режим редактора сохранён, исходная фигура не тронута.');
+    return false;
+  }
+  if(updated.size)checkpoint();
+  for(const [path,vector] of updated)doc.paths[path]=vector;
+  mode='select';activeCurveNode=null;manualFocus=null;resetLocalEditors();
+  if(updated.size){
+    record('manual-batch-commit',{paths:[...updated.keys()],operations:localEditCount});
+    changed('curve-session-commit');
+  }else{render();requestRecalculation();}
+  status(updated.size?'Локальные изменения применены. Запущена общая повторная проверка.':
+    'Редактор закрыт; исходная фигура без изменений.');
+  return true;
+}
+
 let anchorViewportCache=new WeakMap();
 function editorAnchorCache(path){
   let indexed=anchorViewportCache.get(path);
