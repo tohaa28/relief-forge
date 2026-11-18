@@ -93,7 +93,12 @@ export function importRichSvg(text,{unitsPerInch=96,Parser=globalThis.DOMParser}
 export function sampledContours(p,tolerance=.01){
   if(!p.artwork)return normalizeDiagnosticClosure([{points:p.points.map(q=>[...q]),closed:p.closed}]);if(p.kind==='image')return [];
   const c=commands(worldData(p)),out=[];let path=null,prev=[0,0];let count=0;
-  const add=q=>{if(++count>20000)throw Error('Кривая слишком сложна: увеличьте допуск или уменьшите выборку');path.points.push(q);};
+  // One SVG element can contain thousands of independent M…Z contours.
+  // Never discard the entire object merely because their *combined* sampled
+  // vertex count exceeds 20,000. The 200,000 safety budget is per continuous
+  // contour; the diagnostic planner windows that contour into <=2,000-point
+  // Rust jobs without altering its Bézier source.
+  const add=q=>{if(++count>200000)throw Error('Один контур требует более 200000 расчётных точек при выбранном допуске');path.points.push(q);};
   const subdivide=(a,b,c,d,depth=0)=>{
     const dist=q=>{const dx=d[0]-a[0],dy=d[1]-a[1],l=Math.hypot(dx,dy);return l?Math.abs(dy*q[0]-dx*q[1]+d[0]*a[1]-d[1]*a[0])/l:Math.hypot(q[0]-a[0],q[1]-a[1]);};
     if(depth>=18||Math.max(dist(b),dist(c))<=tolerance){add(d);return;}
@@ -101,7 +106,7 @@ export function sampledContours(p,tolerance=.01){
     subdivide(a,ab,abc,m,depth+1);subdivide(m,bcd,cd,d,depth+1);
   };
   for(const s of c){const op=s[0],end=s.slice(-2);
-    if(op==='M'){path={points:[end],closed:false};out.push(path);}
+    if(op==='M'){count=0;path={points:[end],closed:false};out.push(path);}
     else if(op==='L')add(end);
     else if(op==='C')subdivide(prev,s.slice(1,3),s.slice(3,5),end);
     else if(op==='Q'){const q=s.slice(1,3);subdivide(prev,[prev[0]+2*(q[0]-prev[0])/3,prev[1]+2*(q[1]-prev[1])/3],[end[0]+2*(q[0]-end[0])/3,end[1]+2*(q[1]-end[1])/3],end);}
