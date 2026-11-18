@@ -24,10 +24,17 @@ try{
  assert.equal(await page.locator('#clearance-markers circle').getAttribute('fill'),'#ff79bb');
  const value=Number(await page.locator('#clearance-markers circle').getAttribute('data-distance-mm'));assert.ok(Math.abs(value-.05)<1e-7);
  if(process.env.CLEARANCE_SCREENSHOT)await page.screenshot({path:process.env.CLEARANCE_SCREENSHOT});
- await page.locator('#clearance-threshold').fill('0.04');await page.locator('#clearance-threshold').dispatchEvent('change');
+ const setClearance=async value=>{
+  await page.locator('#clearance-threshold').fill(String(value));
+  assert.match(await page.locator('#settings-pending').textContent(),/не применены/,
+    'threshold edits remain pending without remeasurement');
+  await page.locator('#apply-changes').click();
+  await page.waitForFunction(()=>document.querySelector('#settings-pending').textContent==='Текущие параметры применены.');
+ };
+ await setClearance('0.04');
  await page.waitForFunction(()=>document.querySelector('#clearance-status').textContent.includes('Узкие места < 0.04 мм: 0'));
  assert.equal(await page.locator('#clearance-markers circle').count(),0);assert.equal(await page.locator('#geometry').innerHTML(),geometry,'measurement must not change vectors');
- await page.locator('#clearance-threshold').fill('0.06');await page.locator('#clearance-threshold').dispatchEvent('change');
+ await setClearance('0.06');
  await page.waitForFunction(()=>document.querySelector('#clearance-markers circle'));
  await page.locator('#compare-after').click();await page.waitForFunction(()=>document.querySelector('#clearance-status').textContent.includes('проверка завершена'));
  assert.equal(await page.locator('#clearance-markers circle').count(),1);
@@ -36,7 +43,7 @@ try{
  if(await page.locator('#eps-save-warning').isVisible())await page.locator('#eps-save-anyway').click();
  const download=await pending,stream=await download.createReadStream(),chunks=[];for await(const c of stream)chunks.push(c);const eps=Buffer.concat(chunks).toString();
  assert.ok(eps.includes('curveto')||eps.includes(' c'));assert.equal(/ff79bb|clearance-markers|data-distance-mm/.test(eps),false);
- await page.locator('#clearance-threshold').fill('0.1');await page.locator('#clearance-threshold').dispatchEvent('change');
+ await setClearance('0.1');
  const scene=async(paths,name)=>{
   const svg='<svg xmlns="http://www.w3.org/2000/svg" width="20mm" height="10mm" viewBox="0 0 20 10">'+paths.map(d=>'<path fill="none" stroke="black" stroke-width=".01" d="'+d+'"/>').join('')+'</svg>';
   await page.locator('#file').setInputFiles({name,mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
