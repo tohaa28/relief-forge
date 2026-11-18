@@ -1,3 +1,6 @@
+# 0.2.0-alpha.52 candidate — large EPS batch continuity (not yet published)
+- Preflight warnings for complex binary DOS EPS; multi-subpath diagnostic sampling fixes old 20k-per-object overflow; processed/checked counters detect failed batches. Preserves all original native cubic commands, BEFORE import geometry, cached AFTER and EPS parity; incomplete global cross-batch verification remains honestly marked. See PR #79 and docs/history/ALPHA52_LARGE_EPS_WORKLOG.md.
+
 # 0.2.0-alpha.47 PUBLISHED — 2026-10-27
 - User-reported alpha46 file-opening stall addressed by two scoped liveness guards. Source PR [#72](https://github.com/tohaa28/relief-forge/pull/72) merged to `main` at [1c555f7](https://github.com/tohaa28/relief-forge/commit/1c555f75c4dee615d503ffe1f35ec47f6faf653b).
 - Full source-head [CI40474000366](https://github.com/tohaa28/relief-forge/actions/runs/40474000366) SUCCESS (263 JavaScript, 17 Rust, compiled WASM, browser EPS/PDF/Undo/CNC). Earlier [40473671985](https://github.com/tohaa28/relief-forge/actions/runs/40473671985) SUCCESS includes real Chromium never-resolving `navigator.gpu.requestAdapter()` injection: 18 object SVG completes CPU fallback AFTER; synthetic complex 2650-node import, EPS export, Undo also complete.

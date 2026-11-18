@@ -148,12 +148,15 @@ fn edge_boxes_meet(a: Point, b: Point, c: Point, d: Point, tol: f64) -> bool {
 }
 pub fn diagnose(paths: &[Path], tol: f64) -> Vec<Issue> {
     let mut out = Vec::new();
+    // Never end the geometry traversal when the marker display cap is reached.
+    // Keep the first 10k issues for bounded JSON/UI memory, but continue
+    // evaluating all remaining path and segment pairs in this Rust job.
+    // The response still marks diagnosticComplete=false on marker overflow.
     macro_rules! emit {
         ($issue:expr) => {{
-            if out.len() >= 10000 {
-                return out;
+            if out.len() < 10000 {
+                out.push($issue);
             }
-            out.push($issue);
         }};
     }
     for (i, p) in paths.iter().enumerate() {
