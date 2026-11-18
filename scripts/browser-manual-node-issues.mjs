@@ -63,7 +63,8 @@ try{
   assert.doesNotMatch(await page.locator('#issues').textContent(),/Открытый контур/,
     'successful rescan must remove manually resolved open defect');
 
-  await page.locator('#undo').click();
+  // Undo is inside the collapsed Creation menu; use the real Ctrl+Z shortcut.
+  await page.keyboard.press('Control+z');
   await page.waitForFunction(()=>
     document.querySelector('#busy').hidden&&
     !document.querySelector('#summary').textContent.includes('Идёт повторная проверка')&&
