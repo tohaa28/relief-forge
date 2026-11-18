@@ -220,7 +220,7 @@ const currentComparison=()=>curvePreview?.comparisonData||appliedComparison;
 function zoom(factor,center){const box=$('canvas').viewBox.baseVal,view=zoomBox({x:box.x,y:box.y,width:box.width,height:box.height},factor,center);if(!view)return; $('canvas').setAttribute('viewBox',`${view.x} ${view.y} ${view.width} ${view.height}`);render();}
 function focusIssue(issue){
   const canvas=$('canvas'),view=canvas.viewBox.baseVal;
-  const rawTolerance=Number($('tolerance').value);
+  const rawTolerance=settingNumber('tolerance');
   const tolerance=Number.isFinite(rawTolerance)&&rawTolerance>0?rawTolerance:0.01;
   const next=issueViewBox({x:view.x,y:view.y,width:view.width,height:view.height},issue.point,doc,tolerance);
   if(!next){status('Невозможно перейти к замечанию: неверные координаты.');return;}
@@ -430,7 +430,7 @@ function render(){
     // of hollow rings blocks the main thread but does not add diagnostics.
     const count=visibleDoc.paths.reduce((n,p)=>n+(p.points?.length||0),0);
     if(count<=2400){
-      const healthy=visibleHealthyAnchors(visibleDoc,visibleIssues,Number($('tolerance').value));
+      const healthy=visibleHealthyAnchors(visibleDoc,visibleIssues,settingNumber('tolerance'));
       if(healthy.length)el('path',{d:circlePath(healthy,radius),class:'healthy-anchors'},$('nodes'));
     }
   }
@@ -1034,9 +1034,9 @@ async function runProgressiveDiagnostics(indices,tolerance){
 function calculate(action){
   if(!ready||busy)return;
   if(currentComparison()&&action){status('Закройте режим ДО/ПОСЛЕ перед ручным редактированием.');return;}
-  const selectedScope=doc.paths.map((_,i)=>i).filter(i=>(!$('selection-only').checked||!selected.size||selected.has(i))&&doc.paths[i].kind!=='image');
+  const selectedScope=doc.paths.map((_,i)=>i).filter(i=>(!settingChecked('selection-only')||!selected.size||selected.has(i))&&doc.paths[i].kind!=='image');
   if(!selectedScope.length){status('Нет векторов для проверки');return;}
-  const tol=Number($('tolerance').value),parameter=Number($('loop-percent').value);
+  const tol=settingNumber('tolerance'),parameter=Number($('loop-percent').value);
   if(!Number.isFinite(tol)||tol<1e-9||tol>1000){status('Укажите допуск от 0.000000001 до 1000 мм');return;}
   if(action&&selectedScope.some(i=>doc.paths[i].artwork)){status('Исходные EPS-кривые сохранены. Для лечения сначала создайте полилинии кнопкой «Копия для лечения».');return;}
   if(action===0){void runProgressiveDiagnostics(selectedScope,tol);return;}
@@ -1406,17 +1406,17 @@ window.addEventListener('drop',e=>{
 });
 $('fonts').onchange=async e=>{try{const files=[...e.target.files];if(files.reduce((n,f)=>n+f.size,0)>32*1024*1024)throw Error('Шрифты: максимум 32 МБ');importFonts=await Promise.all(files.map(async f=>({name:f.name,bytes:new Uint8Array(await f.arrayBuffer())})));$('font-count').textContent=importFonts.length+' шрифтов';status('Шрифты будут использованы при следующем импорте EPS.');}catch(error){status(error.message);}};
 $('demo-eps').onclick=async()=>{try{const response=await fetch('examples/curves-text-clip.eps');if(!response.ok)throw Error('Не удалось загрузить пример');importEps(new Uint8Array(await response.arrayBuffer()),'curves-text-clip.eps');}catch(e){status(e.message);}};
-$('heal-copy').onclick=()=>{try{const ids=[...selected].filter(i=>doc.paths[i].kind!=='image');if(!ids.length)throw Error('Выделите импортированные векторы');const tol=Number($('tolerance').value);if(!Number.isFinite(tol)||tol<1e-6||tol>1000)throw Error('Укажите допуск от 0.000001 до 1000 мм');const copies=ids.flatMap(i=>sampledContours(doc.paths[i],tol));checkpoint();const start=doc.paths.length;doc.paths.push(...copies);selected=new Set(copies.map((_,i)=>start+i));changed('create-healing-copy');status(`Создано ${copies.length} полилиний, допуск ${tol} мм. Исходные кривые сохранены отдельными объектами.`);}catch(e){status(e.message);}};
+$('heal-copy').onclick=()=>{try{const ids=[...selected].filter(i=>doc.paths[i].kind!=='image');if(!ids.length)throw Error('Выделите импортированные векторы');const tol=settingNumber('tolerance');if(!Number.isFinite(tol)||tol<1e-6||tol>1000)throw Error('Укажите допуск от 0.000001 до 1000 мм');const copies=ids.flatMap(i=>sampledContours(doc.paths[i],tol));checkpoint();const start=doc.paths.length;doc.paths.push(...copies);selected=new Set(copies.map((_,i)=>start+i));changed('create-healing-copy');status(`Создано ${copies.length} полилиний, допуск ${tol} мм. Исходные кривые сохранены отдельными объектами.`);}catch(e){status(e.message);}};
 $('export').onclick=()=>{download('relief-forge.svg',exportDocument(doc),'image/svg+xml');record('export-svg');};
 function readEpsSaveSettings(){
-  return {diagnosticTolerance:Number($('tolerance').value),
-    smoothingAmount:Number($('smoothing-amount').value),
-    optimizationTolerance:Number($('optimization-tolerance').value),
-    mergeOverlaps:$('merge-overlaps').checked,
-    microEnabled:$('remove-micro')?.checked??true,
-    microWidth:Number($('micro-width')?.value??.1),
-    microHeight:Number($('micro-height')?.value??.1),
-    scope:selectedVectorIndices(doc,selected,$('selection-only').checked)};
+  return {diagnosticTolerance:settingNumber('tolerance'),
+    smoothingAmount:settingNumber('smoothing-amount'),
+    optimizationTolerance:settingNumber('optimization-tolerance'),
+    mergeOverlaps:settingChecked('merge-overlaps'),
+    microEnabled:settingChecked('remove-micro'),
+    microWidth:settingNumber('micro-width'),
+    microHeight:settingNumber('micro-height'),
+    scope:selectedVectorIndices(doc,selected,settingChecked('selection-only'))};
 }
 let epsColorMode='outline';
 function prepareEpsOutput(document){
