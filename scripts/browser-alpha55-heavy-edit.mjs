@@ -64,10 +64,39 @@ try{
  assert.ok((report.localD.match(/C/g)||[]).length<=2);
  assert.equal(report.pending,false,'the editor must never launch a full-document Worker while dragging');
  await page.mouse.up();
- await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Локально перепроверена область'),{},{timeout:120000});
+ // Newly staged editing must not modify the source compound geometry even
+ // after pointerup. The owner document is serialized only on editor exit.
+ assert.ok(await page.locator('#manual-patches .manual-staged-segment').count()>0);
+ const initialMarkup=await page.locator('#geometry').innerHTML();
  assert.equal(await page.locator('#busy').isHidden(),true);
+ assert.match(await page.locator('#status').textContent(),/Локальная правка сохранена/);
+ const afterFirst=await page.locator('#geometry').innerHTML();
+ assert.equal(afterFirst,initialMarkup);
+ // Undo/redo are local, with no full-document geometry rebuild.
  await page.keyboard.press('Control+z');
- await page.waitForFunction(()=>document.querySelector('#busy').hidden,{},{timeout:30000});
+ assert.equal(await page.locator('#geometry').innerHTML(),initialMarkup);
+ await page.keyboard.press('Control+y');
+ assert.equal(await page.locator('#geometry').innerHTML(),initialMarkup);
+ // Six more actual mouse releases on the same local glyph. The entire
+ // 2300-curve geometry DOM remains byte-for-byte untouched.
+ for(let i=0;i<6;i++){
+   const node=page.locator('#manual-glyphs .curve-node').first();
+   const rect=await node.boundingBox();assert.ok(rect);
+   const startX=rect.x+rect.width/2,startY=rect.y+rect.height/2;
+   await page.mouse.move(startX,startY);
+   await page.mouse.down();
+   await page.mouse.move(startX+2,startY+1);
+   await page.mouse.up();
+   assert.equal(await page.locator('#geometry').innerHTML(),initialMarkup);
+ }
+ const staged=await page.locator('#manual-patches .manual-staged-segment').count();
+ assert.ok(staged>0&&staged<50,'local overlays must be bounded by touched segments');
+ await page.locator('#node-done').click();
+ await page.waitForFunction(()=>!document.body.classList.contains('curve-editing'),{},{timeout:30000});
+ assert.equal(await page.locator('#manual-patches .manual-staged-segment').count(),0);
+ assert.equal(await page.locator('#manual-glyphs .curve-node').count(),0);
+ assert.notEqual(await page.locator('#geometry').innerHTML(),initialMarkup,
+   'the entire document is rebuilt once, only on explicit editor exit');
  assert.deepEqual(errors,[]);
- console.log('PASS alpha55 stress browser: 2300 cubic segments, <=240 anchor DOM, 40 pointermoves/zero geometry rebuilds, tiny patch, local confirm, Undo');
+ console.log('PASS alpha56 stress browser: 2300 C, 40 pointermoves and 7 mouseups without whole-figure rebuild, local undo/redo, one final batch commit');
 }finally{await browser?.close();server.kill();}
