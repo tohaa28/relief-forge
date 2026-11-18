@@ -1,3 +1,9 @@
+# Alpha.55: инкрементальный редактор узлов (кандидат)
+- Нагрузочный gerb2.pdf: единственный составной вектор, 7545 C; 1 объект нельзя считать локальной единицей обработки.
+- Быстрое экранное представление: <=240 ближайших SVG-якорей; per-frame patch только для до двух инцидентных C/Q/L сегментов; полная сериализация кривой один раз после pointerup; полная диагностика на выходе из редактора.
+- Исходные CorelDRAW PDF/EPS, ДО, Undo, Union, CNC и экспорт не изменены. [Отчёт alpha55](history/ALPHA55_LARGE_PDF_PERFORMANCE.md).
+- CI и production пока не подтверждены.
+
 # Alpha.54 candidate — one compact settings card, button-only calculation and cursor-local node recheck
 - **Implemented, CI pending:** right-side inspector grouped into one section, tooltip help for every input; draft/committed settings separated; no onchange background recalculation; local Bézier anchor/segment scan around mouse radius, global clearance worker suspended in edit mode, unobstructed X delete cursor.
 - **Not certified:** full cross-window diagnosis from the local scan, third-party sample acceptance, production deploy. [Worklog](history/ALPHA54_EDITOR_SETTINGS_WORKLOG.md).
