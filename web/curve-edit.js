@@ -1,4 +1,4 @@
-import svgpath from './vendor/svgpath.mjs?v=0.2.0-alpha.53';
+import svgpath from './vendor/svgpath.mjs?v=0.2.0-alpha.54';
 
 const end=c=>c.slice(-2),same=(a,b)=>a[0]===b[0]&&a[1]===b[1];
 const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
