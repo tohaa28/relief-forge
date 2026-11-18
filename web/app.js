@@ -619,20 +619,46 @@ function requestRecalculation(){
   },180);
 }
 $('optimization-range').oninput=()=>{
-  $('optimization-tolerance').value=$('optimization-range').value;requestRecalculation();
+  $('optimization-tolerance').value=$('optimization-range').value;markSettingsDirty();
 };
-$('optimization-tolerance').onchange=()=>{
+$('optimization-tolerance').oninput=()=>{
   const t=Number($('optimization-tolerance').value);
-  if(Number.isFinite(t))$('optimization-range').value=String(Math.max(.001,Math.min(.25,t)));
-  requestRecalculation();
+  if(Number.isFinite(t)&&t>=.001&&t<=.25)$('optimization-range').value=String(t);
+  markSettingsDirty();
 };
-$('smoothing-amount').onchange=requestRecalculation;
-$('tolerance').onchange=requestRecalculation;
-$('clearance-threshold').onchange=()=>render();
-$('selection-only').onchange=requestRecalculation;
-$('merge-overlaps').onchange=requestRecalculation;
-for(const id of ['remove-micro','micro-width','micro-height'])$(id).onchange=requestRecalculation;
-$('apply-changes').onclick=applyUnifiedChanges;
+for(const id of settingIds){
+  $(id).addEventListener('change',markSettingsDirty);
+  if(!settingChecks.has(id))$(id).addEventListener('input',markSettingsDirty);
+}
+async function applySettingsAndChanges(){
+  if(busy||!ready||!doc.paths.some(p=>p.kind!=='image'))return;
+  const next=readSettingsForm(),error=validateSettingsDraft(next);
+  if(error){status(error);$('settings-pending').textContent=error;return;}
+  if(settingsDirty){
+    appliedSettings=next;settingsDirty=false;
+    $('settings-pending').classList.remove('unsaved');
+    if(curveEditing()){
+      $('settings-pending').textContent='Параметры сохранены. В редакторе узлов нет полного пересчёта: проверяется только область курсора.';
+      if(manualFocus){manualDiagnosticsPending=true;scheduleManualLocalRecheck();}
+      render();status('Параметры сохранены для следующей операции. Ручная проверка остаётся локальной.');
+      return;
+    }
+    // Explicit commit is the only point where new settings may trigger a
+    // global optimizer or an expensive clearance scan.
+    const scope=selectedVectorIndices(doc,selected,settingChecked('selection-only'));
+    if(!scope.length){status('Нет векторных объектов для обработки.');return;}
+    pendingSettingsApply=true;
+    $('settings-pending').textContent='Параметры приняты. Выполняется однократный пересчёт…';
+    record('settings-apply',{settings:appliedSettings,scope});
+    const count=scope.reduce((sum,i)=>sum+(doc.paths[i].commands?.length??doc.paths[i].points?.length??0),0);
+    if(count>2500||scope.length>150)await buildLargeUnifiedPreview(scope);
+    else await buildUnifiedPreview();
+    return;
+  }
+  if(curvePreview?.hasGeometryChange)applyUnifiedChanges();
+  else status('Геометрия уже соответствует применённым настройкам.');
+}
+$('apply-changes').onclick=()=>{void applySettingsAndChanges();};
 
 function spawnWorker(){
   ready=false;$('engine').textContent='○ Загрузка Rust / WASM…';
