@@ -55,10 +55,15 @@ function updateClearance(document,unit){
 // Real crosshair target (hotspot at the exact central pixel); no text glyph
 // whose rendering varies between Windows/Firefox and Chromium.
 const nodeCursor=kind=>{
+  if(kind==='remove'){
+    // Compact red X, zero filled pixels at the exact 12×12 cursor hotspot:
+    // no opaque circle/halo obscuring a dense Bézier anchor underneath.
+    const svg='<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">'+
+      '<path d="M6 6L10 10 M14 14L18 18 M18 6L14 10 M10 14L6 18" stroke="#cf343c" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>';
+    return 'url("data:image/svg+xml,'+encodeURIComponent(svg)+'") 12 12, crosshair';
+  }
   const arms='<path d="M16 1V7 M16 25V31 M1 16H7 M25 16H31" stroke="#173946" stroke-width="1.7"/>';
-  const mark=kind==='remove'
-    ?'<path d="M12 12L20 20 M20 12L12 20" stroke="#d83b42" stroke-width="2.5" stroke-linecap="round"/>'
-    :'<path d="M16 11V21 M11 16H21" stroke="#008c82" stroke-width="2.5" stroke-linecap="round"/>';
+  const mark='<path d="M16 11V21 M11 16H21" stroke="#008c82" stroke-width="2.5" stroke-linecap="round"/>';
   const svg='<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="8.5" fill="white" fill-opacity=".92" stroke="#173946" stroke-width="1.6"/>'+arms+mark+'</svg>';
   return 'url("data:image/svg+xml,'+encodeURIComponent(svg)+'") 16 16, crosshair';
 };
