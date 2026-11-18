@@ -1,33 +1,34 @@
-import {prepareNativeIntersections} from './native-intersections.js?v=0.2.0-alpha.52';
-import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.52';
-import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.52';
-import {issueViewBox} from './issue-focus.js?v=0.2.0-alpha.52';
-import {visibleHealthyAnchors,circlePath} from './vector-points.js?v=0.2.0-alpha.52';
-import {issueDistanceLabel,screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.52';
-import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.52';
-import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.52';
-import {packedInput} from './auto-repair.js?v=0.2.0-alpha.52';
-import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js?v=0.2.0-alpha.52';
-import {removeTinyClosedSubpaths} from './cnc-microfilter.js?v=0.2.0-alpha.52';
-import {beginImportBefore,captureImportBefore,importedComparison} from './import-before.js?v=0.2.0-alpha.52';
-import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js?v=0.2.0-alpha.52';
-import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.52';
-import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.52';
-import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.52';
-import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.52';
-import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.52';
-import {inspectDocumentComplexity,largeFileWarning} from './complexity-preflight.js?v=0.2.0-alpha.52';
-import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.52';
-import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.52';
-import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.52';
-import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.52';
-import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.52';
-import {runNativeJob,cancelNativeJobs} from './native-jobs.js?v=0.2.0-alpha.52';
+import {prepareNativeIntersections} from './native-intersections.js?v=0.2.0-alpha.53';
+import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.53';
+import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.53';
+import {issueViewBox} from './issue-focus.js?v=0.2.0-alpha.53';
+import {visibleHealthyAnchors,circlePath} from './vector-points.js?v=0.2.0-alpha.53';
+import {issueDistanceLabel,screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.53';
+import {issuesForManualEditor,resolveManualIssues,retainsIssuesDuringManualChange} from './manual-issue-state.js?v=0.2.0-alpha.53';
+import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.53';
+import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.53';
+import {packedInput} from './auto-repair.js?v=0.2.0-alpha.53';
+import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js?v=0.2.0-alpha.53';
+import {removeTinyClosedSubpaths} from './cnc-microfilter.js?v=0.2.0-alpha.53';
+import {beginImportBefore,captureImportBefore,importedComparison} from './import-before.js?v=0.2.0-alpha.53';
+import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js?v=0.2.0-alpha.53';
+import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.53';
+import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.53';
+import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode} from './curve-edit.js?v=0.2.0-alpha.53';
+import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.53';
+import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.53';
+import {inspectDocumentComplexity,largeFileWarning} from './complexity-preflight.js?v=0.2.0-alpha.53';
+import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.53';
+import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.53';
+import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.53';
+import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.53';
+import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.53';
+import {runNativeJob,cancelNativeJobs} from './native-jobs.js?v=0.2.0-alpha.53';
 const mergeOverlappingObjects=(document,options)=>runNativeJob({action:'union',document,options});
-import {gpuBroadphase} from './gpu-broadphase.js?v=0.2.0-alpha.52';
-import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.52';
-import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.52';
-import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.52';
+import {gpuBroadphase} from './gpu-broadphase.js?v=0.2.0-alpha.53';
+import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.53';
+import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.53';
+import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.53';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 let clearanceKey='',clearanceJob=0,clearanceTimer=null,clearanceWorker=null,clearanceReport=null;
 function updateClearance(document,unit){
@@ -38,7 +39,7 @@ function updateClearance(document,unit){
     clearanceKey=key;clearanceReport=null;clearanceJob++;clearTimeout(clearanceTimer);clearanceWorker?.terminate();clearanceWorker=null;
     label.textContent=threshold?'Измерение расстояний…':'Укажите расстояние больше 0 и не больше 1000 мм.';
     if(threshold&&document.paths.length){const id=clearanceJob;clearanceTimer=setTimeout(()=>{
-      clearanceWorker=new Worker(new URL('./clearance-worker.js?v=0.2.0-alpha.52',import.meta.url),{type:'module'});
+      clearanceWorker=new Worker(new URL('./clearance-worker.js?v=0.2.0-alpha.53',import.meta.url),{type:'module'});
       clearanceWorker.onmessage=({data})=>{if(data.id!==clearanceJob)return;clearanceReport=data.report||null;label.textContent=data.error||('Узкие места < '+threshold+' мм: '+data.report.markers.length+(data.report.complete?' · проверка завершена':' · проверка неполная (лимит или пограничная точность)'));clearanceWorker?.terminate();clearanceWorker=null;render();};
       clearanceWorker.onerror=()=>{if(id!==clearanceJob)return;label.textContent='Измерение расстояний не завершено: ошибка вычисления.';clearanceWorker?.terminate();clearanceWorker=null;};
       clearanceWorker.postMessage({id,document:{paths:document.paths.map(p=>({kind:p.kind,artwork:Boolean(p.artwork),commands:p.commands,points:p.points,closed:p.closed,offset:p.offset}))},threshold});
@@ -64,7 +65,7 @@ const plusCursor=nodeCursor('add'),minusCursor=nodeCursor('remove');
 const curveEditing=()=>mode==='nodes';
 const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',near_node:'Сближенные узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
-let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null;
+let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null,manualDiagnosticsPending=false;
 let importedBefore=null;
 let comparisonSelectionExplicit=false; // user choice wins over automated re-diagnosis
 let doc={format:'relief-forge',version:1,width:300,height:200,paths:[]},selected=new Set(),issues=[],metrics=[],past=[],future=[],mode='select',draft=[],drag=null,pan=null,worker,ready=false,pending=null,sequence=0,busy=false;
@@ -123,7 +124,26 @@ function beginFileHistory(filename){
   renderFileHistory();
   return activeHistoryId;
 }
-function changed(action){suppressNextDiagnostic=false;comparisonSelectionExplicit=false;if(importedBefore&&!action.startsWith('import-'))importedBefore.pending=false;if(!action.startsWith('curve-node')&&action!=='move-nodes')activeCurveNode=null;issues=[];metrics=[];diagnosticComplete=true;markersVisible=true;appliedComparison=null;curvePreview=null;compareStage='before';if(activeHistoryId&&!action.startsWith('import-')&&action!=='auto-apply')updateFileHistory({status:'Изменён · требуется повторная проверка',diagnosis:null,repair:null});record(action,{paths:doc.paths.length,nodes:doc.paths.reduce((n,p)=>n+p.points.length,0)});render();if(!action.startsWith('import-')&&action!=='unified-apply')requestRecalculation();}
+function changed(action){
+  suppressNextDiagnostic=false;comparisonSelectionExplicit=false;
+  if(importedBefore&&!action.startsWith('import-'))importedBefore.pending=false;
+  if(!action.startsWith('curve-node')&&action!=='move-nodes')activeCurveNode=null;
+  // During manual Bézier editing, the previous witnessed defects remain visible
+  // while the changed geometry is rechecked. Only a successful new scan may
+  // remove them; clearing here falsely makes an unhealed point look healthy.
+  if(retainsIssuesDuringManualChange(mode,action)){
+    manualDiagnosticsPending=true;
+    diagnosticComplete=false;
+  }else{
+    issues=[];metrics=[];diagnosticComplete=true;manualDiagnosticsPending=false;
+  }
+  markersVisible=true;appliedComparison=null;curvePreview=null;compareStage='before';
+  if(activeHistoryId&&!action.startsWith('import-')&&action!=='auto-apply')
+    updateFileHistory({status:'Изменён · требуется повторная проверка',diagnosis:null,repair:null});
+  record(action,{paths:doc.paths.length,nodes:doc.paths.reduce((n,p)=>n+p.points.length,0)});
+  render();
+  if(!action.startsWith('import-')&&action!=='unified-apply')requestRecalculation();
+}
 function fit(){const pad=Math.max(doc.width,doc.height)*.07;$('canvas').setAttribute('viewBox',`${-pad} ${-pad} ${doc.width+pad*2} ${doc.height+pad*2}`);render();}
 const currentComparison=()=>curvePreview?.comparisonData||appliedComparison;
 function zoom(factor,center){const box=$('canvas').viewBox.baseVal,view=zoomBox({x:box.x,y:box.y,width:box.width,height:box.height},factor,center);if(!view)return; $('canvas').setAttribute('viewBox',`${view.x} ${view.y} ${view.width} ${view.height}`);render();}
@@ -180,7 +200,7 @@ function workspaceScan({attemptRepair=false,manual=false}={}){
   state.hidden=health.ok&&!manual;
   state.dataset.health=health.ok?'ok':'warning';
   $('workspace-health-report').value=safeWorkspaceReport(health,{
-    version:'0.2.0-alpha.52',source:lastImportFailure?.source||doc.sourceFileName||'',
+    version:'0.2.0-alpha.53',source:lastImportFailure?.source||doc.sourceFileName||'',
     errors:displayErrors});
   record('workspace-health',{ok:health.ok,issues:health.issues,forceWireframe,attempts:repairs,
     count:health.elementCount,rect:health.canvasRect,bbox:health.geometryBox});
@@ -207,7 +227,7 @@ $('workspace-check').onclick=()=>{
   const health=workspaceScan({attemptRepair:true,manual:true});
   $('workspace-health-report').value=safeWorkspaceReport(health||{
     ok:true,issues:[],note:'Документ не открыт'},{
-    version:'0.2.0-alpha.52',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
+    version:'0.2.0-alpha.53',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
   $('workspace-health-dialog').showModal();
 };
 $('workspace-check-repair').onclick=()=>{
@@ -343,10 +363,11 @@ function render(){
       if(healthy.length)el('path',{d:circlePath(healthy,radius),class:'healthy-anchors'},$('nodes'));
     }
   }
-  const marked=markersVisible&&!curveEditing()?renderIssueMarkers($('markers'),visibleIssues,markerUnit,
-    {x:0,y:0,width:visibleDoc.width,height:visibleDoc.height}):0;
+  const marked=markersVisible?renderIssueMarkers($('markers'),visibleIssues,markerUnit,
+    {x:0,y:0,width:visibleDoc.width,height:visibleDoc.height},
+    {interactive:!curveEditing()}):0;
   $('marker-status').textContent=visibleIssues.length?
-    curveEditing()?'В режиме «Узлы» цветные отметки скрыты, чтобы не мешать редактированию.':markersVisible?'На чертеже: '+marked+' пространственно распределённых цветных маркеров'+
+    curveEditing()&&markersVisible?'В редакторе: '+marked+' маркеров проблем'+(manualDiagnosticsPending?' · идёт повторная проверка':' · не перекрывают узлы и ручки')+'.':markersVisible?'На чертеже: '+marked+' пространственно распределённых цветных маркеров'+
       (visibleIssues.length>marked?' из '+visibleIssues.length:'')+'. Нажмите кольцо, чтобы приблизить.':
       'Отметки проблем скрыты. Включите их в разделе «Видимость точек».':
     'В этой стадии проблемных мест не найдено.';
@@ -354,7 +375,8 @@ function render(){
   if(!reviewing&&draft.length)el('path',{d:pathData({points:draft}),class:'path selected'},$('draft'));
   $('issues').replaceChildren();
   const counts={};visibleIssues.forEach(x=>counts[x.kind]=(counts[x.kind]||0)+1);
-  if(!diagnosticComplete&&!comparison)$('summary').textContent='Диагностика частичная: лимит точек, блоки или ограничения движка. Найдено замечаний: '+visibleIssues.length+'. Межблочные дефекты не исключены.';
+  if(manualDiagnosticsPending&&curveEditing())$('summary').textContent='Идёт повторная проверка после редактирования. Прежние маркеры сохраняются: '+visibleIssues.length+'.';
+  else if(!diagnosticComplete&&!comparison)$('summary').textContent='Диагностика частичная: лимит точек, блоки или ограничения движка. Найдено замечаний: '+visibleIssues.length+'. Межблочные дефекты не исключены.';
   else if(visibleIssues.length)$('summary').textContent='Замечаний: '+visibleIssues.length+' · '+Object.entries(counts).slice(0,2).map(([k,n])=>(names[k]||k)+': '+n).join(' · ');
   else $('summary').textContent=curvePreview&&compareStage==='after'&&!curvePreview.afterDiagnosed?'Диагностика оптимизированного результата пока недоступна.':comparison?'Для этой стадии замечаний не найдено.':metrics.length?'Проверка завершена: замечаний не найдено.':'Откройте SVG или нарисуйте векторы.';
   $('summary').title=Object.entries(counts).map(([k,n])=>(names[k]||k)+': '+n).join(' · ');
@@ -542,7 +564,7 @@ $('apply-changes').onclick=applyUnifiedChanges;
 
 function spawnWorker(){
   ready=false;$('engine').textContent='○ Загрузка Rust / WASM…';
-  worker=new Worker(new URL('worker.js?v=0.2.0-alpha.52',import.meta.url),{type:'module'});
+  worker=new Worker(new URL('worker.js?v=0.2.0-alpha.53',import.meta.url),{type:'module'});
   worker.onmessage=({data})=>{
     if(data.id===0){ready=!data.error;$('engine').textContent=ready?'● Rust / WASM готов':'○ WASM не собран';status(data.error||'Rust-ядро готово');render();if(ready&&doc.paths.length&&!currentComparison()&&!suppressNextDiagnostic)calculate(0);suppressNextDiagnostic=false;return;}
     if(!pending||data.id!==pending.id)return;
@@ -818,22 +840,26 @@ async function runProgressiveDiagnostics(indices,tolerance){
     const plan=planDiagnosticBatches(contours,scope);
     if(plan.batches.length>1||plan.totalPoints>2000)showLargeFileNotice({large:true,totalPoints:plan.totalPoints});
     if(!plan.batches.length){
-      diagnosticComplete=false;issues=[];metrics=[];
-      curvePreview=null;
+      diagnosticComplete=false;if(!curveEditing()){issues=[];metrics=[];}
+      manualDiagnosticsPending=false;curvePreview=null;
       lock(false);
       status('Не удалось проверить контуры: нет доступных расчётных сегментов.');
       return;
     }
-    let nextIndex=0,processed=0,checked=0,failedBatches=0,complete=!plan.partial&&!unreadable.length,misplaced=0;
+    let nextIndex=0,processed=0,checked=0,failedBatches=0,nativeFailure=false,complete=!plan.partial&&!unreadable.length,misplaced=0;
     const results=[],pathMetrics=doc.paths.map(()=>null);
     const dispatch=async()=>{
       if(generation!==diagnosticGeneration)return;
       if(nextIndex===plan.batches.length){
-        try{const native=await runNativeJob({action:'diagnose',document:clone(doc),issues:results,indices,tolerance});if(generation!==diagnosticGeneration)return;results.splice(0,results.length,...native.issues);complete=complete&&native.complete;record('native-diagnostic-refinement',{complete:native.complete,unresolved:native.unresolved,nativeLocations:native.nativeLocations});}catch(error){complete=false;const witnessed=results.filter(i=>i.kind!=='coincident'&&i.kind!=='short');results.splice(0,results.length,...witnessed);record('native-diagnostic-error',{error:error.message});}
+        try{const native=await runNativeJob({action:'diagnose',document:clone(doc),issues:results,indices,tolerance});if(generation!==diagnosticGeneration)return;results.splice(0,results.length,...native.issues);complete=complete&&native.complete;record('native-diagnostic-refinement',{complete:native.complete,unresolved:native.unresolved,nativeLocations:native.nativeLocations});}catch(error){complete=false;nativeFailure=true;const witnessed=results.filter(i=>i.kind!=='coincident'&&i.kind!=='short');results.splice(0,results.length,...witnessed);record('native-diagnostic-error',{error:error.message});}
         if(generation!==diagnosticGeneration)return;
         diagnosticComplete=complete;
         markersVisible=true;
-        issues=results;metrics=pathMetrics;
+        issues=curveEditing()?resolveManualIssues(issues,results,{
+          failed:failedBatches>0||nativeFailure||unreadable.length>0||plan.skipped.length>0
+        }):results;
+        manualDiagnosticsPending=false;
+        metrics=pathMetrics;
         curvePreview=null;
         if(importedBefore?.pending){
           importedBefore=captureImportBefore(importedBefore,issues,complete);
@@ -899,8 +925,8 @@ async function runProgressiveDiagnostics(indices,tolerance){
     dispatch();
   }catch(error){
     if(generation!==diagnosticGeneration)return;
-    pending=null;diagnosticComplete=false;curvePreview=null;
-    lock(false);status('Ошибка пакетной диагностики: '+error.message);
+    pending=null;diagnosticComplete=false;manualDiagnosticsPending=false;curvePreview=null;
+    lock(false);status('Ошибка пакетной диагностики: '+error.message+'; ранее найденные проблемы сохранены.');
     record('diagnostic-large-error',{message:error.message});
   }
 }
@@ -927,6 +953,18 @@ function setMode(m){if(currentComparison()){status('Закройте режим 
 function startCurveEditor(){
   if(busy)return;
   if(curveEditing()){mode='select';activeCurveNode=null;render();requestRecalculation();return;}
+  // After applying the preview, the editable document is AFTER. Capture its
+  // diagnosed witnesses BEFORE applyUnifiedChanges clears the old issue list.
+  // An already-applied comparison also refers to the current editable AFTER.
+  const useAfter=Boolean((curvePreview&&compareStage==='after')||
+    (!curvePreview&&appliedComparison));
+  const candidate=curvePreview||(
+    appliedComparison?{
+      afterDiagnosed:Array.isArray(appliedComparison.afterIssues),
+      afterDiagnosticComplete:appliedComparison.afterDiagnosticComplete,
+      comparisonData:appliedComparison,hasGeometryChange:false
+    }:null);
+  const manual=issuesForManualEditor(candidate,useAfter?'after':'before',issues,diagnosticComplete);
   // In AFTER, edit actual optimized geometry, never throw away the preview
   // and silently return to the original dense input document.
   if(curvePreview&&compareStage==='after'){
@@ -937,9 +975,14 @@ function startCurveEditor(){
   clearTimeout(settingsTimeout);
   curvePreview=null;appliedComparison=null;compareStage='before';
   mode='nodes';nodeTool='move';activeCurveNode=null;draft=[];
+  if(useAfter){issues=manual.issues;diagnosticComplete=manual.complete;}
+  manualDiagnosticsPending=useAfter&&!manual.verified;
+  markersVisible=true;
   selected=new Set([...selected].filter(i=>doc.paths[i]&&doc.paths[i].kind!=='image'));
   if(!selected.size){const i=doc.paths.findIndex(p=>p.kind!=='image');if(i>=0)selected=new Set([i]);}
-  render();status('Открыты реальные опорные узлы обработанной геометрии ПОСЛЕ. Исходник доступен через Undo.');
+  render();
+  if(manualDiagnosticsPending)requestRecalculation();
+  status('Редактируются реальные узлы текущей геометрии. Проблемные места подсвечиваются до повторной проверки; Ctrl+Z — отмена.');
 }
 function changeCurveNode(path,index,operation,keep=false){
   if(busy||!doc.paths[path])return;
@@ -1111,7 +1154,7 @@ function stopEps({destroy=false}={}){const picker=$('pdf-page-picker');if(picker
 function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);openingFile=false;lastImportFailure=null;lastImportAttempt={source:name,status:'opened',objects:next.paths.length};forceWireframe=false;syncWireframeControl();if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);doc=next;selected.clear();changed('import-'+name);importedBefore=beginImportBefore(doc);comparisonSelectionExplicit=false;compareStage='before';fit();scheduleWorkspaceCheck();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;openingFile=true;lastImportFailure=null;lastImportAttempt={source:name,status:'converting',bytes:bytes.byteLength};updateMascot();if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта '+(/\.pdf$/i.test(name)?'PDF':'EPS')+'…';record('vector-import-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.52',import.meta.url));
+  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.53',import.meta.url));
   progressStage(/\.pdf$/i.test(name)?'Импорт PDF: подготовка MuPDF':'Импорт EPS: подготовка интерпретатора',9);
   const started=performance.now();let downloadLoaded=0,lastDownloadLogAt=0;
   const fail=message=>{
@@ -1373,4 +1416,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();if(!curveEditing())requestRecalculation();
 });
-record('session-start',{version:'0.2.0-alpha.52'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorVersion='0.2.0-alpha.52';document.documentElement.dataset.doctorReady='true';document.dispatchEvent(new Event('doctor-ready'));
+record('session-start',{version:'0.2.0-alpha.53'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorVersion='0.2.0-alpha.53';document.documentElement.dataset.doctorReady='true';document.dispatchEvent(new Event('doctor-ready'));

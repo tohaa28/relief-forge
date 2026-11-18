@@ -1,4 +1,4 @@
-import {issueColors,issueLabels} from './vector-points.js?v=0.2.0-alpha.52';
+import {issueColors,issueLabels} from './vector-points.js?v=0.2.0-alpha.53';
 
 // SVG uses xMidYMid meet: the limiting viewport dimension determines the
 // actual scale. Width alone makes markers shrink on tall/letterboxed sheets.
@@ -78,7 +78,7 @@ export function issueWithinContourBounds(issue,contours,tolerance=0.01){
 export function issueDistanceLabel(issue){
   return Number.isFinite(issue.distanceMm)?' · расстояние '+String(Number(issue.distanceMm.toPrecision(5))).replace('.',',')+' мм':'';
 }
-export function renderIssueMarkers(parent,issues,unitsPerPixel,bounds=null){
+export function renderIssueMarkers(parent,issues,unitsPerPixel,bounds=null,{interactive=true}={}){
   const unit=Number.isFinite(unitsPerPixel)&&unitsPerPixel>0?unitsPerPixel:1;
   const create=(tag,attrs,container)=>{
     const node=parent.ownerDocument.createElementNS('http://www.w3.org/2000/svg',tag);
@@ -93,8 +93,13 @@ export function renderIssueMarkers(parent,issues,unitsPerPixel,bounds=null){
     const [x,y]=issue.point,color=issueColors[issue.kind]||'#64748b';
     const label=(index+1)+'. '+(issueLabels[issue.kind]||'Проблема')+
       ' · X '+x.toFixed(3)+' · Y '+y.toFixed(3)+' мм'+issueDistanceLabel(issue);
-    const group=create('g',{'data-issue':index,class:'problem-marker',role:'button',tabindex:0,'aria-label':label},parent);
-    create('title',{},group).textContent=label+' — нажмите, чтобы приблизить';
+    // Editor overlays are visual witnesses only: nodes, handles and their
+    // keyboard focus must remain reachable through the diagnostic layer.
+    const attributes=interactive
+      ?{'data-issue':index,class:'problem-marker',role:'button',tabindex:0,'aria-label':label}
+      :{class:'problem-marker','aria-hidden':'true'};
+    const group=create('g',attributes,parent);
+    if(interactive)create('title',{},group).textContent=label+' — нажмите, чтобы приблизить';
     create('circle',{cx:x,cy:y,r:8*unit,class:'issue-halo'},group);
     create('circle',{cx:x,cy:y,r:7*unit,class:'issue-ring',stroke:color},group);
     create('circle',{cx:x,cy:y,r:2.5*unit,class:'problem issue-core',style:'fill:'+color},group);
@@ -105,7 +110,7 @@ export function renderIssueMarkers(parent,issues,unitsPerPixel,bounds=null){
     }
     // Numbers clutter the entire engraving when hundreds of markers overlap.
     // Use titles/accessible labels and display on-canvas numbers only for small sets.
-    if(subset.length<=60)create('text',{x:x+10*unit,y:y-9*unit,'font-size':12*unit,fill:color,class:'issue-number'},group).textContent=index+1;
+    if(interactive&&subset.length<=60)create('text',{x:x+10*unit,y:y-9*unit,'font-size':12*unit,fill:color,class:'issue-number'},group).textContent=index+1;
     count++;
   });
   return count;

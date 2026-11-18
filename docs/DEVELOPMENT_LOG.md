@@ -1,3 +1,8 @@
+# 0.2.0-alpha.53 CANDIDATE — persistent diagnostics during manual node editing, 2026-11-18
+- Issue: entering «Редактирование кривой» hid all problem rings, while each node change eagerly erased issues before rediagnosis. On AFTER apply the renderer could also fall back to obsolete DO issues.
+- Fix: current AFTER defect snapshot retained; pointer-transparent rings visible in editor; node change preserves outstanding witnesses until scan succeeds, and failed batches retain existing markers. Undo and Redo recalculate. Visual and geometry layers remain separate; no changes to EPS/Union/native algorithms.
+- Added tests/manual-node-issues.test.mjs and scripts/browser-manual-node-issues.mjs (included in mandatory CI fresh-WASM browser gate). Pending PR CI and release. Base alpha52 main ba1935b; rollback available.
+
 # 0.2.0-alpha.52 candidate — complex Corel EPS full contour intake, 2026-11-18
 - User sample 8101921-1.eps: 1933 M, 12965 C, 46 L, DOS EPS with TIFF preview; single compound converted SVG path can exceed 20k sampled points and previously trigger a silent diagnostic skip. New sample logic resets safety counter per genuine M subpath; sequential 2k Rust windows still cover all successfully sampled vertices and incomplete cross-window verification is explicitly flagged. Early complexity warning is shown before conversion; processed and checked batch counts separated.
 - Source candidate PR #79; root cause, real conversion probe, scope boundaries, CI attempts and rollback in docs/history/ALPHA52_LARGE_EPS_WORKLOG.md. Not published yet; alpha.51 production remains reference.
