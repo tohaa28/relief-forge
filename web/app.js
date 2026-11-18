@@ -555,7 +555,7 @@ async function buildUnifiedPreview(){
     record('autoheal-curve-preview',{scope,stats:st,changed:different});
     previewActive=false;lock(false);
     if(ready)void checkPreviewAfter(pv);
-  }catch(err){if(generation!==previewGeneration)return;previewActive=false;lock(false);curvePreview=null;$('optimization-result').textContent=err.message;render();status('Автоисправление: '+err.message);}
+  }catch(err){if(generation!==previewGeneration)return;previewActive=false;lock(false);curvePreview=null;$('optimization-result').textContent=err.message;abortSettingsApply(err.message);render();status('Автоисправление: '+err.message);}
 }
 function applyUnifiedChanges(){
   if(busy||!curvePreview||!curvePreview.hasGeometryChange)return false;
@@ -846,7 +846,7 @@ async function buildLargeUnifiedPreview(indices){
     previewActive=false;curvePreview=null;
     $('optimization-result').textContent='Оптимизация остановлена: '+error.message;
     record('large-preview-error',{error:error.message});
-    lock(false);status('Оптимизация не завершена: '+error.message+'. Исходные кривые сохранены.');
+    lock(false);abortSettingsApply(error.message);status('Оптимизация не завершена: '+error.message+'. Исходные кривые сохранены.');
   }
 }
 
@@ -883,11 +883,12 @@ async function checkPreviewAfter(preview){
     lock(false);
     status('ПОСЛЕ: '+report.issues.length+' неисправленных проблем.'+
       (report.complete?'':' Проверка частичная — межблочные ошибки не исключены.'));
+    finishSettingsApply(preview);
   }catch(error){
     if(generation!==afterDiagnosticGeneration)return;
     preview.afterDiagnosed=true;preview.afterDiagnosticComplete=false;
     preview.afterScope='partial';record('after-diagnosis-error',{error:error.message});
-    lock(false);status('ПОСЛЕ: проверка не завершилась: '+error.message);
+    lock(false);abortSettingsApply(error.message);status('ПОСЛЕ: проверка не завершилась: '+error.message);
   }
 }
 
@@ -1027,7 +1028,7 @@ function at(e){const p=new DOMPoint(e.clientX,e.clientY).matrixTransform($('canv
 function setMode(m){if(currentComparison()){status('Закройте режим ДО/ПОСЛЕ перед редактированием.');return;}mode=m;draft=[];for(const key of ['select','line','rect','circle'])$(key).classList.toggle('active',key===mode);render();}
 function startCurveEditor(){
   if(busy)return;
-  if(curveEditing()){mode='select';activeCurveNode=null;render();requestRecalculation();return;}
+  if(curveEditing()){mode='select';activeCurveNode=null;manualDiagnosticsPending=false;++manualJob;render();requestRecalculation();return;}
   // After applying the preview, the editable document is AFTER. Capture its
   // diagnosed witnesses BEFORE applyUnifiedChanges clears the old issue list.
   // An already-applied comparison also refers to the current editable AFTER.
@@ -1065,6 +1066,8 @@ function changeCurveNode(path,index,operation,keep=false){
     const before=doc.paths[path],atNode=keep&&activeCurveNode?curveNodes(before).find(n=>n.index===activeCurveNode.index):null;
     const next=operation(before);
     if(JSON.stringify(next)===JSON.stringify(before)){status('Геометрия не изменилась.');return;}
+    lastManualPoint=activeCurveNode?curveNodes(before).find(n=>n.index===activeCurveNode.index)?.point||lastManualPoint:lastManualPoint;
+    lastManualPath=path;
     checkpoint();doc.paths[path]=next;selected=new Set([path]);activeCurveNode=null;
     if(atNode){
       const candidate=curveNodes(next).find(n=>n.part===atNode.part&&Math.hypot(n.point[0]-atNode.point[0],n.point[1]-atNode.point[1])<1e-8);
@@ -1142,7 +1145,7 @@ $('canvas').addEventListener('pointerdown',e=>{
     const target=e.target.closest('[data-path]');
     if(!target){activeCurveNode=null;selected.clear();render();return;}
     const i=Number(target.dataset.path);if(doc.paths[i].kind==='image'){status('Изображение не содержит узлов кривой.');return;}
-    selected=new Set([i]);
+    selected=new Set([i]);lastManualPoint=[...pos];lastManualPath=i;
     const index=target.dataset.curveNode===undefined?null:Number(target.dataset.curveNode);
     if(index!==null){
       activeCurveNode={path:i,index};
@@ -1192,7 +1195,7 @@ $('canvas').addEventListener('pointerup',e=>{
   flushDragRender();
   if(pan){pan=null;return;}if(!drag)return;
   if(drag.shape&&drag.end&&Math.hypot(drag.end[0]-drag.start[0],drag.end[1]-drag.start[1])>.001){doc.paths.push(makeShape(drag));selected=new Set([doc.paths.length-1]);}
-  if(JSON.stringify(doc)!==JSON.stringify(drag.before)){checkpoint(drag.before);changed(drag.curveHandle?'curve-node-handle':drag.curveNode!==undefined?'curve-node-move':drag.shape?'draw-'+drag.shape:'move-nodes');}else render();drag=null;
+  if(JSON.stringify(doc)!==JSON.stringify(drag.before)){if(curveEditing()&&drag.path!==undefined){lastManualPoint=at(e);lastManualPath=drag.path;}checkpoint(drag.before);changed(drag.curveHandle?'curve-node-handle':drag.curveNode!==undefined?'curve-node-move':drag.shape?'draw-'+drag.shape:'move-nodes');}else render();drag=null;
 });
 $('canvas').addEventListener('pointercancel',()=>{flushDragRender();if(drag)doc=drag.before;drag=null;pan=null;render();});
 $('canvas').addEventListener('wheel',e=>{if(busy)return;e.preventDefault();zoom(e.deltaY>0?1.15:1/1.15,at(e));},{passive:false});
