@@ -17,7 +17,8 @@ test('the actual unified preview and Apply commit point repairs even when smooth
     points:commands.map(c=>c.slice(-2))
   }]};
   const elements={'selection-only':{checked:true},'smoothing-amount':{value:'0'},
-    'optimization-tolerance':{value:'0.00001'},tolerance:{value:'0.01'},'optimization-result':{},'gpu-status':{},'merge-overlaps':{checked:false}};
+    'optimization-tolerance':{value:'0.00001'},tolerance:{value:'0.01'},'optimization-result':{},'gpu-status':{},'merge-overlaps':{checked:false},
+    'remove-micro':{checked:true},'micro-width':{value:'0.1'},'micro-height':{value:'0.1'}};
   const changes=[],past=[],history=[];
   const context={doc:structuredClone(source),selected:new Set(),issues:[{kind:'short'}],
     diagnosticComplete:true,busy:false,ready:false,curvePreview:null,previewGeneration:0,previewActive:false,lock:()=>{},comparisonSelectionExplicit:false,importedBefore:null,importedComparison:()=>null,curveEditing:()=>false,
