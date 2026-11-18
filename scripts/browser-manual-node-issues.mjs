@@ -31,6 +31,7 @@ try{
     document.querySelector('#busy').hidden&&
     !document.querySelector('#compare-after').disabled
   ,{},{timeout:120000});
+  await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('ПОСЛЕ:'),{},{timeout:120000});
   await page.locator('#compare-after').click();
   await page.locator('#curve-edit').click();
   await page.waitForFunction(()=>document.body.classList.contains('curve-editing'));
