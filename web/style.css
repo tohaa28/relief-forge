@@ -505,3 +505,12 @@ nav #workspace-check .tool-icon{margin:0}
 /* Visible while the busy overlay covers the work area; never blocks processing. */
 #large-file-warning{font-size:12px;line-height:1.45;font-weight:500;max-width:600px;margin:8px auto;padding:10px 12px;border:1px solid #b6a47c;background:#fff9e9;color:#51452f;border-radius:8px}
 #large-file-warning[hidden]{display:none}
+
+
+/* alpha53: visible problem witnesses in manual node mode. Markers must not
+   intercept pointer events on anchor squares, Bézier handles or geometry. */
+.curve-editing #markers,.curve-editing #markers *{pointer-events:none!important}
+.curve-editing .problem-marker .issue-halo{fill-opacity:.18;stroke-width:1px;opacity:.55}
+.curve-editing .problem-marker .issue-ring{stroke-width:1.8px;stroke-dasharray:4 2}
+.curve-editing .problem-marker .issue-core{opacity:.78}
+.curve-editing .problem-marker .issue-number{display:none}
