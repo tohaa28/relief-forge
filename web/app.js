@@ -86,7 +86,10 @@ const activeSetting=id=>appliedSettings[id];
 function settingsChanged(){
   const draft=readSettings();
   settingsDirty=settingIds.some(id=>draft[id]!==appliedSettings[id]);
-  $('apply-changes').dataset.pending=String(settingsDirty);render();
+  $('apply-changes').dataset.pending=String(settingsDirty);
+  $('settings-pending').classList.toggle('pending',settingsDirty);
+  $('settings-pending').textContent=settingsDirty?'Параметры изменены, но ещё не применены.':'Текущие параметры применены.';
+  render();
 }
 function validatedDraft(){
   const next=readSettings();
@@ -617,7 +620,8 @@ function finishSettingsApply(preview){
   if(!pendingSettingsApply)return;
   pendingSettingsApply=false;settingsBackup=null;
   if(preview?.hasGeometryChange)applyUnifiedChanges();
-  settingsDirty=false;render();
+  settingsDirty=false;$('settings-pending').classList.remove('pending');
+  $('settings-pending').textContent='Текущие параметры применены.';render();
   record('apply-settings-complete',{geometryChanged:Boolean(preview?.hasGeometryChange)});
 }
 function abortSettingsApply(message){
@@ -625,11 +629,13 @@ function abortSettingsApply(message){
   pendingSettingsApply=false;
   if(settingsBackup)appliedSettings=settingsBackup;
   settingsBackup=null;settingsDirty=true;
+  $('settings-pending').classList.add('pending');
+  $('settings-pending').textContent='Параметры не применены. Исправьте ошибку и повторите.';
   render();status('Настройки не применены: '+message);
 }
 $('apply-changes').onclick=()=>{
   if(busy||!ready||!doc.paths.length)return;
-  if(curveEditing()){status('Сначала завершите редактирование точек.');return;}
+  if(curveEditing()){mode='select';activeCurveNode=null;++manualJob;manualDiagnosticsPending=false;render();}
   let next;
   try{next=validatedDraft();}catch(error){status(error.message);return;}
   if(!settingsDirty){
