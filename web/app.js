@@ -33,7 +33,7 @@ import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.53';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 let clearanceKey='',clearanceJob=0,clearanceTimer=null,clearanceWorker=null,clearanceReport=null;
 function updateClearance(document,unit){
-  const layer=$('clearance-markers'),label=$('clearance-status'),raw=Number($('clearance-threshold').value);
+  const layer=$('clearance-markers'),label=$('clearance-status'),raw=activeSetting('clearance-threshold');
   const threshold=Number.isFinite(raw)&&raw>0&&raw<=1000?raw:null;
   const key=JSON.stringify([threshold,document.paths.map(p=>[p.kind,p.artwork?p.commands:p.points,p.closed,p.offset])]);
   if(key!==clearanceKey){
@@ -195,7 +195,7 @@ const currentComparison=()=>curvePreview?.comparisonData||appliedComparison;
 function zoom(factor,center){const box=$('canvas').viewBox.baseVal,view=zoomBox({x:box.x,y:box.y,width:box.width,height:box.height},factor,center);if(!view)return; $('canvas').setAttribute('viewBox',`${view.x} ${view.y} ${view.width} ${view.height}`);render();}
 function focusIssue(issue){
   const canvas=$('canvas'),view=canvas.viewBox.baseVal;
-  const rawTolerance=Number($('tolerance').value);
+  const rawTolerance=activeSetting('tolerance');
   const tolerance=Number.isFinite(rawTolerance)&&rawTolerance>0?rawTolerance:0.01;
   const next=issueViewBox({x:view.x,y:view.y,width:view.width,height:view.height},issue.point,doc,tolerance);
   if(!next){status('Невозможно перейти к замечанию: неверные координаты.');return;}
@@ -406,7 +406,7 @@ function render(){
     // of hollow rings blocks the main thread but does not add diagnostics.
     const count=visibleDoc.paths.reduce((n,p)=>n+(p.points?.length||0),0);
     if(count<=2400){
-      const healthy=visibleHealthyAnchors(visibleDoc,visibleIssues,Number($('tolerance').value));
+      const healthy=visibleHealthyAnchors(visibleDoc,visibleIssues,activeSetting('tolerance'));
       if(healthy.length)el('path',{d:circlePath(healthy,radius),class:'healthy-anchors'},$('nodes'));
     }
   }
@@ -458,18 +458,18 @@ function lock(value,{coverCanvas=true}={}){
 // "start/cancel" action. Only Apply commits a candidate to the document.
 async function buildUnifiedPreview(){
   if(busy||!doc.paths.length||curveEditing())return;
-  const scope=selectedVectorIndices(doc,selected,$('selection-only').checked);
+  const scope=selectedVectorIndices(doc,selected,activeSetting('selection-only'));
   if(!scope.length){curvePreview=null;$('optimization-result').textContent='Нет векторных кривых для обработки.';render();return;}
   const generation=++previewGeneration;
   previewActive=true;lock(true,{coverCanvas:false});
   try{
     await prepareNativeIntersections();
     if(generation!==previewGeneration)return;
-    const smoothingAmount=Number($('smoothing-amount').value);
-    const optimizationTolerance=Number($('optimization-tolerance').value);
-    const diagnosticTolerance=Number($('tolerance').value);
+    const smoothingAmount=activeSetting('smoothing-amount');
+    const optimizationTolerance=activeSetting('optimization-tolerance');
+    const diagnosticTolerance=activeSetting('tolerance');
     const repaired=repairVectorPoints(doc,scope,diagnosticTolerance);
-    const gpu=$('merge-overlaps').checked
+    const gpu=activeSetting('merge-overlaps')
       ?await gpuBroadphase(repaired.document,{tolerance:diagnosticTolerance})
       :{mode:'cpu',pairs:null,reason:'union-disabled'};
     if(generation!==previewGeneration)return;
@@ -478,7 +478,7 @@ async function buildUnifiedPreview(){
       :'GPU: CPU fallback ('+gpu.reason+')';
     // Union MUST precede post-Union smoothing/optimization. Keep independent
     // native dedup even if a later Boolean group is rejected by node budget.
-    const merged=$('merge-overlaps').checked?
+    const merged=activeSetting('merge-overlaps')?
       await mergeOverlappingObjects(repaired.document,{indices:scope,tolerance:diagnosticTolerance,
          cleanupTolerance:optimizationTolerance,gpuPairs:{...gpu,sourceCount:repaired.document.paths.length}}):
       {document:repaired.document,safeDocument:repaired.document,selectedIndices:scope,safeSelectedIndices:scope,
@@ -501,13 +501,13 @@ async function buildUnifiedPreview(){
       }
     }
     const filtered=removeTinyClosedSubpaths(budget.document,{
-      enabled:$('remove-micro')?.checked??true,
-      width:Number($('micro-width')?.value??.1),height:Number($('micro-height')?.value??.1)});
+      enabled:activeSetting('remove-micro'),
+      width:activeSetting('micro-width'),height:activeSetting('micro-height')});
     const after=filtered.document;
     const actualCount=document=>document.paths.reduce((n,p)=>n+
       (p.kind==='image'?0:p.commands?.filter(c=>c[0]==='M'||c[0]==='L'||c[0]==='C'||c[0]==='Q').length??p.points.length),0);
     const st={...optimized.stats,scope:[...scope],gpu,refit:refitted.stats,budget,
-      actualNodesBefore:actualCount(doc),actualNodesAfter:actualCount(after),micro:filtered.stats,overlaps:merged.stats,mergeOverlaps:$('merge-overlaps').checked,pointRepairs:repaired.stats,diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
+      actualNodesBefore:actualCount(doc),actualNodesAfter:actualCount(after),micro:filtered.stats,overlaps:merged.stats,mergeOverlaps:activeSetting('merge-overlaps'),pointRepairs:repaired.stats,diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
       smoothingDeviation:optimized.stats.smoothingError};
     const different=JSON.stringify(doc.paths.map(worldData))!==JSON.stringify(after.paths.map(worldData));
     const msg='ИТОГОВЫЕ реальные узлы: '+st.actualNodesBefore+' → '+st.actualNodesAfter+'.'+
@@ -560,14 +560,14 @@ async function buildUnifiedPreview(){
 function applyUnifiedChanges(){
   if(busy||!curvePreview||!curvePreview.hasGeometryChange)return false;
   const pv=curvePreview;
-  if(Number($('smoothing-amount').value)!==pv.stats.smoothingAmount||
-     Number($('optimization-tolerance').value)!==pv.stats.tolerance||
-     Number($('tolerance').value)!==pv.stats.diagnosticTolerance||
-     $('merge-overlaps').checked!==pv.stats.mergeOverlaps||
-     ($('remove-micro')?.checked??true)!==pv.stats.micro?.enabled||
-     Number($('micro-width')?.value??.1)!==pv.stats.micro?.width||
-     Number($('micro-height')?.value??.1)!==pv.stats.micro?.height||
-     JSON.stringify(selectedVectorIndices(doc,selected,$('selection-only').checked))!==JSON.stringify(pv.stats.scope)){
+  if(activeSetting('smoothing-amount')!==pv.stats.smoothingAmount||
+     activeSetting('optimization-tolerance')!==pv.stats.tolerance||
+     activeSetting('tolerance')!==pv.stats.diagnosticTolerance||
+     activeSetting('merge-overlaps')!==pv.stats.mergeOverlaps||
+     (activeSetting('remove-micro'))!==pv.stats.micro?.enabled||
+     activeSetting('micro-width')!==pv.stats.micro?.width||
+     activeSetting('micro-height')!==pv.stats.micro?.height||
+     JSON.stringify(selectedVectorIndices(doc,selected,activeSetting('selection-only')))!==JSON.stringify(pv.stats.scope)){
     status('Параметры изменились. Автоматический расчёт ещё не завершён.');return false;
   }
   const baseline=clone(doc),comparison=pv.comparisonData;
@@ -594,22 +594,49 @@ function requestRecalculation(){
     else render();
   },180);
 }
+// Parameter edits only change the draft. No diagnostics, Union, or curve
+// transformations run until the designer explicitly presses Apply.
 $('optimization-range').oninput=()=>{
-  $('optimization-tolerance').value=$('optimization-range').value;requestRecalculation();
+  $('optimization-tolerance').value=$('optimization-range').value;settingsChanged();
 };
-$('optimization-tolerance').onchange=()=>{
+$('optimization-tolerance').oninput=()=>{
   const t=Number($('optimization-tolerance').value);
   if(Number.isFinite(t))$('optimization-range').value=String(Math.max(.001,Math.min(.25,t)));
+  settingsChanged();
+};
+for(const id of settingIds){
+  if(id==='optimization-tolerance')continue;
+  $(id).addEventListener(checkSettings.has(id)?'change':'input',settingsChanged);
+}
+function finishSettingsApply(preview){
+  if(!pendingSettingsApply)return;
+  pendingSettingsApply=false;settingsBackup=null;
+  if(preview?.hasGeometryChange)applyUnifiedChanges();
+  settingsDirty=false;render();
+  record('apply-settings-complete',{geometryChanged:Boolean(preview?.hasGeometryChange)});
+}
+function abortSettingsApply(message){
+  if(!pendingSettingsApply)return;
+  pendingSettingsApply=false;
+  if(settingsBackup)appliedSettings=settingsBackup;
+  settingsBackup=null;settingsDirty=true;
+  render();status('Настройки не применены: '+message);
+}
+$('apply-changes').onclick=()=>{
+  if(busy||!ready||!doc.paths.length)return;
+  if(curveEditing()){status('Сначала завершите редактирование точек.');return;}
+  let next;
+  try{next=validatedDraft();}catch(error){status(error.message);return;}
+  if(!settingsDirty){
+    if(curvePreview?.hasGeometryChange)applyUnifiedChanges();
+    return;
+  }
+  settingsBackup=appliedSettings;appliedSettings=next;settingsDirty=false;
+  pendingSettingsApply=true;
+  record('apply-settings-start',{settings:next});
+  status('Применение параметров: выполняется пересчёт по кнопке.');
   requestRecalculation();
 };
-$('smoothing-amount').onchange=requestRecalculation;
-$('tolerance').onchange=requestRecalculation;
-$('clearance-threshold').onchange=()=>render();
-$('selection-only').onchange=requestRecalculation;
-$('merge-overlaps').onchange=requestRecalculation;
-for(const id of ['remove-micro','micro-width','micro-height'])$(id).onchange=requestRecalculation;
-$('apply-changes').onclick=applyUnifiedChanges;
-
 function spawnWorker(){
   ready=false;$('engine').textContent='○ Загрузка Rust / WASM…';
   worker=new Worker(new URL('worker.js?v=0.2.0-alpha.53',import.meta.url),{type:'module'});
@@ -658,9 +685,9 @@ async function buildLargeUnifiedPreview(indices){
   const generation=++previewGeneration;
   previewActive=true;
   const source=clone(doc);let result=clone(doc),qualitySource=clone(doc);
-  const tol=Number($('tolerance').value),
-    smoothingAmount=Number($('smoothing-amount').value),
-    optimizationTolerance=Number($('optimization-tolerance').value);
+  const tol=activeSetting('tolerance'),
+    smoothingAmount=activeSetting('smoothing-amount'),
+    optimizationTolerance=activeSetting('optimization-tolerance');
   const stats={scope:[...indices],original:0,result:0,removed:0,maxError:0,tolerance:optimizationTolerance,
     smoothingAmount,smoothedJoints:0,smoothingDeviation:0,rejected:0,smoothingRejected:0,pointRepairs:{
       removedNodes:0,closedGaps:0,maxDeviation:0,skipped:0,removedRetraces:0,removedRetracedNodes:0
@@ -688,7 +715,7 @@ async function buildLargeUnifiedPreview(indices){
     // Point repair -> WebGPU broadphase -> CPU Boolean -> refit -> smooth.
     progressStage('GPU: поиск возможных пересечений',32);
     await yieldForUi();
-    const gpu=$('merge-overlaps').checked
+    const gpu=activeSetting('merge-overlaps')
       ?await gpuBroadphase(result,{tolerance:tol})
       :{mode:'cpu',pairs:null,reason:'union-disabled'};
     if(generation!==previewGeneration)return;
@@ -697,7 +724,7 @@ async function buildLargeUnifiedPreview(indices){
       :'GPU: CPU fallback ('+gpu.reason+')';
     progressStage('Union: перекрытия и точные дубликаты',35);
     await yieldForUi();
-    const merged=$('merge-overlaps').checked?
+    const merged=activeSetting('merge-overlaps')?
       await mergeOverlappingObjects(result,{indices,tolerance:tol,cleanupTolerance:optimizationTolerance,
         gpuPairs:{...gpu,sourceCount:result.paths.length}}):
       {document:result,safeDocument:result,selectedIndices:indices,safeSelectedIndices:indices,
@@ -774,12 +801,12 @@ async function buildLargeUnifiedPreview(indices){
       }
     }
     const filtered=removeTinyClosedSubpaths(budget.document,{
-      enabled:$('remove-micro')?.checked??true,
-      width:Number($('micro-width')?.value??.1),height:Number($('micro-height')?.value??.1)});
+      enabled:activeSetting('remove-micro'),
+      width:activeSetting('micro-width'),height:activeSetting('micro-height')});
     const after=filtered.document;
     stats.micro=filtered.stats;
     stats.gpu=gpu;stats.budget=budget;stats.overlaps=merged.stats;stats.refit=refitted.stats;
-    stats.mergeOverlaps=$('merge-overlaps').checked;
+    stats.mergeOverlaps=activeSetting('merge-overlaps');
     const countReal=target=>target.paths.reduce((n,p)=>n+(p.kind==='image'?0:
       p.commands?.filter(c=>['M','L','C','Q'].includes(c[0])).length??p.points.length),0);
     stats.actualNodesBefore=countReal(doc);stats.actualNodesAfter=countReal(after);
@@ -838,12 +865,12 @@ async function checkPreviewAfter(preview){
   });
   try{
     const report=await diagnoseAfterDocument(preview.result,
-      Number($('tolerance').value),{
+      activeSetting('tolerance'),{
         runBatch:callRust,progress:progressStage,yieldUi:yieldForUi,
         cancelled:()=>generation!==afterDiagnosticGeneration||preview!==curvePreview
       });
     if(!report||generation!==afterDiagnosticGeneration||preview!==curvePreview)return;
-    const native=await runNativeJob({action:'diagnose',document:preview.result,issues:report.issues,tolerance:Number($('tolerance').value)});
+    const native=await runNativeJob({action:'diagnose',document:preview.result,issues:report.issues,tolerance:activeSetting('tolerance')});
     if(generation!==afterDiagnosticGeneration||preview!==curvePreview)return;
     report.issues=native.issues;report.complete=report.complete&&native.complete;report.nativeUnresolved=native.unresolved;
     preview.comparisonData.afterIssues=report.issues;
@@ -919,7 +946,7 @@ async function runProgressiveDiagnostics(indices,tolerance){
           processed,checked,failedBatches,issues:issues.length,complete,skipped:unreadable.length+plan.skipped.length,
           split:plan.split,misplaced});
         updateFileHistory({diagnosis:{count:issues.length,complete,
-          selected:Boolean($('selection-only').checked)}});
+          selected:Boolean(activeSetting('selection-only'))}});
         lock(false);
         status('Пройдено '+processed+' расчётных точек в '+plan.batches.length+
           ' блоках; успешно проверено '+checked+'; найдено '+issues.length+' замечаний.'+
@@ -982,9 +1009,9 @@ async function runProgressiveDiagnostics(indices,tolerance){
 function calculate(action){
   if(!ready||busy)return;
   if(currentComparison()&&action){status('Закройте режим ДО/ПОСЛЕ перед ручным редактированием.');return;}
-  const selectedScope=doc.paths.map((_,i)=>i).filter(i=>(!$('selection-only').checked||!selected.size||selected.has(i))&&doc.paths[i].kind!=='image');
+  const selectedScope=doc.paths.map((_,i)=>i).filter(i=>(!activeSetting('selection-only')||!selected.size||selected.has(i))&&doc.paths[i].kind!=='image');
   if(!selectedScope.length){status('Нет векторов для проверки');return;}
-  const tol=Number($('tolerance').value),parameter=Number($('loop-percent').value);
+  const tol=activeSetting('tolerance'),parameter=Number($('loop-percent').value);
   if(!Number.isFinite(tol)||tol<1e-9||tol>1000){status('Укажите допуск от 0.000000001 до 1000 мм');return;}
   if(action&&selectedScope.some(i=>doc.paths[i].artwork)){status('Исходные EPS-кривые сохранены. Для лечения сначала создайте полилинии кнопкой «Копия для лечения».');return;}
   if(action===0){void runProgressiveDiagnostics(selectedScope,tol);return;}
@@ -1352,17 +1379,17 @@ window.addEventListener('drop',e=>{
 });
 $('fonts').onchange=async e=>{try{const files=[...e.target.files];if(files.reduce((n,f)=>n+f.size,0)>32*1024*1024)throw Error('Шрифты: максимум 32 МБ');importFonts=await Promise.all(files.map(async f=>({name:f.name,bytes:new Uint8Array(await f.arrayBuffer())})));$('font-count').textContent=importFonts.length+' шрифтов';status('Шрифты будут использованы при следующем импорте EPS.');}catch(error){status(error.message);}};
 $('demo-eps').onclick=async()=>{try{const response=await fetch('examples/curves-text-clip.eps');if(!response.ok)throw Error('Не удалось загрузить пример');importEps(new Uint8Array(await response.arrayBuffer()),'curves-text-clip.eps');}catch(e){status(e.message);}};
-$('heal-copy').onclick=()=>{try{const ids=[...selected].filter(i=>doc.paths[i].kind!=='image');if(!ids.length)throw Error('Выделите импортированные векторы');const tol=Number($('tolerance').value);if(!Number.isFinite(tol)||tol<1e-6||tol>1000)throw Error('Укажите допуск от 0.000001 до 1000 мм');const copies=ids.flatMap(i=>sampledContours(doc.paths[i],tol));checkpoint();const start=doc.paths.length;doc.paths.push(...copies);selected=new Set(copies.map((_,i)=>start+i));changed('create-healing-copy');status(`Создано ${copies.length} полилиний, допуск ${tol} мм. Исходные кривые сохранены отдельными объектами.`);}catch(e){status(e.message);}};
+$('heal-copy').onclick=()=>{try{const ids=[...selected].filter(i=>doc.paths[i].kind!=='image');if(!ids.length)throw Error('Выделите импортированные векторы');const tol=activeSetting('tolerance');if(!Number.isFinite(tol)||tol<1e-6||tol>1000)throw Error('Укажите допуск от 0.000001 до 1000 мм');const copies=ids.flatMap(i=>sampledContours(doc.paths[i],tol));checkpoint();const start=doc.paths.length;doc.paths.push(...copies);selected=new Set(copies.map((_,i)=>start+i));changed('create-healing-copy');status(`Создано ${copies.length} полилиний, допуск ${tol} мм. Исходные кривые сохранены отдельными объектами.`);}catch(e){status(e.message);}};
 $('export').onclick=()=>{download('relief-forge.svg',exportDocument(doc),'image/svg+xml');record('export-svg');};
 function readEpsSaveSettings(){
-  return {diagnosticTolerance:Number($('tolerance').value),
-    smoothingAmount:Number($('smoothing-amount').value),
-    optimizationTolerance:Number($('optimization-tolerance').value),
-    mergeOverlaps:$('merge-overlaps').checked,
-    microEnabled:$('remove-micro')?.checked??true,
-    microWidth:Number($('micro-width')?.value??.1),
-    microHeight:Number($('micro-height')?.value??.1),
-    scope:selectedVectorIndices(doc,selected,$('selection-only').checked)};
+  return {diagnosticTolerance:activeSetting('tolerance'),
+    smoothingAmount:activeSetting('smoothing-amount'),
+    optimizationTolerance:activeSetting('optimization-tolerance'),
+    mergeOverlaps:activeSetting('merge-overlaps'),
+    microEnabled:activeSetting('remove-micro'),
+    microWidth:activeSetting('micro-width'),
+    microHeight:activeSetting('micro-height'),
+    scope:selectedVectorIndices(doc,selected,activeSetting('selection-only'))};
 }
 let epsColorMode='outline';
 function prepareEpsOutput(document){
