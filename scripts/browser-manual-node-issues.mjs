@@ -51,9 +51,21 @@ try{
   assert.ok(await page.locator('#geometry .curve-node').count()>0);
   await page.locator('#geometry .curve-node').first().click();
   await page.locator('#node-close').click();
+  await page.waitForTimeout(1200);
+  const observed=await page.evaluate(()=>({
+    status:document.querySelector('#status').textContent,
+    summary:document.querySelector('#summary').textContent,
+    issues:document.querySelector('#issues').textContent,
+    nodeEditing:document.body.classList.contains('curve-editing'),
+    busy:!document.querySelector('#busy').hidden,
+    nodeSelected:document.querySelector('#node-hint').textContent,
+    actions:[...document.querySelectorAll('#geometry .curve-node')].length
+  }));
+  console.log('ALPHA54 LOCAL WORKER OBSERVATION',JSON.stringify({observed,errors}));
+  assert.ok(!errors.length,'browser module/worker error: '+errors.join(';'));
   await page.waitForFunction(()=>
     /Локальная проверка|Ошибка/.test(document.querySelector('#status').textContent),
-    {},{timeout:30000});
+    {},{timeout:6000});
   const localStatus=await page.locator('#status').textContent();
   assert.match(localStatus,/^Локальная проверка:/,
     'worker must complete a bounded local check: '+localStatus+
