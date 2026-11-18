@@ -46,24 +46,37 @@ try{
   // on the canvas rather than clicking a hidden off-screen button.
   assert.ok(await page.locator('#geometry .curve-node').count()>0);
   await page.locator('#geometry .curve-node').first().click();
+  const before=await page.locator('#geometry').innerHTML();
   await page.locator('#node-close').click();
-  await page.waitForFunction(()=>
-    document.querySelector('#status').textContent.startsWith('Локально перепроверена область'),
-    {},{timeout:30000});
-  assert.equal(await page.locator('#busy').isHidden(),true,
-    'manual edit must not lock the entire document for Rust/global Union');
-  assert.doesNotMatch(await page.locator('#issues').textContent(),/Открытый контур/,
-    'successful rescan must remove manually resolved open defect');
+  assert.match(await page.locator('#status').textContent(),/Локальная правка сохранена/);
+  assert.equal(await page.locator('#geometry').innerHTML(),before,
+    'original figure must remain untouched while the editor stays open');
+  assert.match(await page.locator('#issues').textContent(),/Открытый контур/,
+    'old witness stays visible until editor exit and complete rescan');
+  assert.equal(await page.locator('#busy').isHidden(),true);
 
-  // Undo is inside the collapsed Creation menu; use the real Ctrl+Z shortcut.
+  // Ctrl+Z/Ctrl+Y act on the local draft without reprocessing all objects.
+  await page.keyboard.press('Control+z');
+  assert.equal(await page.locator('#geometry').innerHTML(),before);
+  assert.match(await page.locator('#issues').textContent(),/Открытый контур/);
+  await page.keyboard.press('Control+y');
+  assert.equal(await page.locator('#geometry').innerHTML(),before);
+  await page.locator('#node-done').click();
+  await page.waitForFunction(()=>!document.body.classList.contains('curve-editing'));
+  await page.waitForFunction(()=>
+    document.querySelector('#busy').hidden&&
+    !document.querySelector('#issues').textContent.includes('Открытый контур'),
+    {},{timeout:120000});
+  assert.doesNotMatch(await page.locator('#issues').textContent(),/Открытый контур/,
+    'global recheck proves closure only after exit');
+
+  // A real global Undo after exiting restores the original open contour.
   await page.keyboard.press('Control+z');
   await page.waitForFunction(()=>
     document.querySelector('#busy').hidden&&
-    document.querySelector('#issues').textContent.includes('Открытый контур')&&
-    document.querySelector('#status').textContent.startsWith('Локально перепроверена область')
-  ,{},{timeout:30000});
-  assert.ok(await page.locator('.problem-marker[aria-hidden="true"]').count()>0,
-    'Undo restores a current, visible marker');
+    document.querySelector('#issues').textContent.includes('Открытый контур'),
+    {},{timeout:120000});
+  assert.ok(await page.locator('.problem-marker').count()>0);
   assert.deepEqual(errors,[]);
-  console.log('PASS manual nodes: passive persistent markers, close -> rescan clears, Undo restores');
+  console.log('PASS manual nodes alpha56: old markers persist during draft, local Undo/Redo without rebuild, global recheck only after Gotovo, global Undo restores');
 }finally{await browser?.close();server.kill();}
