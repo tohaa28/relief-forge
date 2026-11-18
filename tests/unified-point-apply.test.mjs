@@ -23,7 +23,8 @@ test('the actual unified preview and Apply commit point repairs even when smooth
     diagnosticComplete:true,busy:false,ready:false,curvePreview:null,previewGeneration:0,previewActive:false,lock:()=>{},comparisonSelectionExplicit:false,importedBefore:null,importedComparison:()=>null,curveEditing:()=>false,
     gpuBroadphase:async()=>({mode:'cpu',pairs:null,reason:'union-disabled'}),prepareNativeIntersections:async()=>{},
     removeTinyClosedSubpaths:(document,options)=>({document:structuredClone(document),stats:{...options,removedSubpaths:0,removedObjects:0,removedNodes:0}}),
-    $:id=>elements[id],clone:structuredClone,repairVectorPoints,selectedVectorIndices,
+    $:id=>elements[id],settingNumber:id=>Number(elements[id]?.value),
+    settingChecked:id=>Boolean(elements[id]?.checked),clone:structuredClone,repairVectorPoints,selectedVectorIndices,
     smoothAndOptimizePaths,refitBooleanUnion,protectPreviewNodeBudget,previewBudgetMessage,worldData,render:()=>{},record:()=>{},status:()=>{},
     checkpoint:before=>past.push(structuredClone(before)),updateFileHistory:patch=>history.push(patch)};
   context.changed=action=>{changes.push(action);context.curvePreview=null;};
