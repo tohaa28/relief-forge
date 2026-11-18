@@ -1,5 +1,5 @@
-import {nativeParts,controlsBounds,pointDistance,evaluateBezier} from './native-bezier.js?v=0.2.0-alpha.53';
-import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.53';
+import {nativeParts,controlsBounds,pointDistance,evaluateBezier} from './native-bezier.js?v=0.2.0-alpha.54';
+import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.54';
 
 // One local region around the operator's last edit; all coordinates are mm.
 // A 28-pixel radius remains small on screen and is capped at 2 mm in artwork.
