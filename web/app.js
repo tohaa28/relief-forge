@@ -642,6 +642,15 @@ $('apply-changes').onclick=()=>{
     if(curvePreview?.hasGeometryChange)applyUnifiedChanges();
     return;
   }
+  const changedIds=settingIds.filter(id=>next[id]!==appliedSettings[id]);
+  if(changedIds.length===1&&changedIds[0]==='clearance-threshold'){
+    appliedSettings=next;settingsDirty=false;
+    $('settings-pending').classList.remove('pending');
+    $('settings-pending').textContent='Текущие параметры применены.';
+    clearanceKey='';render();record('apply-clearance-settings',{threshold:next['clearance-threshold']});
+    return;
+  }
+  if(!doc.paths.some(p=>p.kind!=='image')){status('Нет векторных контуров для обработки.');return;}
   settingsBackup=appliedSettings;appliedSettings=next;settingsDirty=false;
   pendingSettingsApply=true;
   record('apply-settings-start',{settings:next});
@@ -1054,10 +1063,8 @@ function startCurveEditor(){
   const manual=issuesForManualEditor(candidate,useAfter?'after':'before',issues,diagnosticComplete);
   // In AFTER, edit actual optimized geometry, never throw away the preview
   // and silently return to the original dense input document.
-  if(curvePreview&&compareStage==='after'){
-    if(curvePreview.hasGeometryChange&&!applyUnifiedChanges()){
-      status('ПОСЛЕ устарел: пересчитайте изменения перед редактированием узлов.');return;
-    }
+  if(curvePreview&&compareStage==='after'&&curvePreview.hasGeometryChange){
+    status('Для редактирования результата ПОСЛЕ сначала нажмите «Применить изменения». Кривые не изменены.');return;
   }
   clearTimeout(settingsTimeout);
   curvePreview=null;appliedComparison=null;compareStage='before';
