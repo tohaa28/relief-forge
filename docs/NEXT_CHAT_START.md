@@ -1,4 +1,4 @@
-# alpha.53 in development — manual node editor must keep problem markers (2026-11-18)
+# 0.2.0-alpha.53 in development — manual node editor must keep problem markers (2026-11-18)
 Base main alpha52 ba1935b; branch feature/alpha53-persistent-manual-issue-markers. Entering node mode now retains AFTER diagnostics (not stale original DO) and renders passive coloured rings above the geometry; hit testing on real anchors and handles remains available. Editing a node preserves prior markers during the debounced full scan; success removes resolved ones; failure retains old witnesses. Undo/Redo rescan. Mandatory unit/browser scripts added. Do not claim release until tests and Pages are green. Preservation: EPS source, alpha52 large-file safeguards, cached AFTER EPS, original DO, Undo, alpha51-native diagnostics. Handoff and root-cause details also in HANDOFF.md and docs/history/FAILURE_REGISTER.md.
 
 # alpha.52 VALIDATED PR CANDIDATE (not yet deployed) — 2026-11-18
