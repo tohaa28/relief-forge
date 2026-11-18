@@ -33,7 +33,7 @@ import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.53';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 let clearanceKey='',clearanceJob=0,clearanceTimer=null,clearanceWorker=null,clearanceReport=null;
 function updateClearance(document,unit){
-  const layer=$('clearance-markers'),label=$('clearance-status'),raw=Number($('clearance-threshold').value);
+  const layer=$('clearance-markers'),label=$('clearance-status'),raw=settingNumber('clearance-threshold');
   const threshold=Number.isFinite(raw)&&raw>0&&raw<=1000?raw:null;
   const key=JSON.stringify([threshold,document.paths.map(p=>[p.kind,p.artwork?p.commands:p.points,p.closed,p.offset])]);
   if(key!==clearanceKey){
@@ -67,6 +67,48 @@ const nodeCursor=kind=>{
 const plusCursor=nodeCursor('add'),minusCursor=nodeCursor('remove');
 const curveEditing=()=>mode==='nodes';
 const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
+
+const settingIds=['tolerance','clearance-threshold','selection-only','smoothing-amount',
+  'optimization-tolerance','merge-overlaps','remove-micro','micro-width','micro-height'];
+const settingChecks=new Set(['selection-only','merge-overlaps','remove-micro']);
+const readSettingsForm=()=>Object.fromEntries(settingIds.map(id=>
+  [id,settingChecks.has(id)?$(id).checked:Number($(id).value)]));
+let appliedSettings=readSettingsForm(),settingsDirty=false,pendingSettingsApply=false;
+const settingNumber=id=>Number(appliedSettings[id]);
+const settingChecked=id=>Boolean(appliedSettings[id]);
+function validateSettingsDraft(draft){
+  for(const id of settingIds){
+    if(settingChecks.has(id))continue;
+    const field=$(id),value=draft[id];
+    if(!Number.isFinite(value)||field.value.trim()===''||
+       value<Number(field.min||-Infinity)||value>Number(field.max||Infinity))
+      return 'Неверный параметр: '+field.closest('label')?.textContent.trim();
+  }
+  return null;
+}
+function markSettingsDirty(){
+  settingsDirty=settingIds.some(id=>
+    settingChecks.has(id)?$(id).checked!==appliedSettings[id]:
+      Number($(id).value)!==appliedSettings[id]);
+  $('settings-pending').textContent=settingsDirty?
+    'Параметры изменены, но не применены. Пересчёт начнётся только по кнопке.':
+    'Параметры действуют. Ввод не запускает пересчёт.';
+  $('settings-pending').classList.toggle('unsaved',settingsDirty);
+  $('apply-changes').disabled=busy||!ready||!doc.paths.some(p=>p.kind!=='image')||
+    (!settingsDirty&&(!curvePreview||!curvePreview.hasGeometryChange));
+}
+function finalizePendingSettingsApply(preview){
+  if(!pendingSettingsApply||preview!==curvePreview)return;
+  pendingSettingsApply=false;
+  if(preview.hasGeometryChange){
+    if(!applyUnifiedChanges())status('Результат рассчитан, но не применён. Проверьте параметры.');
+  }else{
+    $('settings-pending').textContent='Параметры применены; форма кривых не изменилась.';
+    status('Настройки применены без изменения геометрии.');
+    render();
+  }
+}
+
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',near_node:'Сближенные узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
 let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null,manualDiagnosticsPending=false;
 let manualFocus=null,manualLocalTimer=null,manualLocalGeneration=0;
@@ -418,7 +460,8 @@ function render(){
   });
   $('toggle-points-label').textContent=pointsVisible?'Скрыть здоровые точки':'Показать здоровые точки';
   $('toggle-markers-label').textContent=markersVisible?'Скрыть маркеры':'Показать маркеры';
-  $('apply-changes').disabled=busy||!curvePreview||!curvePreview.hasGeometryChange;
+  $('apply-changes').disabled=busy||!ready||!doc.paths.some(p=>p.kind!=='image')||
+    (!settingsDirty&&(!curvePreview||!curvePreview.hasGeometryChange));
   $('auto-status').textContent=busy?'Идёт расчёт…':curveEditing()?'Редактирование узлов · Ctrl+Z — отмена.':curvePreview?'Предварительный результат рассчитан, просмотрите ПОСЛЕ.':appliedComparison?'Изменения применены. ДО / ПОСЛЕ доступны для проверки.':doc.paths.length?'Проверка и расчёт после открытия файла.':'Откройте файл для автоматической проверки.';
   $('toggle-markers').disabled=busy||!(visibleIssues.length||clearanceReport?.markers.length);
   $('undo').disabled=busy||!past.length;$('redo').disabled=busy||!future.length;
