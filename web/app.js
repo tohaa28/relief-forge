@@ -214,7 +214,9 @@ function localEditorModified(path,action){
   manualDiagnosticsPending=true;diagnosticComplete=false;
   record('manual-staged-'+action,{path,edits:localEditCount,
     geometryCommitted:false,fullDiagnosticDeferred:true});
-  localEditorIndexes.set(path,buildAnchorIndex(localEditors.get(path).nodeList()));
+  // Keep the original spatial index during repeated point moves; rebuilding
+  // thousands of anchors here was the last O(N) cost on every mouseup.
+  // A structural insert/delete requests a one-time index refresh separately.
   drawLocalEditorOverlay();
   status('Локальная правка сохранена в редакторе ('+localEditCount+
     '). Общий пересчёт и проверка только после «Готово».');
@@ -236,11 +238,12 @@ function exitDeferredCurveEditor(){
       '. Режим редактора сохранён, исходная фигура не тронута.');
     return false;
   }
+  const operations=localEditCount;
   if(updated.size)checkpoint();
   for(const [path,vector] of updated)doc.paths[path]=vector;
   mode='select';activeCurveNode=null;manualFocus=null;resetLocalEditors();
   if(updated.size){
-    record('manual-batch-commit',{paths:[...updated.keys()],operations:localEditCount});
+    record('manual-batch-commit',{paths:[...updated.keys()],operations});
     changed('curve-session-commit');
   }else{render();requestRecalculation();}
   status(updated.size?'Локальные изменения применены. Запущена общая повторная проверка.':
@@ -1209,7 +1212,7 @@ function at(e){const p=new DOMPoint(e.clientX,e.clientY).matrixTransform($('canv
 function setMode(m){if(currentComparison()){status('Закройте режим ДО/ПОСЛЕ перед редактированием.');return;}mode=m;draft=[];for(const key of ['select','line','rect','circle'])$(key).classList.toggle('active',key===mode);render();}
 function startCurveEditor(){
   if(busy)return;
-  if(curveEditing()){clearTimeout(manualLocalTimer);++manualLocalGeneration;clearanceKey='';mode='select';activeCurveNode=null;render();requestRecalculation();return;}
+  if(curveEditing()){exitDeferredCurveEditor();return;}
   // After applying the preview, the editable document is AFTER. Capture its
   // diagnosed witnesses BEFORE applyUnifiedChanges clears the old issue list.
   // An already-applied comparison also refers to the current editable AFTER.
@@ -1230,6 +1233,7 @@ function startCurveEditor(){
     }
   }
   clearTimeout(settingsTimeout);clearTimeout(manualLocalTimer);++manualLocalGeneration;
+  resetLocalEditors();
   clearTimeout(clearanceTimer);clearanceWorker?.terminate();clearanceWorker=null;
   ++clearanceJob;clearanceKey='';
   curvePreview=null;appliedComparison=null;compareStage='before';
@@ -1240,49 +1244,63 @@ function startCurveEditor(){
   selected=new Set([...selected].filter(i=>doc.paths[i]&&doc.paths[i].kind!=='image'));
   if(!selected.size){const i=doc.paths.findIndex(p=>p.kind!=='image');if(i>=0)selected=new Set([i]);}
   render();
-  if(manualDiagnosticsPending&&manualFocus)scheduleManualLocalRecheck();
-  status('Редактируются реальные узлы текущей геометрии. Ручное исправление проверяется только рядом с курсором; Ctrl+Z — отмена.');
+  // A single full scan is scheduled on exit. The old rings stay visible as
+  // witnesses while the operator edits the local command buffer.
+  status('Режим локальной правки: полная геометрия и проверка обновятся только после «Готово».');
 }
-function changeCurveNode(path,index,operation,keep=false){
-  if(busy||!doc.paths[path])return;
+function runLocalNodeEdit(path,action,details={}){
+  if(busy||!curveEditing())return false;
+  const editor=localEditor(path);
+  if(!editor)return false;
   try{
-    const before=doc.paths[path],atNode=keep&&activeCurveNode?curveNodes(before).find(n=>n.index===activeCurveNode.index):null;
-    if(curveEditing()&&activeCurveNode){const node=curveNodes(before).find(n=>n.index===activeCurveNode.index);if(node)manualFocus={path,point:[...node.point]};}
-    const next=operation(before);
-    if(JSON.stringify(next)===JSON.stringify(before)){status('Геометрия не изменилась.');return;}
-    checkpoint();doc.paths[path]=next;selected=new Set([path]);activeCurveNode=null;
-    if(atNode){
-      const candidate=curveNodes(next).find(n=>n.part===atNode.part&&Math.hypot(n.point[0]-atNode.point[0],n.point[1]-atNode.point[1])<1e-8);
-      if(candidate)activeCurveNode={path,index:candidate.index};
-    }
-    changed('curve-node-'+index);
-  }catch(error){status(error.message);}
+    let result;
+    const index=details.index??activeCurveNode?.index;
+    if(action==='add')result=editor.addSegment(details.segment,details.t);
+    else if(action==='remove')result=editor.removeAnchor(index);
+    else if(action==='close')result=editor.closeAt(index);
+    else if(action==='break')result=editor.breakAt(index);
+    else if(action==='reverse')result=editor.reversePart(index);
+    else if(['cusp','smooth','symmetric'].includes(action))result=editor.setKind(index,action);
+    else if(action==='line'||action==='curve')result=editor.setSegment(index,action);
+    else throw Error('Неизвестное локальное действие '+action);
+    if(result===false||Array.isArray(result)&&!result.length)return false;
+    manualFocus={path,point:details.point||editor.nodePosition(index)||
+      manualFocus?.point||[0,0]};
+    if(action==='add')activeCurveNode={path,index:result};
+    else if(action==='remove'||action==='break'||action==='reverse')activeCurveNode=null;
+    // Only the command-local topology index may change. Never regenerate
+    // 7,545 SVG segments or the imported document here.
+    if(['add','remove','close','break','reverse'].includes(action))
+      localEditorIndexes.set(path,buildAnchorIndex(editor.nodeList()));
+    localEditorModified(path,action);
+    return true;
+  }catch(error){status(error.message);return false;}
 }
 function removeActiveCurveNode(){
   if(!activeCurveNode){status('Выберите узел для удаления.');return;}
-  const {path,index}=activeCurveNode;changeCurveNode(path,'delete',p=>deleteCurveNode(p,index));
+  runLocalNodeEdit(activeCurveNode.path,'remove',{index:activeCurveNode.index});
 }
 function runNodeCommand(name){
   if(busy||!curveEditing())return;
-  if(name==='add'){nodeTool='add';render();status('Курсор +: нажмите между узлами на кривой.');return;}
+  if(name==='add'){nodeTool='add';localEditorToolbar();
+    status('Локальный курсор +: выберите сегмент для нового узла.');return;}
   if(name==='remove'){removeActiveCurveNode();return;}
   if(!activeCurveNode){status('Сначала выберите узел.');return;}
-  const {path,index}=activeCurveNode;
-  const op=({cusp:p=>setCurveNodeType(p,index,'cusp'),smooth:p=>setCurveNodeType(p,index,'smooth'),
-    symmetric:p=>setCurveNodeType(p,index,'symmetric'),line:p=>setCurveSegmentType(p,index,'line'),
-    curve:p=>setCurveSegmentType(p,index,'curve'),break:p=>breakCurveAtNode(p,index),
-    close:p=>closeCurveAtNode(p,index),reverse:p=>reverseCurveDirection(p)})[name];
-  if(op)changeCurveNode(path,name,op,true);
+  runLocalNodeEdit(activeCurveNode.path,name,{index:activeCurveNode.index});
 }
 $('curve-edit').onclick=startCurveEditor;
-for(const tool of ['move','add','remove','handles'])$('node-'+tool).onclick=()=>{if(busy)return;nodeTool=tool;$('node-context').hidden=true;render();};
+for(const tool of ['move','add','remove','handles'])$('node-'+tool).onclick=()=>{
+  if(busy)return;nodeTool=tool;$('node-context').hidden=true;
+  if(curveEditing())localEditorToolbar();else render();
+};
 for(const name of ['cusp','smooth','symmetric','line','curve','break','close','reverse'])
   $('node-'+name).onclick=()=>runNodeCommand(name);
 $('node-done').onclick=()=>{$('node-context').hidden=true;startCurveEditor();};
 $('node-context').querySelectorAll('[data-node-menu]').forEach(button=>button.onclick=()=>{
   const name=button.dataset.nodeMenu;$('node-context').hidden=true;
   if(name==='add'&&contextHit?.nearest&&contextHit.node===null&&contextHit.nearest.t>1e-6&&contextHit.nearest.t<1-1e-6)
-    changeCurveNode(contextHit.path,'add',p=>addCurveNode(p,contextHit.nearest.index,contextHit.nearest.t));
+    runLocalNodeEdit(contextHit.path,'add',{segment:contextHit.nearest.index,
+      t:contextHit.nearest.t,point:contextHit.point});
   else runNodeCommand(name);
 });
 $('canvas').addEventListener('contextmenu',e=>{
@@ -1291,8 +1309,10 @@ $('canvas').addEventListener('contextmenu',e=>{
   const path=Number(target.dataset.path);if(!doc.paths[path]||doc.paths[path].kind==='image')return;
   e.preventDefault();const node=target.dataset.curveNode===undefined?null:Number(target.dataset.curveNode);
   selected=new Set([path]);activeCurveNode=node===null?null:{path,index:node};
-  const pos=at(e);contextHit={path,node,nearest:nearestCurveSegment(doc.paths[path],pos)};
-  render();const menu=$('node-context');
+  const pos=at(e);manualFocus={path,point:[...pos]};
+  const view=$('canvas').viewBox.baseVal,unit=screenUnitsPerPixel(view,$('canvas').clientWidth,$('canvas').clientHeight);
+  contextHit={path,node,point:pos,nearest:localEditor(path).nearestSegment(pos,unit*12)};
+  drawLocalEditorOverlay();const menu=$('node-context');
   for(const button of menu.querySelectorAll('[data-node-menu]'))
     button.disabled=(node===null&&button.dataset.nodeMenu!=='add')||(node!==null&&button.dataset.nodeMenu==='add');
   menu.hidden=false;
