@@ -30,7 +30,9 @@ test('manual repairs are in visible second editing toolbar row, with all keyboar
 });
 test('different 32px-target cursor SVGs have a central + and X, NOT minus or font glyph',()=>{
  assert.match(app,/const plusCursor=nodeCursor\('add'\),minusCursor=nodeCursor\('remove'\)/);
- assert.match(app,/M12 12L20 20 M20 12L12 20/);
+ assert.match(app,/M6 6L10 10 M14 14L18 18/);
+ assert.match(app,/width="24" height="24"/);
+ assert.doesNotMatch(app,/M12 12L20 20 M20 12L12 20/);
  assert.match(app,/M16 11V21 M11 16H21/);
  assert.match(app, /\) 16 16, crosshair/);
  assert.doesNotMatch(app, /nodeCursor\('−'\)/);
