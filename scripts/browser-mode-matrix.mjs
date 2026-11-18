@@ -17,6 +17,8 @@ try{
    document.querySelector('#merge-overlaps').checked=union;
    document.querySelector('#smoothing-amount').value=smoothing;
    document.querySelector('#selection-only').checked=selection;
+   for(const id of ['merge-overlaps','smoothing-amount','selection-only'])
+    document.querySelector('#'+id).dispatchEvent(new Event('change',{bubbles:true}));
   },{union,smoothing,selection});
   await page.locator('#file').setInputFiles({name:'mode-matrix.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
   await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));
@@ -26,7 +28,10 @@ try{
   await page.waitForTimeout(300); // Explicit application debounce is 180 ms.
   await page.waitForFunction(()=>document.querySelector('#busy').hidden);
   await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));
-  assert.equal(await page.locator('#apply-changes').isEnabled(),true,'scene must have a real optimized candidate');
+  assert.equal(await page.locator('#apply-changes').isEnabled(),true,'explicit Apply accepts staged settings');
+  await page.locator('#apply-changes').click();
+  await page.waitForFunction(()=>document.querySelector('#busy').hidden&&
+    !document.querySelector('#settings-pending').textContent.includes('Выполняется'),{},{timeout:120000});
   assert.equal(await page.locator('#compare-after').getAttribute('aria-pressed'),'true',
     'computed AFTER must be selected automatically after preview');
   await page.locator('#compare-before').click();
@@ -42,7 +47,7 @@ try{
    const file=await pending;outputs[mode]=readFileSync(await file.path(),'utf8');
    assert.match(outputs[mode],/^%!PS/);assert.equal(await page.locator('#geometry').innerHTML(),rendered,'Save must not mutate preview');
   }
-  assert.equal(await page.locator('#apply-changes').isEnabled(),false,'EPS save already applied the exact preview with Undo');
+  assert.equal(await page.locator('#apply-changes').isEnabled(),false,'explicit Apply already committed the exact result with Undo');
   await page.locator('#curve-edit').click();
   assert.equal(await page.locator('#curve-node-tools').isVisible(),true);
   assert.match(await page.locator('#curve-edit').textContent(),/Редактирование кривой/);
