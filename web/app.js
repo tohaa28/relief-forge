@@ -3,7 +3,8 @@ import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.52';
 import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.52';
 import {issueViewBox} from './issue-focus.js?v=0.2.0-alpha.52';
 import {visibleHealthyAnchors,circlePath} from './vector-points.js?v=0.2.0-alpha.52';
-import {issueDistanceLabel,screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.52';
+import {issueDistanceLabel,screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.53';
+import {issuesForManualEditor,resolveManualIssues,retainsIssuesDuringManualChange} from './manual-issue-state.js?v=0.2.0-alpha.53';
 import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.52';
 import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.52';
 import {packedInput} from './auto-repair.js?v=0.2.0-alpha.52';
@@ -64,7 +65,7 @@ const plusCursor=nodeCursor('add'),minusCursor=nodeCursor('remove');
 const curveEditing=()=>mode==='nodes';
 const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',near_node:'Сближенные узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
-let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null;
+let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null,manualDiagnosticsPending=false;
 let importedBefore=null;
 let comparisonSelectionExplicit=false; // user choice wins over automated re-diagnosis
 let doc={format:'relief-forge',version:1,width:300,height:200,paths:[]},selected=new Set(),issues=[],metrics=[],past=[],future=[],mode='select',draft=[],drag=null,pan=null,worker,ready=false,pending=null,sequence=0,busy=false;
@@ -123,7 +124,26 @@ function beginFileHistory(filename){
   renderFileHistory();
   return activeHistoryId;
 }
-function changed(action){suppressNextDiagnostic=false;comparisonSelectionExplicit=false;if(importedBefore&&!action.startsWith('import-'))importedBefore.pending=false;if(!action.startsWith('curve-node')&&action!=='move-nodes')activeCurveNode=null;issues=[];metrics=[];diagnosticComplete=true;markersVisible=true;appliedComparison=null;curvePreview=null;compareStage='before';if(activeHistoryId&&!action.startsWith('import-')&&action!=='auto-apply')updateFileHistory({status:'Изменён · требуется повторная проверка',diagnosis:null,repair:null});record(action,{paths:doc.paths.length,nodes:doc.paths.reduce((n,p)=>n+p.points.length,0)});render();if(!action.startsWith('import-')&&action!=='unified-apply')requestRecalculation();}
+function changed(action){
+  suppressNextDiagnostic=false;comparisonSelectionExplicit=false;
+  if(importedBefore&&!action.startsWith('import-'))importedBefore.pending=false;
+  if(!action.startsWith('curve-node')&&action!=='move-nodes')activeCurveNode=null;
+  // During manual Bézier editing, the previous witnessed defects remain visible
+  // while the changed geometry is rechecked. Only a successful new scan may
+  // remove them; clearing here falsely makes an unhealed point look healthy.
+  if(retainsIssuesDuringManualChange(mode,action)){
+    manualDiagnosticsPending=true;
+    diagnosticComplete=false;
+  }else{
+    issues=[];metrics=[];diagnosticComplete=true;manualDiagnosticsPending=false;
+  }
+  markersVisible=true;appliedComparison=null;curvePreview=null;compareStage='before';
+  if(activeHistoryId&&!action.startsWith('import-')&&action!=='auto-apply')
+    updateFileHistory({status:'Изменён · требуется повторная проверка',diagnosis:null,repair:null});
+  record(action,{paths:doc.paths.length,nodes:doc.paths.reduce((n,p)=>n+p.points.length,0)});
+  render();
+  if(!action.startsWith('import-')&&action!=='unified-apply')requestRecalculation();
+}
 function fit(){const pad=Math.max(doc.width,doc.height)*.07;$('canvas').setAttribute('viewBox',`${-pad} ${-pad} ${doc.width+pad*2} ${doc.height+pad*2}`);render();}
 const currentComparison=()=>curvePreview?.comparisonData||appliedComparison;
 function zoom(factor,center){const box=$('canvas').viewBox.baseVal,view=zoomBox({x:box.x,y:box.y,width:box.width,height:box.height},factor,center);if(!view)return; $('canvas').setAttribute('viewBox',`${view.x} ${view.y} ${view.width} ${view.height}`);render();}
@@ -343,10 +363,11 @@ function render(){
       if(healthy.length)el('path',{d:circlePath(healthy,radius),class:'healthy-anchors'},$('nodes'));
     }
   }
-  const marked=markersVisible&&!curveEditing()?renderIssueMarkers($('markers'),visibleIssues,markerUnit,
-    {x:0,y:0,width:visibleDoc.width,height:visibleDoc.height}):0;
+  const marked=markersVisible?renderIssueMarkers($('markers'),visibleIssues,markerUnit,
+    {x:0,y:0,width:visibleDoc.width,height:visibleDoc.height},
+    {interactive:!curveEditing()}):0;
   $('marker-status').textContent=visibleIssues.length?
-    curveEditing()?'В режиме «Узлы» цветные отметки скрыты, чтобы не мешать редактированию.':markersVisible?'На чертеже: '+marked+' пространственно распределённых цветных маркеров'+
+    curveEditing()&&markersVisible?'В редакторе: '+marked+' маркеров проблем'+(manualDiagnosticsPending?' · идёт повторная проверка':' · не перекрывают узлы и ручки')+'.':markersVisible?'На чертеже: '+marked+' пространственно распределённых цветных маркеров'+
       (visibleIssues.length>marked?' из '+visibleIssues.length:'')+'. Нажмите кольцо, чтобы приблизить.':
       'Отметки проблем скрыты. Включите их в разделе «Видимость точек».':
     'В этой стадии проблемных мест не найдено.';
@@ -354,7 +375,8 @@ function render(){
   if(!reviewing&&draft.length)el('path',{d:pathData({points:draft}),class:'path selected'},$('draft'));
   $('issues').replaceChildren();
   const counts={};visibleIssues.forEach(x=>counts[x.kind]=(counts[x.kind]||0)+1);
-  if(!diagnosticComplete&&!comparison)$('summary').textContent='Диагностика частичная: лимит точек, блоки или ограничения движка. Найдено замечаний: '+visibleIssues.length+'. Межблочные дефекты не исключены.';
+  if(manualDiagnosticsPending&&curveEditing())$('summary').textContent='Идёт повторная проверка после редактирования. Прежние маркеры сохраняются: '+visibleIssues.length+'.';
+  else if(!diagnosticComplete&&!comparison)$('summary').textContent='Диагностика частичная: лимит точек, блоки или ограничения движка. Найдено замечаний: '+visibleIssues.length+'. Межблочные дефекты не исключены.';
   else if(visibleIssues.length)$('summary').textContent='Замечаний: '+visibleIssues.length+' · '+Object.entries(counts).slice(0,2).map(([k,n])=>(names[k]||k)+': '+n).join(' · ');
   else $('summary').textContent=curvePreview&&compareStage==='after'&&!curvePreview.afterDiagnosed?'Диагностика оптимизированного результата пока недоступна.':comparison?'Для этой стадии замечаний не найдено.':metrics.length?'Проверка завершена: замечаний не найдено.':'Откройте SVG или нарисуйте векторы.';
   $('summary').title=Object.entries(counts).map(([k,n])=>(names[k]||k)+': '+n).join(' · ');
@@ -818,22 +840,26 @@ async function runProgressiveDiagnostics(indices,tolerance){
     const plan=planDiagnosticBatches(contours,scope);
     if(plan.batches.length>1||plan.totalPoints>2000)showLargeFileNotice({large:true,totalPoints:plan.totalPoints});
     if(!plan.batches.length){
-      diagnosticComplete=false;issues=[];metrics=[];
-      curvePreview=null;
+      diagnosticComplete=false;if(!curveEditing()){issues=[];metrics=[];}
+      manualDiagnosticsPending=false;curvePreview=null;
       lock(false);
       status('Не удалось проверить контуры: нет доступных расчётных сегментов.');
       return;
     }
-    let nextIndex=0,processed=0,checked=0,failedBatches=0,complete=!plan.partial&&!unreadable.length,misplaced=0;
+    let nextIndex=0,processed=0,checked=0,failedBatches=0,nativeFailure=false,complete=!plan.partial&&!unreadable.length,misplaced=0;
     const results=[],pathMetrics=doc.paths.map(()=>null);
     const dispatch=async()=>{
       if(generation!==diagnosticGeneration)return;
       if(nextIndex===plan.batches.length){
-        try{const native=await runNativeJob({action:'diagnose',document:clone(doc),issues:results,indices,tolerance});if(generation!==diagnosticGeneration)return;results.splice(0,results.length,...native.issues);complete=complete&&native.complete;record('native-diagnostic-refinement',{complete:native.complete,unresolved:native.unresolved,nativeLocations:native.nativeLocations});}catch(error){complete=false;const witnessed=results.filter(i=>i.kind!=='coincident'&&i.kind!=='short');results.splice(0,results.length,...witnessed);record('native-diagnostic-error',{error:error.message});}
+        try{const native=await runNativeJob({action:'diagnose',document:clone(doc),issues:results,indices,tolerance});if(generation!==diagnosticGeneration)return;results.splice(0,results.length,...native.issues);complete=complete&&native.complete;record('native-diagnostic-refinement',{complete:native.complete,unresolved:native.unresolved,nativeLocations:native.nativeLocations});}catch(error){complete=false;nativeFailure=true;const witnessed=results.filter(i=>i.kind!=='coincident'&&i.kind!=='short');results.splice(0,results.length,...witnessed);record('native-diagnostic-error',{error:error.message});}
         if(generation!==diagnosticGeneration)return;
         diagnosticComplete=complete;
         markersVisible=true;
-        issues=results;metrics=pathMetrics;
+        issues=curveEditing()?resolveManualIssues(issues,results,{
+          failed:failedBatches>0||nativeFailure||unreadable.length>0||plan.skipped.length>0
+        }):results;
+        manualDiagnosticsPending=false;
+        metrics=pathMetrics;
         curvePreview=null;
         if(importedBefore?.pending){
           importedBefore=captureImportBefore(importedBefore,issues,complete);
@@ -899,8 +925,8 @@ async function runProgressiveDiagnostics(indices,tolerance){
     dispatch();
   }catch(error){
     if(generation!==diagnosticGeneration)return;
-    pending=null;diagnosticComplete=false;curvePreview=null;
-    lock(false);status('Ошибка пакетной диагностики: '+error.message);
+    pending=null;diagnosticComplete=false;manualDiagnosticsPending=false;curvePreview=null;
+    lock(false);status('Ошибка пакетной диагностики: '+error.message+'; ранее найденные проблемы сохранены.');
     record('diagnostic-large-error',{message:error.message});
   }
 }
@@ -927,6 +953,18 @@ function setMode(m){if(currentComparison()){status('Закройте режим 
 function startCurveEditor(){
   if(busy)return;
   if(curveEditing()){mode='select';activeCurveNode=null;render();requestRecalculation();return;}
+  // After applying the preview, the editable document is AFTER. Capture its
+  // diagnosed witnesses BEFORE applyUnifiedChanges clears the old issue list.
+  // An already-applied comparison also refers to the current editable AFTER.
+  const useAfter=Boolean((curvePreview&&compareStage==='after')||
+    (!curvePreview&&appliedComparison));
+  const candidate=curvePreview||(
+    appliedComparison?{
+      afterDiagnosed:Array.isArray(appliedComparison.afterIssues),
+      afterDiagnosticComplete:appliedComparison.afterDiagnosticComplete,
+      comparisonData:appliedComparison,hasGeometryChange:false
+    }:null);
+  const manual=issuesForManualEditor(candidate,useAfter?'after':'before',issues,diagnosticComplete);
   // In AFTER, edit actual optimized geometry, never throw away the preview
   // and silently return to the original dense input document.
   if(curvePreview&&compareStage==='after'){
@@ -937,9 +975,14 @@ function startCurveEditor(){
   clearTimeout(settingsTimeout);
   curvePreview=null;appliedComparison=null;compareStage='before';
   mode='nodes';nodeTool='move';activeCurveNode=null;draft=[];
+  if(useAfter){issues=manual.issues;diagnosticComplete=manual.complete;}
+  manualDiagnosticsPending=useAfter&&!manual.verified;
+  markersVisible=true;
   selected=new Set([...selected].filter(i=>doc.paths[i]&&doc.paths[i].kind!=='image'));
   if(!selected.size){const i=doc.paths.findIndex(p=>p.kind!=='image');if(i>=0)selected=new Set([i]);}
-  render();status('Открыты реальные опорные узлы обработанной геометрии ПОСЛЕ. Исходник доступен через Undo.');
+  render();
+  if(manualDiagnosticsPending)requestRecalculation();
+  status('Редактируются реальные узлы текущей геометрии. Проблемные места подсвечиваются до повторной проверки; Ctrl+Z — отмена.');
 }
 function changeCurveNode(path,index,operation,keep=false){
   if(busy||!doc.paths[path])return;
