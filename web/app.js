@@ -5,6 +5,7 @@ import {issueViewBox} from './issue-focus.js?v=0.2.0-alpha.53';
 import {visibleHealthyAnchors,circlePath} from './vector-points.js?v=0.2.0-alpha.53';
 import {issueDistanceLabel,screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.53';
 import {issuesForManualEditor,resolveManualIssues,retainsIssuesDuringManualChange} from './manual-issue-state.js?v=0.2.0-alpha.53';
+import {diagnoseLocalNodeArea,localNodeRadius} from './local-node-diagnostics.js?v=0.2.0-alpha.53';
 import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.53';
 import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.53';
 import {packedInput} from './auto-repair.js?v=0.2.0-alpha.53';
@@ -58,7 +59,9 @@ const nodeCursor=kind=>{
   const mark=kind==='remove'
     ?'<path d="M12 12L20 20 M20 12L12 20" stroke="#d83b42" stroke-width="2.5" stroke-linecap="round"/>'
     :'<path d="M16 11V21 M11 16H21" stroke="#008c82" stroke-width="2.5" stroke-linecap="round"/>';
-  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="8.5" fill="white" fill-opacity=".92" stroke="#173946" stroke-width="1.6"/>'+arms+mark+'</svg>';
+  const svg=kind==='remove'
+    ?'<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">'+mark+'</svg>'
+    :'<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="8.5" fill="white" fill-opacity=".92" stroke="#173946" stroke-width="1.6"/>'+arms+mark+'</svg>';
   return 'url("data:image/svg+xml,'+encodeURIComponent(svg)+'") 16 16, crosshair';
 };
 const plusCursor=nodeCursor('add'),minusCursor=nodeCursor('remove');
@@ -66,6 +69,7 @@ const curveEditing=()=>mode==='nodes';
 const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',near_node:'Сближенные узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
 let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null,manualDiagnosticsPending=false;
+let manualFocus=null,manualLocalTimer=null,manualLocalGeneration=0;
 let importedBefore=null;
 let comparisonSelectionExplicit=false; // user choice wins over automated re-diagnosis
 let doc={format:'relief-forge',version:1,width:300,height:200,paths:[]},selected=new Set(),issues=[],metrics=[],past=[],future=[],mode='select',draft=[],drag=null,pan=null,worker,ready=false,pending=null,sequence=0,busy=false;
@@ -142,7 +146,32 @@ function changed(action){
     updateFileHistory({status:'Изменён · требуется повторная проверка',diagnosis:null,repair:null});
   record(action,{paths:doc.paths.length,nodes:doc.paths.reduce((n,p)=>n+p.points.length,0)});
   render();
-  if(!action.startsWith('import-')&&action!=='unified-apply')requestRecalculation();
+  if(retainsIssuesDuringManualChange(mode,action))scheduleManualLocalRecheck();
+  else if(!action.startsWith('import-')&&action!=='unified-apply')requestRecalculation();
+}
+function scheduleManualLocalRecheck(){
+  if(!curveEditing()||!manualFocus)return;
+  clearTimeout(manualLocalTimer);
+  const generation=++manualLocalGeneration;
+  const focus={...manualFocus,point:[...manualFocus.point]};
+  const view=$('canvas').viewBox.baseVal,unit=screenUnitsPerPixel(view,$('canvas').clientWidth,$('canvas').clientHeight);
+  const tolerance=settingNumber('tolerance');
+  manualLocalTimer=setTimeout(()=>{
+    if(generation!==manualLocalGeneration||!curveEditing()||busy)return;
+    const radius=localNodeRadius(unit,tolerance);
+    const report=diagnoseLocalNodeArea(doc,issues,{...focus,radius,tolerance});
+    if(generation!==manualLocalGeneration)return;
+    if(report.verified)issues=report.issues;
+    manualDiagnosticsPending=false;
+    // A local success cannot certify that untouched EPS sections are healthy.
+    diagnosticComplete=false;
+    record('manual-local-diagnosis',{path:focus.path,point:focus.point,radius,
+      localCount:report.localCount,examined:report.examined,verified:report.verified,reason:report.reason});
+    render();
+    status(report.verified?
+      'Локально перепроверена область '+Math.round(radius/unit)+' пикселей вокруг курсора. Остальной документ не пересчитывался.':
+      'Локальная проверка не подтверждена ('+report.reason+'). Прежние маркеры сохранены.');
+  },50);
 }
 function fit(){const pad=Math.max(doc.width,doc.height)*.07;$('canvas').setAttribute('viewBox',`${-pad} ${-pad} ${doc.width+pad*2} ${doc.height+pad*2}`);render();}
 const currentComparison=()=>curvePreview?.comparisonData||appliedComparison;
@@ -952,7 +981,7 @@ function at(e){const p=new DOMPoint(e.clientX,e.clientY).matrixTransform($('canv
 function setMode(m){if(currentComparison()){status('Закройте режим ДО/ПОСЛЕ перед редактированием.');return;}mode=m;draft=[];for(const key of ['select','line','rect','circle'])$(key).classList.toggle('active',key===mode);render();}
 function startCurveEditor(){
   if(busy)return;
-  if(curveEditing()){mode='select';activeCurveNode=null;render();requestRecalculation();return;}
+  if(curveEditing()){clearTimeout(manualLocalTimer);++manualLocalGeneration;mode='select';activeCurveNode=null;render();requestRecalculation();return;}
   // After applying the preview, the editable document is AFTER. Capture its
   // diagnosed witnesses BEFORE applyUnifiedChanges clears the old issue list.
   // An already-applied comparison also refers to the current editable AFTER.
@@ -972,7 +1001,7 @@ function startCurveEditor(){
       status('ПОСЛЕ устарел: пересчитайте изменения перед редактированием узлов.');return;
     }
   }
-  clearTimeout(settingsTimeout);
+  clearTimeout(settingsTimeout);clearTimeout(manualLocalTimer);++manualLocalGeneration;
   curvePreview=null;appliedComparison=null;compareStage='before';
   mode='nodes';nodeTool='move';activeCurveNode=null;draft=[];
   if(useAfter){issues=manual.issues;diagnosticComplete=manual.complete;}
@@ -981,13 +1010,14 @@ function startCurveEditor(){
   selected=new Set([...selected].filter(i=>doc.paths[i]&&doc.paths[i].kind!=='image'));
   if(!selected.size){const i=doc.paths.findIndex(p=>p.kind!=='image');if(i>=0)selected=new Set([i]);}
   render();
-  if(manualDiagnosticsPending)requestRecalculation();
-  status('Редактируются реальные узлы текущей геометрии. Проблемные места подсвечиваются до повторной проверки; Ctrl+Z — отмена.');
+  if(manualDiagnosticsPending&&manualFocus)scheduleManualLocalRecheck();
+  status('Редактируются реальные узлы текущей геометрии. Ручное исправление проверяется только рядом с курсором; Ctrl+Z — отмена.');
 }
 function changeCurveNode(path,index,operation,keep=false){
   if(busy||!doc.paths[path])return;
   try{
     const before=doc.paths[path],atNode=keep&&activeCurveNode?curveNodes(before).find(n=>n.index===activeCurveNode.index):null;
+    if(curveEditing()&&activeCurveNode){const node=curveNodes(before).find(n=>n.index===activeCurveNode.index);if(node)manualFocus={path,point:[...node.point]};}
     const next=operation(before);
     if(JSON.stringify(next)===JSON.stringify(before)){status('Геометрия не изменилась.');return;}
     checkpoint();doc.paths[path]=next;selected=new Set([path]);activeCurveNode=null;
@@ -1067,7 +1097,7 @@ $('canvas').addEventListener('pointerdown',e=>{
     const target=e.target.closest('[data-path]');
     if(!target){activeCurveNode=null;selected.clear();render();return;}
     const i=Number(target.dataset.path);if(doc.paths[i].kind==='image'){status('Изображение не содержит узлов кривой.');return;}
-    selected=new Set([i]);
+    selected=new Set([i]);manualFocus={path:i,point:[...pos]};
     const index=target.dataset.curveNode===undefined?null:Number(target.dataset.curveNode);
     if(index!==null){
       activeCurveNode={path:i,index};
@@ -1117,6 +1147,7 @@ $('canvas').addEventListener('pointerup',e=>{
   flushDragRender();
   if(pan){pan=null;return;}if(!drag)return;
   if(drag.shape&&drag.end&&Math.hypot(drag.end[0]-drag.start[0],drag.end[1]-drag.start[1])>.001){doc.paths.push(makeShape(drag));selected=new Set([doc.paths.length-1]);}
+  if(curveEditing()&&(drag.curveHandle||drag.curveNode!==undefined))manualFocus={path:drag.path,point:at(e)};
   if(JSON.stringify(doc)!==JSON.stringify(drag.before)){checkpoint(drag.before);changed(drag.curveHandle?'curve-node-handle':drag.curveNode!==undefined?'curve-node-move':drag.shape?'draw-'+drag.shape:'move-nodes');}else render();drag=null;
 });
 $('canvas').addEventListener('pointercancel',()=>{flushDragRender();if(drag)doc=drag.before;drag=null;pan=null;render();});
