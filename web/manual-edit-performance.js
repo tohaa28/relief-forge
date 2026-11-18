@@ -25,13 +25,23 @@ export function nearbyAnchors(index,point,radius,{limit=240,includeIndex=null}={
   const cell=index.cell,minX=Math.floor((point[0]-radius)/cell),maxX=Math.floor((point[0]+radius)/cell),
     minY=Math.floor((point[1]-radius)/cell),maxY=Math.floor((point[1]+radius)/cell);
   const close=[];
-  // No full scan of the node set when drawing the editor.
-  for(let x=minX;x<=maxX;x++)for(let y=minY;y<=maxY;y++){
-    for(const n of index.buckets.get(x+':'+y)||[]){
+  // Avoid a huge empty-cell loop for degenerate tiny drawings at extreme
+  // zoom-out. Iterating occupied cells is cheaper than visiting millions of
+  // sparse coordinates; neither branch creates DOM for every anchor.
+  const checkBucket=bucket=>{
+    for(const n of bucket){
       const d=pointDistance(n.point,point);
       if(d<=radius||n.index===includeIndex)close.push({n,d});
     }
-  }
+  };
+  const cells=(maxX-minX+1)*(maxY-minY+1);
+  if(cells>12000){
+    for(const [key,bucket] of index.buckets){
+      const [x,y]=key.split(':').map(Number);
+      if(x>=minX&&x<=maxX&&y>=minY&&y<=maxY)checkBucket(bucket);
+    }
+  }else for(let x=minX;x<=maxX;x++)for(let y=minY;y<=maxY;y++)
+    checkBucket(index.buckets.get(x+':'+y)||[]);
   close.sort((a,b)=>a.d-b.d||a.n.index-b.n.index);
   const output=close.slice(0,Math.max(1,limit)).map(v=>v.n);
   if(includeIndex!==null&&!output.some(n=>n.index===includeIndex)){
