@@ -643,8 +643,17 @@ async function applySettingsAndChanges(){
   const next=readSettingsForm(),error=validateSettingsDraft(next);
   if(error){status(error);$('settings-pending').textContent=error;return;}
   if(settingsDirty){
+    const modified=settingIds.filter(id=>next[id]!==appliedSettings[id]);
     appliedSettings=next;settingsDirty=false;
     $('settings-pending').classList.remove('unsaved');
+    // Changing a measurement threshold alone must not invoke Union/smoothing,
+    // alter EPS geometry, or create an unnecessary Undo checkpoint.
+    if(modified.length===1&&modified[0]==='clearance-threshold'){
+      $('settings-pending').textContent='Порог зазора применён; исходная геометрия не изменена.';
+      record('clearance-setting-apply',{threshold:settingNumber('clearance-threshold')});
+      clearanceKey='';render();status('Порог зазора применён. Измерение расстояний запущено без лечения кривых.');
+      return;
+    }
     if(curveEditing()){
       $('settings-pending').textContent='Параметры сохранены. В редакторе узлов нет полного пересчёта: проверяется только область курсора.';
       if(manualFocus){manualDiagnosticsPending=true;scheduleManualLocalRecheck();}
