@@ -52,9 +52,16 @@ try{
   await page.locator('#geometry .curve-node').first().click();
   await page.locator('#node-close').click();
   await page.waitForFunction(()=>
-    document.querySelector('#status').textContent.startsWith('Локальная проверка:') &&
+    /Локальная проверка|Ошибка/.test(document.querySelector('#status').textContent),
+    {},{timeout:30000});
+  const localStatus=await page.locator('#status').textContent();
+  assert.match(localStatus,/^Локальная проверка:/,
+    'worker must complete a bounded local check: '+localStatus+
+    ' · summary='+(await page.locator('#summary').textContent())+
+    ' · browser-errors='+errors.join(';'));
+  await page.waitForFunction(()=>
     !document.querySelector('#summary').textContent.includes('Идёт повторная проверка'),
-    {},{timeout:120000});
+    {},{timeout:20000});
   assert.equal(await page.locator('#busy').isVisible(),false,
     'manual close must not lock the entire document for a full scan');
   assert.doesNotMatch(await page.locator('#issues').textContent(),/Открытый контур/,
