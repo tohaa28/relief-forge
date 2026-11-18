@@ -162,7 +162,7 @@ function drawLocalEditorOverlay(){
   const layer=$('manual-patches');layer.replaceChildren();
   for(const [path,editor] of localEditors){
     for(const piece of editor.affectedSVG())
-      el('path',{class:'manual-staged-segment',d:piece.d,'data-local-path':path,
+      el('path',{class:'manual-staged-segment',d:piece.d,'data-path':path,
         'data-local-segment':piece.key},layer);
   }
   const glyphs=$('manual-glyphs');glyphs.replaceChildren();
@@ -1209,7 +1209,13 @@ function calculate(action){
   }catch(e){status(e.message);}
 }
 function at(e){const p=new DOMPoint(e.clientX,e.clientY).matrixTransform($('canvas').getScreenCTM().inverse());return [p.x,p.y];}
-function setMode(m){if(currentComparison()){status('Закройте режим ДО/ПОСЛЕ перед редактированием.');return;}mode=m;draft=[];for(const key of ['select','line','rect','circle'])$(key).classList.toggle('active',key===mode);render();}
+function setMode(m){
+  if(currentComparison()){status('Закройте режим ДО/ПОСЛЕ перед редактированием.');return;}
+  if(curveEditing()&&!exitDeferredCurveEditor())return;
+  mode=m;draft=[];
+  for(const key of ['select','line','rect','circle'])$(key).classList.toggle('active',key===mode);
+  render();
+}
 function startCurveEditor(){
   if(busy)return;
   if(curveEditing()){exitDeferredCurveEditor();return;}
@@ -1526,11 +1532,21 @@ $('redo').onclick=()=>{
   past.push(clone(doc));doc=future.pop();selected.clear();changed('redo');
 };
 $('delete').onclick=()=>{if(!selected.size)return;checkpoint();doc.paths=doc.paths.filter((_,i)=>!selected.has(i));selected.clear();changed('delete');};
-$('new').onclick=()=>{activeHistoryId=null;clearTimeout(manualLocalTimer);++manualLocalGeneration;manualFocus=null;mode='select';checkpoint();doc={format:'relief-forge',version:1,width:300,height:200,paths:[]};importedBefore=null;selected.clear();changed('new');fit();};
+$('new').onclick=()=>{
+  if(curveEditing()&&!exitDeferredCurveEditor())return;
+  activeHistoryId=null;clearTimeout(manualLocalTimer);++manualLocalGeneration;
+  manualFocus=null;mode='select';resetLocalEditors();checkpoint();
+  doc={format:'relief-forge',version:1,width:300,height:200,paths:[]};
+  importedBefore=null;selected.clear();changed('new');fit();
+};
 for(const key of ['width','height'])$(key).onchange=()=>{const v=Number($(key).value);if(v>0&&v<1e6){checkpoint();doc[key]=v;changed('resize-sheet');fit();}else render();};
-$('save').onclick=()=>{record('save-project');download('doktor-uzelkov.rf.json',JSON.stringify({...doc,journal,history:{past,future}},null,2));};
+$('save').onclick=()=>{
+  if(curveEditing()&&!exitDeferredCurveEditor())return;
+  record('save-project');download('doktor-uzelkov.rf.json',
+    JSON.stringify({...doc,journal,history:{past,future}},null,2));
+};
 function stopEps({destroy=false}={}){const picker=$('pdf-page-picker');if(picker?.open)picker.close();epsImportActive=false;clearTimeout(epsTimer);epsTimer=null;if(epsWorker){epsWorker.onmessage=null;epsWorker.onerror=null;}if(destroy){epsWorker?.terminate();epsWorker=null;}}
-function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);openingFile=false;lastImportFailure=null;lastImportAttempt={source:name,status:'opened',objects:next.paths.length};forceWireframe=false;syncWireframeControl();if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);clearTimeout(manualLocalTimer);++manualLocalGeneration;manualFocus=null;mode='select';doc=next;selected.clear();changed('import-'+name);importedBefore=beginImportBefore(doc);comparisonSelectionExplicit=false;compareStage='before';fit();scheduleWorkspaceCheck();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
+function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);resetLocalEditors();openingFile=false;lastImportFailure=null;lastImportAttempt={source:name,status:'opened',objects:next.paths.length};forceWireframe=false;syncWireframeControl();if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);clearTimeout(manualLocalTimer);++manualLocalGeneration;manualFocus=null;mode='select';doc=next;selected.clear();changed('import-'+name);importedBefore=beginImportBefore(doc);comparisonSelectionExplicit=false;compareStage='before';fit();scheduleWorkspaceCheck();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;openingFile=true;lastImportFailure=null;lastImportAttempt={source:name,status:'converting',bytes:bytes.byteLength};updateMascot();if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта '+(/\.pdf$/i.test(name)?'PDF':'EPS')+'…';record('vector-import-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
   epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.55',import.meta.url));
@@ -1603,6 +1619,7 @@ function importEps(bytes,name,historyStarted=false){
 }
 async function importUserFile(file,origin='dialog'){
   if(!file||busy||readActive)return;
+  if(curveEditing()&&!exitDeferredCurveEditor())return;
   if(!isSupportedDrop(file)){status('Поддерживаются PDF, EPS, PS, SVG и проекты JSON.');return;}
   showLargeFileNotice(null);
   if(file.size>64*1024*1024){status('Файл превышает 64 МБ. Импорт отклонён.');return;}
@@ -1684,7 +1701,10 @@ window.addEventListener('drop',e=>{
 $('fonts').onchange=async e=>{try{const files=[...e.target.files];if(files.reduce((n,f)=>n+f.size,0)>32*1024*1024)throw Error('Шрифты: максимум 32 МБ');importFonts=await Promise.all(files.map(async f=>({name:f.name,bytes:new Uint8Array(await f.arrayBuffer())})));$('font-count').textContent=importFonts.length+' шрифтов';status('Шрифты будут использованы при следующем импорте EPS.');}catch(error){status(error.message);}};
 $('demo-eps').onclick=async()=>{try{const response=await fetch('examples/curves-text-clip.eps');if(!response.ok)throw Error('Не удалось загрузить пример');importEps(new Uint8Array(await response.arrayBuffer()),'curves-text-clip.eps');}catch(e){status(e.message);}};
 $('heal-copy').onclick=()=>{try{const ids=[...selected].filter(i=>doc.paths[i].kind!=='image');if(!ids.length)throw Error('Выделите импортированные векторы');const tol=settingNumber('tolerance');if(!Number.isFinite(tol)||tol<1e-6||tol>1000)throw Error('Укажите допуск от 0.000001 до 1000 мм');const copies=ids.flatMap(i=>sampledContours(doc.paths[i],tol));checkpoint();const start=doc.paths.length;doc.paths.push(...copies);selected=new Set(copies.map((_,i)=>start+i));changed('create-healing-copy');status(`Создано ${copies.length} полилиний, допуск ${tol} мм. Исходные кривые сохранены отдельными объектами.`);}catch(e){status(e.message);}};
-$('export').onclick=()=>{download('relief-forge.svg',exportDocument(doc),'image/svg+xml');record('export-svg');};
+$('export').onclick=()=>{
+  if(curveEditing()&&!exitDeferredCurveEditor())return;
+  download('relief-forge.svg',exportDocument(doc),'image/svg+xml');record('export-svg');
+};
 function readEpsSaveSettings(){
   return {diagnosticTolerance:settingNumber('tolerance'),
     smoothingAmount:settingNumber('smoothing-amount'),
@@ -1774,6 +1794,7 @@ function saveExistingAfterResult(){
 }
 $('export-eps').onclick=()=>{
   if(busy||readActive)return;
+  if(curveEditing()&&!exitDeferredCurveEditor())return;
   $('eps-color-choice').showModal();
 };
 $('eps-color-cancel').onclick=()=>$('eps-color-choice').close();
