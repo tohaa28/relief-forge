@@ -52,14 +52,10 @@ try{
   await page.locator('#geometry .curve-node').first().click();
   await page.locator('#node-close').click();
   await page.waitForFunction(()=>
-    document.querySelector('#summary').textContent.includes('Идёт повторная проверка'),
+    document.querySelector('#status').textContent.startsWith('Локально перепроверена область'),
     {},{timeout:30000});
-  assert.match(await page.locator('#issues').textContent(),/Открытый контур/,
-    'old witness must not disappear before the new calculation finishes');
-  await page.waitForFunction(()=>
-    document.querySelector('#busy').hidden&&
-    !document.querySelector('#summary').textContent.includes('Идёт повторная проверка')
-  ,{},{timeout:120000});
+  assert.equal(await page.locator('#busy').isHidden(),true,
+    'manual edit must not lock the entire document for Rust/global Union');
   assert.doesNotMatch(await page.locator('#issues').textContent(),/Открытый контур/,
     'successful rescan must remove manually resolved open defect');
 
@@ -67,9 +63,9 @@ try{
   await page.keyboard.press('Control+z');
   await page.waitForFunction(()=>
     document.querySelector('#busy').hidden&&
-    !document.querySelector('#summary').textContent.includes('Идёт повторная проверка')&&
-    document.querySelector('#issues').textContent.includes('Открытый контур')
-  ,{},{timeout:120000});
+    document.querySelector('#issues').textContent.includes('Открытый контур')&&
+    document.querySelector('#status').textContent.startsWith('Локально перепроверена область')
+  ,{},{timeout:30000});
   assert.ok(await page.locator('.problem-marker[aria-hidden="true"]').count()>0,
     'Undo restores a current, visible marker');
   assert.deepEqual(errors,[]);
