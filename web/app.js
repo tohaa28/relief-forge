@@ -682,9 +682,9 @@ async function buildLargeUnifiedPreview(indices){
   const generation=++previewGeneration;
   previewActive=true;
   const source=clone(doc);let result=clone(doc),qualitySource=clone(doc);
-  const tol=Number($('tolerance').value),
-    smoothingAmount=Number($('smoothing-amount').value),
-    optimizationTolerance=Number($('optimization-tolerance').value);
+  const tol=settingNumber('tolerance'),
+    smoothingAmount=settingNumber('smoothing-amount'),
+    optimizationTolerance=settingNumber('optimization-tolerance');
   const stats={scope:[...indices],original:0,result:0,removed:0,maxError:0,tolerance:optimizationTolerance,
     smoothingAmount,smoothedJoints:0,smoothingDeviation:0,rejected:0,smoothingRejected:0,pointRepairs:{
       removedNodes:0,closedGaps:0,maxDeviation:0,skipped:0,removedRetraces:0,removedRetracedNodes:0
@@ -712,7 +712,7 @@ async function buildLargeUnifiedPreview(indices){
     // Point repair -> WebGPU broadphase -> CPU Boolean -> refit -> smooth.
     progressStage('GPU: поиск возможных пересечений',32);
     await yieldForUi();
-    const gpu=$('merge-overlaps').checked
+    const gpu=settingChecked('merge-overlaps')
       ?await gpuBroadphase(result,{tolerance:tol})
       :{mode:'cpu',pairs:null,reason:'union-disabled'};
     if(generation!==previewGeneration)return;
@@ -721,7 +721,7 @@ async function buildLargeUnifiedPreview(indices){
       :'GPU: CPU fallback ('+gpu.reason+')';
     progressStage('Union: перекрытия и точные дубликаты',35);
     await yieldForUi();
-    const merged=$('merge-overlaps').checked?
+    const merged=settingChecked('merge-overlaps')?
       await mergeOverlappingObjects(result,{indices,tolerance:tol,cleanupTolerance:optimizationTolerance,
         gpuPairs:{...gpu,sourceCount:result.paths.length}}):
       {document:result,safeDocument:result,selectedIndices:indices,safeSelectedIndices:indices,
@@ -798,12 +798,12 @@ async function buildLargeUnifiedPreview(indices){
       }
     }
     const filtered=removeTinyClosedSubpaths(budget.document,{
-      enabled:$('remove-micro')?.checked??true,
-      width:Number($('micro-width')?.value??.1),height:Number($('micro-height')?.value??.1)});
+      enabled:settingChecked('remove-micro'),
+      width:settingNumber('micro-width'),height:settingNumber('micro-height')});
     const after=filtered.document;
     stats.micro=filtered.stats;
     stats.gpu=gpu;stats.budget=budget;stats.overlaps=merged.stats;stats.refit=refitted.stats;
-    stats.mergeOverlaps=$('merge-overlaps').checked;
+    stats.mergeOverlaps=settingChecked('merge-overlaps');
     const countReal=target=>target.paths.reduce((n,p)=>n+(p.kind==='image'?0:
       p.commands?.filter(c=>['M','L','C','Q'].includes(c[0])).length??p.points.length),0);
     stats.actualNodesBefore=countReal(doc);stats.actualNodesAfter=countReal(after);
@@ -862,12 +862,12 @@ async function checkPreviewAfter(preview){
   });
   try{
     const report=await diagnoseAfterDocument(preview.result,
-      Number($('tolerance').value),{
+      settingNumber('tolerance'),{
         runBatch:callRust,progress:progressStage,yieldUi:yieldForUi,
         cancelled:()=>generation!==afterDiagnosticGeneration||preview!==curvePreview
       });
     if(!report||generation!==afterDiagnosticGeneration||preview!==curvePreview)return;
-    const native=await runNativeJob({action:'diagnose',document:preview.result,issues:report.issues,tolerance:Number($('tolerance').value)});
+    const native=await runNativeJob({action:'diagnose',document:preview.result,issues:report.issues,tolerance:settingNumber('tolerance')});
     if(generation!==afterDiagnosticGeneration||preview!==curvePreview)return;
     report.issues=native.issues;report.complete=report.complete&&native.complete;report.nativeUnresolved=native.unresolved;
     preview.comparisonData.afterIssues=report.issues;
@@ -880,10 +880,12 @@ async function checkPreviewAfter(preview){
     lock(false);
     status('ПОСЛЕ: '+report.issues.length+' неисправленных проблем.'+
       (report.complete?'':' Проверка частичная — межблочные ошибки не исключены.'));
+    finalizePendingSettingsApply(preview);
   }catch(error){
     if(generation!==afterDiagnosticGeneration)return;
     preview.afterDiagnosed=true;preview.afterDiagnosticComplete=false;
     preview.afterScope='partial';record('after-diagnosis-error',{error:error.message});
+    pendingSettingsApply=false;
     lock(false);status('ПОСЛЕ: проверка не завершилась: '+error.message);
   }
 }
@@ -943,7 +945,7 @@ async function runProgressiveDiagnostics(indices,tolerance){
           processed,checked,failedBatches,issues:issues.length,complete,skipped:unreadable.length+plan.skipped.length,
           split:plan.split,misplaced});
         updateFileHistory({diagnosis:{count:issues.length,complete,
-          selected:Boolean($('selection-only').checked)}});
+          selected:settingChecked('selection-only')}});
         lock(false);
         status('Пройдено '+processed+' расчётных точек в '+plan.batches.length+
           ' блоках; успешно проверено '+checked+'; найдено '+issues.length+' замечаний.'+
