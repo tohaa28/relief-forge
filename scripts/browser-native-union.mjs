@@ -13,12 +13,22 @@ try{
  page.on('pageerror',e=>errors.push(e.message));
  await page.goto(process.env.NATIVE_UNION_URL||'http://localhost:'+port);
  await page.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
- await page.evaluate(()=>{document.querySelector('#smoothing-amount').value='0';document.querySelector('#optimization-tolerance').value='.00001';document.querySelector('#merge-overlaps').checked=true;});
+ await page.evaluate(()=>{
+  document.querySelector('#smoothing-amount').value='0';
+  document.querySelector('#optimization-tolerance').value='.00001';
+  document.querySelector('#merge-overlaps').checked=true;
+  for(const id of ['smoothing-amount','optimization-tolerance','merge-overlaps'])
+   document.querySelector('#'+id).dispatchEvent(new Event('change',{bubbles:true}));
+ });
  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="20mm" height="20mm" viewBox="0 0 20 20"><path fill="#234567" d="M0 2H6V4H0Z"/><path fill="#234567" d="M2 0H4V6H2Z"/></svg>';
  await page.locator('#file').setInputFiles({name:'native-cuts.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
  await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));
  await page.waitForFunction(()=>document.querySelector('#busy').hidden);
- assert.match(await page.locator('#optimization-result').innerText(),/8 → 12/);
+ await page.locator('#apply-changes').click();
+ await page.waitForFunction(()=>document.querySelector('#busy').hidden&&
+   !document.querySelector('#settings-pending').textContent.includes('Выполняется'),
+   {},{timeout:120000});
+ assert.match(await page.locator('#optimization-result').textContent(),/8 → 12/);
  const displayed=await page.locator('#geometry').innerHTML(),eps=[];
  for(const mode of ['outline','original']){
   const pending=page.waitForEvent('download');await page.locator('#export-eps').click();

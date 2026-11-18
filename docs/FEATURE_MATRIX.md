@@ -1,3 +1,7 @@
+# Alpha.54 candidate — one compact settings card, button-only calculation and cursor-local node recheck
+- **Implemented, CI pending:** right-side inspector grouped into one section, tooltip help for every input; draft/committed settings separated; no onchange background recalculation; local Bézier anchor/segment scan around mouse radius, global clearance worker suspended in edit mode, unobstructed X delete cursor.
+- **Not certified:** full cross-window diagnosis from the local scan, third-party sample acceptance, production deploy. [Worklog](history/ALPHA54_EDITOR_SETTINGS_WORKLOG.md).
+
 # 0.2.0-alpha.52 candidate — large EPS batch continuity (not yet published)
 - Preflight warnings for complex binary DOS EPS; multi-subpath diagnostic sampling fixes old 20k-per-object overflow; processed/checked counters detect failed batches. Preserves all original native cubic commands, BEFORE import geometry, cached AFTER and EPS parity; incomplete global cross-batch verification remains honestly marked. See PR #79 and docs/history/ALPHA52_LARGE_EPS_WORKLOG.md.
 

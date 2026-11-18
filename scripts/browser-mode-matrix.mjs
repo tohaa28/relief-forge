@@ -17,6 +17,8 @@ try{
    document.querySelector('#merge-overlaps').checked=union;
    document.querySelector('#smoothing-amount').value=smoothing;
    document.querySelector('#selection-only').checked=selection;
+   for(const id of ['merge-overlaps','smoothing-amount','selection-only'])
+    document.querySelector('#'+id).dispatchEvent(new Event('change',{bubbles:true}));
   },{union,smoothing,selection});
   await page.locator('#file').setInputFiles({name:'mode-matrix.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
   await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));
@@ -26,7 +28,10 @@ try{
   await page.waitForTimeout(300); // Explicit application debounce is 180 ms.
   await page.waitForFunction(()=>document.querySelector('#busy').hidden);
   await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));
-  assert.equal(await page.locator('#apply-changes').isEnabled(),true,'scene must have a real optimized candidate');
+  assert.equal(await page.locator('#apply-changes').isEnabled(),true,'explicit Apply accepts staged settings');
+  await page.locator('#apply-changes').click();
+  await page.waitForFunction(()=>document.querySelector('#busy').hidden&&
+    !document.querySelector('#settings-pending').textContent.includes('Выполняется'),{},{timeout:120000});
   assert.equal(await page.locator('#compare-after').getAttribute('aria-pressed'),'true',
     'computed AFTER must be selected automatically after preview');
   await page.locator('#compare-before').click();
@@ -42,7 +47,7 @@ try{
    const file=await pending;outputs[mode]=readFileSync(await file.path(),'utf8');
    assert.match(outputs[mode],/^%!PS/);assert.equal(await page.locator('#geometry').innerHTML(),rendered,'Save must not mutate preview');
   }
-  assert.equal(await page.locator('#apply-changes').isEnabled(),false,'EPS save already applied the exact preview with Undo');
+  assert.equal(await page.locator('#apply-changes').isEnabled(),false,'explicit Apply already committed the exact result with Undo');
   await page.locator('#curve-edit').click();
   assert.equal(await page.locator('#curve-node-tools').isVisible(),true);
   assert.match(await page.locator('#curve-edit').textContent(),/Редактирование кривой/);
@@ -90,14 +95,23 @@ try{
  await cncPage.locator('#merge-overlaps').uncheck();
  const cncSvg='<svg xmlns="http://www.w3.org/2000/svg" width="40mm" height="40mm" viewBox="0 0 40 40">'+
   '<path fill="none" stroke="#222" d="M1 1 L20 1 L20 20 L1 20 Z M5 5 L5.04 5 L5.04 5.05 L5 5.05 Z"/></svg>';
- await cncPage.locator('#file').setInputFiles({name:'cnc-inner-micro.svg',
-   mimeType:'image/svg+xml',buffer:Buffer.from(cncSvg)});
  const cncReady=async()=>{
    await cncPage.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'),{},{timeout:120000});
    await cncPage.waitForFunction(()=>document.querySelector('#busy').hidden);
  };
+ const cncOpenAndApply=async()=>{
+   await cncPage.locator('#file').setInputFiles({name:'cnc-inner-micro.svg',
+     mimeType:'image/svg+xml',buffer:Buffer.from(cncSvg)});
+   await cncReady();
+   assert.equal(await cncPage.locator('#apply-changes').isEnabled(),true);
+   await cncPage.locator('#apply-changes').click();
+   await cncPage.waitForFunction(()=>document.querySelector('#busy').hidden&&
+     !document.querySelector('#settings-pending').textContent.includes('Выполняется'),
+     {},{timeout:120000});
+   await cncPage.locator('#compare-after').click();
+ };
  const countMoves=async()=>((await cncPage.locator('#geometry .comparison-path').first().getAttribute('d')).match(/M/g)||[]).length;
- await cncReady();
+ await cncOpenAndApply();
  assert.equal(await cncPage.locator('#compare-after').getAttribute('aria-pressed'),'true');
  await cncPage.locator('#compare-before').click();
  assert.equal(await countMoves(),2,'original CNC ДО must retain both native contours');
@@ -105,19 +119,19 @@ try{
  assert.equal(await countMoves(),1,'CNC AFTER must remove only .04×.05mm inner contour');
  assert.match(await cncPage.locator('#optimization-result').textContent(),/CNC: удалено малых замкнутых подконтуров 1/);
  await cncPage.locator('#remove-micro').uncheck();
- await cncPage.waitForFunction(()=>document.querySelector('#optimization-result').textContent.includes('фильтр отключён'));
- await cncReady();await cncPage.locator('#compare-after').click();
+ await cncOpenAndApply();
+ assert.match(await cncPage.locator('#optimization-result').textContent(),/фильтр отключён/);
  assert.equal(await countMoves(),2,'disabled microfilter must preserve tiny detail');
  await cncPage.locator('#remove-micro').check();
  await cncPage.locator('#micro-width').fill('0.02');
  await cncPage.locator('#micro-width').press('Tab');
- await cncPage.waitForFunction(()=>document.querySelector('#optimization-result').textContent.includes('размер строго меньше 0.02 × 0.1 мм')&&!document.querySelector('#optimization-result').textContent.includes('фильтр отключён'));
- await cncReady();await cncPage.locator('#compare-after').click();
+ await cncOpenAndApply();
+ assert.match(await cncPage.locator('#optimization-result').textContent(),/размер строго меньше 0.02 × 0.1 мм/);
  assert.equal(await countMoves(),2,'width threshold .02mm must retain .04mm detail');
  await cncPage.locator('#micro-width').fill('0.1');
  await cncPage.locator('#micro-width').press('Tab');
- await cncPage.waitForFunction(()=>document.querySelector('#optimization-result').textContent.includes('размер строго меньше 0.1 × 0.1 мм')&&!document.querySelector('#optimization-result').textContent.includes('фильтр отключён'));
- await cncReady();await cncPage.locator('#compare-after').click();
+ await cncOpenAndApply();
+ assert.match(await cncPage.locator('#optimization-result').textContent(),/размер строго меньше 0.1 × 0.1 мм/);
  assert.equal(await countMoves(),1,'restoring .1mm threshold removes tiny detail');
  await cncPage.locator('#compare-before').click();
  assert.equal(await countMoves(),2,'filter must never alter raw imported ДО');

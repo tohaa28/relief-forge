@@ -78,6 +78,7 @@ if(process.env.CI){
  execFileSync(process.execPath,['scripts/browser-native-union.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-node-proximity.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-manual-node-issues.mjs'],{stdio:'inherit'});
+ execFileSync(process.execPath,['scripts/browser-alpha54-settings.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-startup-loading.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-clearance.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-pdf-import.mjs'],{stdio:'inherit'});

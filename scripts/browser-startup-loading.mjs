@@ -51,7 +51,7 @@ try{
  releaseRust();await rustContinued;await context.unroute('**/worker.js*');
  try{await page.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));}catch(error){console.error('startup retry state',await page.evaluate(()=>({ready:document.documentElement.dataset.doctorReady,engine:document.querySelector('#engine').textContent,status:document.querySelector('#status').textContent,stage:document.querySelector('#task-stage').textContent,result:document.querySelector('#optimization-result').textContent,busy:!document.querySelector('#busy').hidden})));throw error;}
  await page.waitForFunction(()=>document.querySelector('#busy').hidden);
- assert.match(await page.locator('#optimization-result').innerText(),/3 → 2/,'actual optimization must use the same prepared lazy-kernel instance');
+ assert.match(await page.locator('#optimization-result').textContent(),/3 → 2/,'actual optimization must use the same prepared lazy-kernel instance');
  await page.close();
 
  await context.addInitScript(()=>{const NativeWorker=window.Worker;window.downloadNotices=[];window.Worker=class extends NativeWorker{constructor(...args){super(...args);this.addEventListener('message',e=>{if(e.data?.type==='progress'&&e.data.download)window.downloadNotices.push(e.data);});}};});

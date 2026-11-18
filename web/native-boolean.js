@@ -1,8 +1,8 @@
-import paper from './vendor/paper-core.mjs?v=0.2.0-alpha.53';
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.53';
-import {nativeParts,cubicValues,cubicControls,bezierPart,evaluateBezier,pointDistance,createNativeIndex} from './native-bezier.js?v=0.2.0-alpha.53';
-import {commandsFromNativeRings} from './native-union-proof.js?v=0.2.0-alpha.53';
-import {verifyNativeUnionSilhouette} from './native-union-quality.js?v=0.2.0-alpha.53';
+import paper from './vendor/paper-core.mjs?v=0.2.0-alpha.54';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.54';
+import {nativeParts,cubicValues,cubicControls,bezierPart,evaluateBezier,pointDistance,createNativeIndex} from './native-bezier.js?v=0.2.0-alpha.54';
+import {commandsFromNativeRings} from './native-union-proof.js?v=0.2.0-alpha.54';
+import {verifyNativeUnionSilhouette} from './native-union-quality.js?v=0.2.0-alpha.54';
 const EPS=2e-8;
 const curveEnds=p=>[p[0],p.at(-1)];
 function parameters(controls,point){

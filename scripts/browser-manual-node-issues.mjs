@@ -17,11 +17,7 @@ try{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('http://localhost:'+port);
   await page.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
-  await page.evaluate(()=>{
-    document.querySelector('#merge-overlaps').checked=false;
-    document.querySelector('#smoothing-amount').value='0';
-    document.querySelector('#optimization-tolerance').value='.00001';
-  });
+  // Use real committed defaults; changing fields without Apply is intentionally inert.
   const svg='<svg xmlns="http://www.w3.org/2000/svg" width="30mm" height="30mm" viewBox="0 0 30 30"><path fill="none" stroke="black" d="M 2 2 L 20 2 L 20 20"/></svg>';
   await page.locator('#file').setInputFiles({
     name:'manual-open-curve.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)
@@ -52,14 +48,10 @@ try{
   await page.locator('#geometry .curve-node').first().click();
   await page.locator('#node-close').click();
   await page.waitForFunction(()=>
-    document.querySelector('#summary').textContent.includes('Идёт повторная проверка'),
+    document.querySelector('#status').textContent.startsWith('Локально перепроверена область'),
     {},{timeout:30000});
-  assert.match(await page.locator('#issues').textContent(),/Открытый контур/,
-    'old witness must not disappear before the new calculation finishes');
-  await page.waitForFunction(()=>
-    document.querySelector('#busy').hidden&&
-    !document.querySelector('#summary').textContent.includes('Идёт повторная проверка')
-  ,{},{timeout:120000});
+  assert.equal(await page.locator('#busy').isHidden(),true,
+    'manual edit must not lock the entire document for Rust/global Union');
   assert.doesNotMatch(await page.locator('#issues').textContent(),/Открытый контур/,
     'successful rescan must remove manually resolved open defect');
 
@@ -67,9 +59,9 @@ try{
   await page.keyboard.press('Control+z');
   await page.waitForFunction(()=>
     document.querySelector('#busy').hidden&&
-    !document.querySelector('#summary').textContent.includes('Идёт повторная проверка')&&
-    document.querySelector('#issues').textContent.includes('Открытый контур')
-  ,{},{timeout:120000});
+    document.querySelector('#issues').textContent.includes('Открытый контур')&&
+    document.querySelector('#status').textContent.startsWith('Локально перепроверена область')
+  ,{},{timeout:30000});
   assert.ok(await page.locator('.problem-marker[aria-hidden="true"]').count()>0,
     'Undo restores a current, visible marker');
   assert.deepEqual(errors,[]);
