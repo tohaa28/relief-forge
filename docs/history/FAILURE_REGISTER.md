@@ -1,3 +1,9 @@
+## F-059. Tracer не запускался на сложных документах; manual zoom repaint (2026-11-19)
+- **Симптом:** при множестве дефектов в PDF/EPS нет вызова DoctorTracer. **Причина:** `needsDoctorTracer` ошибочно требовал `complete&&fullScope` даже для *запуска*; большие документы часто частично диагностированы. Новый критерий запуска: >10 фактически найденных/подтверждённых проблем и вся область, без повтора; критерий **принятия нового вектора** оставлен строгим complete/fullScope + IoU/ratio + уменьшение ошибок.
+- **Версия:** Worker 0.16 указан в статусе, хотя реальный DoctorTracer gh-pages 0.21.1. Новая ссылка URL `?v=0.21.1` во избежание старого кэша.
+- **Лаги:** пересоздание до 200 SVG glyphs по каждому `wheel` и per-frame re-paint полного compound-SVG. Изолированный native viewport layer ≤600 Bézier, coalesced rAF & in-place glyph sizing, source/undo preserved. На zoom-in детали остального документа временно скрываются (не удаляются).
+- **CI первая попытка** [44485981560](https://github.com/tohaa28/relief-forge/actions/runs/44485981560): 339 JS PASS/1 FAIL из-за старого текста NEXT_CHAT_START, кодовые тесты без ошибок; исправлено обновлением истории. Пользовательский browser performance и PDF acceptance ещё не измерены. Разбор в [ALPHA59_DOCTORTRACER_ZOOM.md](ALPHA59_DOCTORTRACER_ZOOM.md).
+
 ### F-058.1. Ошибка текстового сравнения двойного пробела между подконтрами в CI
 - CI [44478801368](https://github.com/tohaa28/relief-forge/actions/runs/44478801368) FAILED единственный `tests/doctortracer-fallback.test.mjs` (335 PASS / 1 FAIL). SVG фактически корректен: `Z  M5 5` вместо ожидаемого `Z M5 5`. После `fragment.trim()` JSON path и real EVENODD остаются точными; CI 44478991540 SUCCESS (336 JS +17 Rust+WASM).
 - Не откатывать поддержку hole grouping из-за косметического пробела. Следующее: проверка реального DoctorTracer Worker в браузере, не проверялась CI.

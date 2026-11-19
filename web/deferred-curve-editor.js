@@ -1,4 +1,4 @@
-import {curveNodesTyped} from './curve-edit.js?v=0.2.0-alpha.58';
+import {curveNodesTyped} from './curve-edit.js?v=0.2.0-alpha.59';
 
 // A command-buffer transaction for one compound vector. During manual mode the
 // full document, original SVG artwork and EPS geometry are immutable. All
@@ -319,6 +319,32 @@ export function createDeferredCurveEditor(path){
     return [...candidates];
   }
   rebuildSegmentIndex();
+  // High-zoom view-dependent Bézier geometry. Never parse or serialize the
+  // original compound artwork; query indexed local control hulls and make
+  // at most maxSegments small SVG subpaths. Safe to call on wheel / pan.
+  function visibleSegmentSVG(center,radius,{limit=600}={}){
+    if(!finite(center)||!Number.isFinite(radius)||radius<=0)return [];
+    const found=[];
+    const xmin=center[0]-radius,xmax=center[0]+radius,
+      ymin=center[1]-radius,ymax=center[1]+radius;
+    for(const index of localSegmentCandidates(center,radius)){
+      const part=segment(index);
+      if(!part)continue;
+      const pts=part.controls;
+      let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+      for(const p of pts){
+        x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);
+        x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1]);
+      }
+      if(x1<xmin||x0>xmax||y1<ymin||y0>ymax)continue;
+      const dx=Math.max(x0-center[0],0,center[0]-x1),
+        dy=Math.max(y0-center[1],0,center[1]-y1);
+      found.push({index,proximity:dx*dx+dy*dy,
+        d:svgSegment(pts)});
+    }
+    found.sort((a,b)=>a.proximity-b.proximity||a.index-b.index);
+    return found.slice(0,Math.max(1,Math.min(1000,limit))).map(({index,d})=>({index,d}));
+  }
   function segmentIndexStats(){return {segments:segmentPart.size,bins:segmentBins.size,
     global:globalSegments.size,lastNearestCandidates};}
   function nearestSegment(point,threshold=Infinity){
@@ -543,6 +569,6 @@ export function createDeferredCurveEditor(path){
     return {commands:commands.map(cp),nodeKinds:{...kinds},dirty};
   }
   return {moveAnchor,moveHandle,setKind,setSegment,viewPatch,affectedSVG,nodePosition,nodeList,
-    addSegment,removeAnchor,closeAt,breakAt,reversePart,nearestSegment,segmentIndexStats,
+    addSegment,removeAnchor,closeAt,breakAt,reversePart,nearestSegment,visibleSegmentSVG,segmentIndexStats,
     modified,undoLocal,redoLocal,historySize,finish,getNode,incident};
 }

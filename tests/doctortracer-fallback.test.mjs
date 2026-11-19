@@ -16,14 +16,23 @@ const doc=(paths=[p([[10,15],[20,15],[20,25],[10,25]])])=>({
 });
 const complete=count=>({issues:Array.from({length:count},(_,i)=>({kind:'self_intersection',point:[i,1]})),
   complete:true,fullScope:true});
-test('strict trigger only at >10 residual defects on fully diagnosed complete selection',()=>{
+test('strict trigger at 11 confirmed remaining defects even with partial large-document diagnosis',()=>{
   assert.equal(needsDoctorTracer(complete(10)),false);
   assert.equal(needsDoctorTracer(complete(11)),true);
-  assert.equal(needsDoctorTracer({...complete(11),complete:false}),false);
-  assert.equal(needsDoctorTracer({...complete(11),fullScope:false}),false);
+  assert.equal(needsDoctorTracer({...complete(11),complete:false}),true);
+  assert.equal(needsDoctorTracer({...complete(11),fullScope:false}),true);
   assert.equal(needsDoctorTracer(complete(20),{scopeComplete:false}),false);
   assert.equal(needsDoctorTracer(complete(20),{alreadyAttempted:true}),false);
 });
+test('complex PARTIAL scan starts the worker while candidate still requires COMPLETE re-diagnosis',()=>{
+  const scan={...complete(15),complete:false,fullScope:false};
+  assert.equal(needsDoctorTracer(scan),true);
+  assert.equal(acceptRetracing(15,{...complete(3),complete:false},
+    {iou:.998,areaRatio:1}),false,'incomplete AFTER result cannot replace source');
+  assert.equal(acceptRetracing(15,{...complete(3),fullScope:false},
+    {iou:.998,areaRatio:1}),false,'unknown cross-batch issues cannot silently pass');
+});
+
 test('cropped raster keeps physical mm, imposes 2400 px / eight million pixel cap and never changes original',()=>{
   const input=doc(),copy=structuredClone(input),plan=rasterPlan(input);
   assert.ok(plan.x<10&&plan.y<15&&plan.widthMm<60&&plan.heightMm<45);
@@ -58,7 +67,7 @@ test('open curves rasterize as thin lines rather than solid fills',()=>{
 });
 test('DoctorTracer worker is only loaded from deployed same-origin GitHub Pages path',()=>{
   assert.equal(doctorTracerWorkerUrl('https://tohaa28.github.io/relief-forge/'),
-    'https://tohaa28.github.io/DoctorTracer/worker.js');
+    'https://tohaa28.github.io/DoctorTracer/worker.js?v=0.21.1');
   assert.throws(()=>doctorTracerWorkerUrl('http://localhost:8765/relief-forge/'),/origin/);
   assert.throws(()=>doctorTracerWorkerUrl('https://attacker.example/'),/origin/);
 });
@@ -77,7 +86,7 @@ test('worker handshake uses native DoctorTracer hard-edge Rust WASM request with
     {pixels:new Uint8Array(4*12*10),width:12,height:10},
     {pageUrl:'https://tohaa28.github.io/relief-forge/',workerFactory:factory,
       progress:(pct,stage)=>seen.push([pct,stage])});
-  assert.match(createdUrl,/DoctorTracer\/worker\.js$/);
+  assert.match(createdUrl,/DoctorTracer\/worker\.js\?v=0\.21\.1$/);
   assert.equal(sent.category,'hard');assert.equal(sent.colors,2);
   assert.equal(sent.detail,2);assert.equal(sent.gpu,false);
   assert.equal(out.paths,1);assert.equal(terminated,true);

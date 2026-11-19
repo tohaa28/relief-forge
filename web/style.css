@@ -590,3 +590,25 @@ aside.right #issues-panel #issues{max-height:26dvh;overflow:auto}
 #manual-glyphs .curve-node{cursor:move}
 #manual-glyphs .curve-control-handle{cursor:crosshair}
 #manual-glyphs .curve-tangent-guide{pointer-events:none}
+
+/* alpha59: high-zoom editor hides 7k+ untouched compound Bézier commands.
+   Only indexed viewport-local curve segments are repainted. Original SVG
+   remains mounted and is restored instantly on exit/zoom-out (no reparse). */
+#manual-local-geometry{display:none}
+.manual-local-zoom #geometry{display:none!important}
+.manual-local-zoom #manual-local-geometry{display:inline}
+#manual-local-geometry .manual-local-hit{
+  fill:none!important;stroke:transparent!important;stroke-width:12px;
+  vector-effect:non-scaling-stroke;pointer-events:stroke;cursor:crosshair;
+}
+#manual-local-geometry .manual-local-stroke{
+  fill:none!important;stroke:#173d64!important;stroke-width:1.5px;
+  vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-linejoin:round;
+  pointer-events:none;
+}
+#manual-patches .manual-live-patch{
+  fill:none!important;stroke:#06a597!important;stroke-width:2.8px;
+  vector-effect:non-scaling-stroke;stroke-linecap:round;
+  stroke-linejoin:round;pointer-events:none;
+}
+
