@@ -1,12 +1,12 @@
-import {nativeUnionPaths} from './native-boolean.js?v=0.2.0-alpha.60';
-import {nativeParts} from './native-bezier.js?v=0.2.0-alpha.60';
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.60';
-import {sampledContours} from './rich-svg.js?v=0.2.0-alpha.60';
-import {createFilledOverlapTester,findUnionEquivalentSource} from './polygon-union.js?v=0.2.0-alpha.60';
-import {isUnchangedUnion} from './union-refit.js?v=0.2.0-alpha.60';
-import {deduplicateExactVectors} from './exact-native-dedup.js?v=0.2.0-alpha.60';
-import {assessUnionGroup} from './union-group-budget.js?v=0.2.0-alpha.60';
-import {realNodeCount} from './preview-node-budget.js?v=0.2.0-alpha.60';
+import {nativeUnionPaths} from './native-boolean.js?v=0.2.0-alpha.61';
+import {nativeParts} from './native-bezier.js?v=0.2.0-alpha.61';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.61';
+import {sampledContours} from './rich-svg.js?v=0.2.0-alpha.61';
+import {createFilledOverlapTester,findUnionEquivalentSource} from './polygon-union.js?v=0.2.0-alpha.61';
+import {isUnchangedUnion} from './union-refit.js?v=0.2.0-alpha.61';
+import {deduplicateExactVectors} from './exact-native-dedup.js?v=0.2.0-alpha.61';
+import {assessUnionGroup} from './union-group-budget.js?v=0.2.0-alpha.61';
+import {realNodeCount} from './preview-node-budget.js?v=0.2.0-alpha.61';
 // Candidate Union retains native Bézier source subcurves; sampled polygons
 // only verify fill/holes. Unfilled strokes retain original cubic path data.
 // No paint-mode conversion or joining unlike-colored artwork.
