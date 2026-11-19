@@ -1,3 +1,14 @@
+## 0.2.0-alpha.62 — опубликована 2026-11-19
+- Изменение: DoctorTracer 0.21.1 получает только чёрный RGB(0,0,0) при исходном alpha 0..255 (прозрачный фон, отверстия и сглаженные края сохраняются). Source EPS/PDF не перекрашен.
+- PR #94 https://github.com/tohaa28/relief-forge/pull/94 merged main: 850bf1f6e284cd439ee6257a8470b5197db7de7d.
+- Финальный PR CI https://github.com/tohaa28/relief-forge/actions/runs/44534174806 SUCCESS: 350/350 JS, 17/17 Rust, WASM build, generic browser smoke tests.
+- Главный Pages build+deploy https://github.com/tohaa28/relief-forge/actions/runs/44534559435 SUCCESS (обе jobs).
+- Public URL: https://tohaa28.github.io/relief-forge/?v=alpha62
+- Откат до предыдущей опубликованной alpha.61: 2035f00eaaa654ca1e1780997be5933e5827fd2b.
+- alpha.62: blackTransparentRgba8 после getImageData и перед Worker, alpha:true Canvas, packed transferable RGBA8; color/opacity User EPS source, Undo and >200k SVG retry safety gates unchanged.
+- Реальный пользовательский EPS 8101921_maket_7_121126_163426.eps не был загружен; фактическая точность трассировки именно на нём и Windows zoom FPS остаются НЕ ПРОВЕРЕНЫ.
+- Документация: ALPHA62_BLACK_TRANSPARENT_TRACER_INPUT.md; F-062 / M-062; журнал logs/actions.jsonl.
+
 ## 0.2.0-alpha.62 — КАНДИДАТ · 2026-11-19
 - Запрос: передать DoctorTracer 0.21.1 чёрное изображение на полностью прозрачном фоне; не перекрашивать EPS/PDF-источник.
 - Ветка: feature/alpha62-black-transparent-tracer-input; PR #94 https://github.com/tohaa28/relief-forge/pull/94

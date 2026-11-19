@@ -486,3 +486,9 @@ F-051 verified: PR78 and Pages run42985447239 green; live browser regression PAS
 - PR #93 final CI 44524863713 passed (346 JS, 17 Rust); merge f594e38.
 - Main 44525261601 build and deploy passed; user EPS fidelity remains unverified.
 - Partial version-bump CI runs failed/cancelled but are preserved in GitHub Actions.
+
+### F-062: публикационный checkpoint
+- Пустой пробел канонизации устранён в alpha.62, PR #94, merge 850bf1f6.
+- PR CI 44534174806: 350/350 JS, 17/17 Rust; main Pages 44534559435 build+deploy success.
+- Это контрактная гарантия на RGBA; не доказана проблема в конкретном пользовательском EPS (байты файла недоступны).
+
