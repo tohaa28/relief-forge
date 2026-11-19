@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DOMParser} from '@xmldom/xmldom';
@@ -67,4 +68,12 @@ test('no guesswork on invalid tolerance and image paths',()=>{
   assert.throws(()=>fix(source,NaN),/допуск/);
   const image=doc({kind:'image',points:[],offset:[0,0]});
   assert.deepEqual(fix(image).document,image);
+});
+
+test('alpha57 setting applies only through explicit button in both preview flows',()=>{
+ const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
+ const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
+ assert.match(html,/id="separate-coincident" type="checkbox" checked/);
+ assert.equal(app.match(/settingChecked\('separate-coincident'\)\?/g).length,2);
+ assert.match(app,/const next=readSettingsForm\(\),error=validateSettingsDraft\(next\)/);
 });
