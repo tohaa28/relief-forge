@@ -875,3 +875,10 @@ Next: if user still sees discrepancy, obtain same file/marked location and ArtCA
 - **Rollback:** 0.2.0-alpha.57, main commit `9449e4d409ba8ec339d8fb066100d30e0ca18283`. Не публиковать пользовательский PDF.
 - **Следующая приёмка:** реальный бракованный EPS/PDF с >10 подтверждёнными остаточными ошибками в браузере, Worker loaded/самое точное raster silhouette, mm bounding, контрольная печать EPS, undo и отсутствие петли при повторных настройках. В этом цикле фактический запуск DoctorTracer Worker **не проверялся браузерно** — CI использует mocked Worker и API контракты релиза.
 
+## Кандидат 0.2.0-alpha.59 — DoctorTracer 0.21.1 / ручной zoom (2026-11-19)
+- **PR #90:** https://github.com/tohaa28/relief-forge/pull/90. Alpha.58 rollback main `a29802f59dafbde80fd28c18feb64db562f8a0ec`.
+- Исправлен прошлый недостижимый триггер: при >=11 **подтверждённых** остаточных дефектах даже в *частичном* большом документе запускать новый векторизатор, если выбрана вся геометрия. **Приёмка нового SVG всё равно только после полной Rust+native диагностики + улучшения количества ошибок + IoU >=95%.** Все стадии/причины отказа показывать справа.
+- Фактическая DoctorTracer `gh-pages` 0.21.1, commit `48dfa7b6ea268df1b45bc6ea22981eaba1ee9026`; старый main/workflow не отражает live release. Использовать independent `/DoctorTracer/worker.js?v=0.21.1`.
+- Редактор: local viewport ≤600 native Безье, оригинальная тяжёлая фигура скрывается **только на глубоком zoom**; 1 rAF за кадр, маркеры обновляются in place; исходник/Undo/EPS сохраняются.
+- CI первая попытка #44485981560 339/340 JS: единственный FAIL — ещё не обновлённые документы версии; исправление в этом коммите. **Не говорить, что итоговый CI/деплой завершены, пока не проверили.** Подробности в `docs/history/ALPHA59_DOCTORTRACER_ZOOM.md`.
+
