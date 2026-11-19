@@ -912,3 +912,10 @@ Added a2-million native segment-comparison budget per compound path; if full int
 - Возврат к alpha.58: commit `a29802f59dafbde80fd28c18feb64db562f8a0ec` (проверенный успешный main Pages).
 - Подробности: `docs/history/ALPHA59_DOCTORTRACER_ZOOM.md`; журналы `docs/history/FAILURE_REGISTER.md`, `docs/history/METHODS_AND_DECISIONS.md`, `logs/actions.jsonl`. **Следующая задача: браузерная приёмка реального сложного файла и live Worker**.
 
+## alpha.60 — Canvas RGBA / DoctorTracer 0.21.1 / zoom performance (2026-11-19)
+**Новый PR #92:** https://github.com/tohaa28/relief-forge/pull/92. База alpha.59 `345fac5b7df66120fdaa84284c2a5985b9d497ad`.
+**Доказательство из присланного `relief-forge-session.jsonl`:** EPS 1.226MB, 1975 paths, 1115 initial errors, 398 remaining; событие `doctortracer-fallback-start` затем через 75ms `doctortracer-fallback-rejected` `The source image could not be decoded.`. Значит триггер уже сработал; падала `createImageBitmap(SVG Blob)` **до вызова** DoctorTracer WASM.
+В `web/doctortracer-fallback.js` production использует `CanvasRenderingContext2D` для нативных M/L/Q/C/Z напрямую→RGBA8 `Uint8Array`, отверстия через `evenodd`, открытые stroke; валидирует буфер 4*width*height и opaque pixels; Worker 0.21.1 получает прежний контракт `ArrayBuffer`. В `app.js` журналируется `doctortracer-rgba-ready`; исходник только после полного accept с IOU.
+**Zoom**: `manualZoomRegion` кэширует ROI между wheel frames, снимает большую часть path-d reparse; скрывает исходные 1975 SVG path/markers почти сразу при зуме; локально до 24 соседних shapes / 600 segments / 80 issue markers; исходные кривые сохраняются в памяти и Undo.
+**История:** `docs/history/ALPHA60_CANVAS_DOCTORTRACER_PERFORMANCE.md`, F-060/M-060, `logs/actions.jsonl`. Первый CI #44511911748: 341/343 JS; два тестовых сбоя: JS -0 vs 0 и ещё не обновлённый файл релизной истории. **Не утверждать успешный окончательный CI/деплой, пока не проверено**.
+

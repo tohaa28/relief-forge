@@ -1,3 +1,8 @@
+## F-060. SVG Blob не декодируется перед Worker; чрезмерный repaint при zoom (2026-11-19)
+- User JSONL: `8101921_maket_7_121126_163426.eps`, 1975 vectors, 398 after issues, `doctortracer-fallback-start`→`doctortracer-fallback-rejected` за 75ms с `The source image could not be decoded.`. Неверный диагноз «не сработал триггер»; реальный failure в `createImageBitmap` большого сгенерированного SVG Blob до DoctorTracer 0.21.1 Worker.
+- Решение: нативный Canvas2D raster M/L/Q/C/Z + fill evenodd + stroke open → RGBA8, validate exact payload and backend journal event. Zoom: cache ROI across wheel, bounded local path+issue paint, hide main SVG early. O(1) HTML wheel processing until ROI boundary, no serialized 11MB large-preview in JSONL.
+- CI attempt 44511911748: 341/343 pass, fail только -0/0 координат в моке и ещё не обновлённый NEXT_CHAT_START. Профиль и реальный user EPS браузером не проверены. См. `ALPHA60_CANVAS_DOCTORTRACER_PERFORMANCE.md`.
+
 ## F-059. Tracer не запускался на сложных документах; manual zoom repaint (2026-11-19)
 - **Симптом:** при множестве дефектов в PDF/EPS нет вызова DoctorTracer. **Причина:** `needsDoctorTracer` ошибочно требовал `complete&&fullScope` даже для *запуска*; большие документы часто частично диагностированы. Новый критерий запуска: >10 фактически найденных/подтверждённых проблем и вся область, без повтора; критерий **принятия нового вектора** оставлен строгим complete/fullScope + IoU/ratio + уменьшение ошибок.
 - **Версия:** Worker 0.16 указан в статусе, хотя реальный DoctorTracer gh-pages 0.21.1. Новая ссылка URL `?v=0.21.1` во избежание старого кэша.
