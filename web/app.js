@@ -387,7 +387,16 @@ let lastImportAttempt=null,lastImportFailure=null;
 const displayErrors=[];
 window.addEventListener('error',e=>{displayErrors.push(String(e.message||'Unknown error'));if(displayErrors.length>25)displayErrors.shift();});
 window.addEventListener('unhandledrejection',e=>{displayErrors.push(String(e.reason?.message||e.reason||'Unhandled rejection'));if(displayErrors.length>25)displayErrors.shift();});
-function record(action,detail={}){journal.push({at:new Date().toISOString(),action,detail});}
+function record(action,detail={}){
+  // Never retain stats.budget.document: 11.35 MB of duplicated EPS geometry
+  // were found in one real alpha.59 user-session event.
+  if(detail?.stats?.budget?.document){
+    const {document:_document,...budget}=detail.stats.budget;
+    const {scope:_scope,...stats}=detail.stats;
+    detail={...detail,stats:{...stats,scopeCount:_scope?.length||0,budget}};
+  }
+  journal.push({at:new Date().toISOString(),action,detail});
+}
 function status(s){$('status').textContent=String(s).split('\n')[0];$('status').title=s;}
 function progressStage(stage,percent,detail=''){
   const n=Math.max(0,Math.min(100,Math.round(percent)));
@@ -1199,7 +1208,15 @@ async function retryUnfixableWithDoctorTracer(preview,report,callRust,generation
   try{
     progressStage('DoctorTracer: растрирование импортированного вектора',10);
     const plan=rasterPlan(source);
-    const raster=await rasterizeDocument(source,plan);
+    const raster=await rasterizeDocument(source,plan,{
+      signal:abort.signal,yieldUi:yieldForUi,
+      onProgress:({processed,total})=>progressStage(
+        'DoctorTracer: Canvas 2D · оригинальные кривые → RGBA',
+        10+Math.round(20*processed/total),processed+' / '+total+' объектов')
+    });
+    record('doctortracer-raster-ready',{backend:raster.backend,
+      width:raster.width,height:raster.height,closed:raster.closed,
+      open:raster.open,bytes:raster.pixels.byteLength});
     if(cancelled())return report;
     // Worker transfers its RGBA ArrayBuffer; retain a separate pixel mask
     // for independent silhouette fidelity verification.
@@ -1210,6 +1227,8 @@ async function retryUnfixableWithDoctorTracer(preview,report,callRust,generation
       progress:(pct,stage)=>progressStage('DoctorTracer: '+(stage||'трассировка'),
         Math.min(70,30+Math.round(pct*.4)),Math.round(pct)+'%')});
     if(cancelled())return report;
+    record('doctortracer-worker-result',{backend:traced.backend,
+      paths:traced.paths,svgBytes:traced.svg.length});
     const candidate=remapDoctorTracerSvg(source,traced.svg,plan);
     progressStage('DoctorTracer: сверка растрового силуэта',72);
     const candidateRaster=await rasterizeDocument(candidate,plan);
