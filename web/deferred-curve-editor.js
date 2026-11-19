@@ -423,6 +423,34 @@ export function createDeferredCurveEditor(path){
     touched.add(Math.max(1,index-1));
     return true;
   }
+  function shiftKinds(from,delta){
+    const adjusted={};
+    for(const [raw,kind] of Object.entries(kinds)){
+      const id=Number(raw);
+      adjusted[id>=from?id+delta:id]=kind;
+    }
+    kinds=adjusted;
+  }
+  function relocateKindsByPosition(){
+    // Reversing/rotating a subpath changes command IDs without moving any
+    // anchors. Keep explicit cusp/smooth/symmetric labels on the same real
+    // coordinates, not on unrelated command indices in later subpaths.
+    const oldTypes=new Map();
+    const key=n=>n.part+':'+n.point.map(v=>Math.round(v*1e9)).join(':');
+    for(const n of nodes){
+      const kind=kinds[n.index];if(!kind)continue;
+      const k=key(n);if(!oldTypes.has(k))oldTypes.set(k,[]);
+      oldTypes.get(k).push(kind);
+    }
+    const next=curveNodesTyped({kind:'vector',artwork:'<path/>',
+      commands,offset,nodeKinds:{}});
+    const result={};
+    for(const n of next){
+      const candidates=oldTypes.get(key(n));
+      if(candidates?.length)result[n.index]=candidates.shift();
+    }
+    kinds=result;
+  }
   function reversePart(index){
     const entry=byIndex.get(index);if(!entry)throw Error('Узел не найден');
     const p=parts[entry.part],before=snapshotStructure();
@@ -434,18 +462,19 @@ export function createDeferredCurveEditor(path){
       ?[[...originals.at(-1).at(-1)],[...endpoint(commands[start])]]:null;
     if(closing)originals.push(closing);
     const newStart=p.closed?endpoint(commands[start]):originals.at(-1).at(-1);
-    const reversed=[['M',...newStart],...originals.reverse().map(segment=>{
-      const controls=segment.toReversed();
-      return toCommand(controls);
-    }),...(p.closed?[['Z']]:[])];
+    const reversed=[['M',...newStart],...originals.reverse().map(item=>
+      toCommand(item.toReversed())),...(p.closed?[['Z']]:[])];
     commands.splice(start,last-start+1+Number(hasZ),...reversed);
+    relocateKindsByPosition();
     changedStructural(before);return true;
   }
   function closeAt(index){
     const entry=byIndex.get(index);if(!entry)throw Error('Узел не найден');
     const part=parts[entry.part];if(part.closed)throw Error('Контур уже замкнут');
     const before=snapshotStructure(),at=part.segments.at(-1)+1;
-    commands.splice(at,0,['Z']);changedStructural(before);
+    commands.splice(at,0,['Z']);
+    shiftKinds(at,1);
+    changedStructural(before);
     touched.add(part.start);touched.add(part.segments.at(-1));
     return true;
   }
@@ -456,10 +485,21 @@ export function createDeferredCurveEditor(path){
     if(!part.closed){
       if(n===0||n===part.segments.length)throw Error('Нужен внутренний узел');
       commands.splice(index+1,0,['M',...endpoint(commands[index])]);
+      shiftKinds(index+1,1);
     }else{
-      const end=part.segments.at(-1)+1;
-      if(commands[end]?.[0]==='Z')commands.splice(end,1);
-      else throw Error('Не удалось разомкнуть локальный контур');
+      const last=part.segments.at(-1),z=last+1;
+      if(commands[z]?.[0]!=='Z')throw Error('Нет завершающего Z');
+      const full=part.segments.map(id=>segment(id).controls.map(p=>
+        p.map((v,i)=>v-offset[i])));
+      const start=endpoint(commands[part.start]),end=full.at(-1).at(-1);
+      if(!same(end,start))full.push([end,start]);
+      // Break AT the selected real anchor. Rotating the segment sequence
+      // makes that node both endpoints, exactly as the previous Corel editor.
+      const origin=n?full[n-1].at(-1):start;
+      const rotated=[...full.slice(n),...full.slice(0,n)];
+      commands.splice(part.start,z-part.start+1,
+        ['M',...origin],...rotated.map(toCommand));
+      relocateKindsByPosition();
     }
     changedStructural(before);return true;
   }
