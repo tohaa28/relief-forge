@@ -1,3 +1,5 @@
+## 0.2.0-alpha.60 — кандидат CI, 19 ноября 2026
+
 ## alpha.60 — Canvas RGBA / DoctorTracer 0.21.1 / zoom performance (2026-11-19)
 **Новый PR #92:** https://github.com/tohaa28/relief-forge/pull/92. База alpha.59 `345fac5b7df66120fdaa84284c2a5985b9d497ad`.
 **Доказательство из присланного `relief-forge-session.jsonl`:** EPS 1.226MB, 1975 paths, 1115 initial errors, 398 remaining; событие `doctortracer-fallback-start` затем через 75ms `doctortracer-fallback-rejected` `The source image could not be decoded.`. Значит триггер уже сработал; падала `createImageBitmap(SVG Blob)` **до вызова** DoctorTracer WASM.

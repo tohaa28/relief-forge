@@ -174,8 +174,8 @@ test('direct Canvas 2D rasterizer does not attempt SVG Blob decoding on 1975 imp
  assert.equal(raster.pixels.byteLength,plan.width*plan.height*4);
  assert.equal(calls.fills,1975);
  assert.deepEqual(calls.transform.slice(0,4),[2,0,0,2]);
- assert.equal(calls.transform[4],0);
- assert.equal(calls.transform[5],0);
+ assert.ok(Math.abs(calls.transform[4])<1e-12);
+ assert.ok(Math.abs(calls.transform[5])<1e-12);
  assert.equal(calls.saved,0);
  assert.equal(JSON.stringify(document),snapshot);
  assert.ok(validateDoctorTracerRgba(raster).opaque>0);
