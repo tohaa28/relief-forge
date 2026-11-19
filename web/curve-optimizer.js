@@ -1,4 +1,4 @@
-import {validateCurveChange,validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.62';
+import {validateCurveChange,validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.63';
 // Always resolve vector paths from the document, never a stale map callback.
 export function selectedVectorIndices(document,selected,selectionOnly=true){
   const selection=new Set(selected||[]);
