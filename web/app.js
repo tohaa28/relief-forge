@@ -1276,6 +1276,10 @@ async function retryUnfixableWithDoctorTracer(preview,report,callRust,generation
           height:attemptPlan.height});
         progressStage('DoctorTracer: трассировка WASM · попытка '+attempt+'/'+total,30);
       },
+      onTraced:({attempt,plan:attemptPlan,paths,paletteCount,backend})=>{
+        record('doctortracer-trace-result',{attempt,width:attemptPlan.width,
+          height:attemptPlan.height,paths,paletteCount,backend,requestedInkCount:1});
+      },
       onRetry:({attempt,nextPlan,reason})=>{
         record('doctortracer-node-limit-retry',{attempt,reason,
           nextWidth:nextPlan.width,nextHeight:nextPlan.height});
