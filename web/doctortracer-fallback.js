@@ -74,20 +74,85 @@ export function vectorRasterSvg(document,plan){
     '" height="'+plan.height+'" viewBox="'+view+
     '" preserveAspectRatio="none">'+paths.join('')+'</svg>';
 }
-export async function rasterizeDocument(document,plan,{bitmap=createImageBitmap,
-  canvasFactory=()=>globalThis.document.createElement('canvas')}={}){
-  const svg=vectorRasterSvg(document,plan);
-  const blob=new Blob([svg],{type:'image/svg+xml'});
-  const image=await bitmap(blob);
-  try{
-    const canvas=canvasFactory();canvas.width=plan.width;canvas.height=plan.height;
-    const context=canvas.getContext('2d',{willReadFrequently:true});
-    if(!context)throw Error('DoctorTracer: Canvas 2D недоступен');
-    context.clearRect(0,0,plan.width,plan.height);
-    context.drawImage(image,0,0,plan.width,plan.height);
-    const pixels=context.getImageData(0,0,plan.width,plan.height).data;
-    return {pixels:new Uint8Array(pixels),width:plan.width,height:plan.height,plan};
-  }finally{image.close?.();}
+// Draw exact imported M/L/Q/C/Z command buffers directly on Canvas 2D.
+// A single giant intermediary SVG was rejected by Chromium's bitmap decoder
+// on 1975-path, 22k-node customer EPS. Path2D does not decode any image.
+function drawNativeCommands(target,commands){
+  for(const c of commands){
+    if(c[0]==='M')target.moveTo(c[1],c[2]);
+    else if(c[0]==='L')target.lineTo(c[1],c[2]);
+    else if(c[0]==='Q')target.quadraticCurveTo(c[1],c[2],c[3],c[4]);
+    else if(c[0]==='C')target.bezierCurveTo(...c.slice(1));
+    else if(c[0]==='Z')target.closePath();
+    else throw Error('DoctorTracer: неподдерживаемый сегмент '+c[0]);
+  }
+}
+// Group all closed subpaths within each original object under even-odd
+// filling, preserving negative counters; open contours remain 1px strokes.
+// Do not merge separate objects before drawing: their black silhouettes are
+// an OR/unification in the alpha buffer rather than cancelling each other.
+export function makeRasterPaths(commands,Path=globalThis.Path2D){
+  if(typeof Path!=='function')throw Error('DoctorTracer: в браузере нет Path2D');
+  const closed=new Path(),open=new Path();
+  let part=[],closedParts=0,openParts=0;
+  const flush=(isClosed)=>{
+    if(!part.length)return;
+    if(part.some(c=>c[0]!=='M'&&c[0]!=='Z')){
+      drawNativeCommands(isClosed?closed:open,part);
+      if(isClosed)closedParts++;else openParts++;
+    }
+    part=[];
+  };
+  for(const c of commands){
+    if(c[0]==='M'){flush(false);part=[c];}
+    else if(c[0]==='Z'){part.push(c);flush(true);}
+    else if(part.length)part.push(c);
+    else throw Error('DoctorTracer: кривая без точки M');
+  }
+  flush(false);
+  return {closed,open,closedParts,openParts};
+}
+export async function rasterizeDocument(document,plan,{
+  canvasFactory=()=>globalThis.document.createElement('canvas'),
+  pathFactory=globalThis.Path2D,
+  yieldUi=()=>new Promise(resolve=>setTimeout(resolve,0)),
+  signal=null,onProgress=()=>{},batchSize=48
+}={}){
+  if(!Number.isInteger(plan.width)||!Number.isInteger(plan.height)||
+    plan.width<1||plan.height<1||plan.width*plan.height>8000000)
+    throw Error('DoctorTracer: неверный размер растровой поверхности');
+  const canvas=canvasFactory();canvas.width=plan.width;canvas.height=plan.height;
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  if(!ctx)throw Error('DoctorTracer: Canvas 2D недоступен');
+  const sx=plan.width/plan.widthMm,sy=plan.height/plan.heightMm;
+  ctx.clearRect(0,0,plan.width,plan.height);
+  // Pixel frame has no SVG resources, fonts, CSS, external references or
+  // browser image-decoder limits. Coordinates stay in real document mm.
+  ctx.setTransform(sx,0,0,sy,-plan.x*sx,-plan.y*sy);
+  ctx.fillStyle='#000000';ctx.strokeStyle='#000000';
+  ctx.lineWidth=Math.max(1/sx,1/sy);
+  ctx.lineJoin='round';ctx.lineCap='round';
+  let closed=0,open=0;
+  const total=document.paths.length;
+  for(let i=0;i<total;i++){
+    if(signal?.aborted)throw Error('DoctorTracer: растрирование отменено');
+    const c=geometryCommands(document.paths[i]);
+    const built=makeRasterPaths(c,pathFactory);
+    if(built.closedParts){ctx.fill(built.closed,'evenodd');closed+=built.closedParts;}
+    if(built.openParts){ctx.stroke(built.open);open+=built.openParts;}
+    if((i+1)%batchSize===0||i===total-1){
+      onProgress({processed:i+1,total,closed,open});
+      if(i<total-1)await yieldUi();
+    }
+  }
+  if(!closed&&!open)throw Error('DoctorTracer: нет линий или заливок для трассировки');
+  if(signal?.aborted)throw Error('DoctorTracer: растрирование отменено');
+  const pixels=ctx.getImageData(0,0,plan.width,plan.height).data;
+  const rgba=new Uint8Array(pixels);
+  if(!rgba.some((v,i)=>i%4===3&&v>0))
+    throw Error('DoctorTracer: растр пуст; исходные кривые сохранены');
+  return {pixels:rgba,width:plan.width,height:plan.height,plan,
+    backend:'Canvas 2D native M/L/Q/C',closed,open};
 }
 export function doctorTracerWorkerUrl(pageUrl){
   const page=new URL(pageUrl);
