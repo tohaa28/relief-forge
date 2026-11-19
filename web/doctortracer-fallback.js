@@ -235,7 +235,7 @@ export function compareSegmentedAlpha(sourceBits,segmentRgba){
 // Black is the only ink and transparency is not composited on white.
 export async function rasterizeDocumentAlpha(document,plan,{
   canvasFactory=()=>globalThis.document.createElement('canvas'),signal,
-  yieldUi=()=>Promise.resolve()
+  yieldUi=()=>Promise.resolve(),onProgress=()=>{}
 }={}){
   if(signal?.aborted)throw Error('DoctorTracer: операция отменена');
   const canvas=canvasFactory();
@@ -259,6 +259,7 @@ export async function rasterizeDocumentAlpha(document,plan,{
         alpha[y*plan.width+p]=a;
         if(a>=128)opaque++;
       }
+      onProgress((y+h)/plan.height);
       if(y+h<plan.height)await yieldUi();
     }
     if(!opaque)
