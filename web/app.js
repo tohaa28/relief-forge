@@ -211,11 +211,10 @@ function localEditorToolbar(){
 function enableManualViewportMode(){
   if(!curveEditing())return;
   if(!manualViewportIndex)manualViewportIndex=buildManualViewportIndex(doc);
-  if(!manualViewportMode){
-    parkedGeometry=document.createDocumentFragment();
-    const geometry=$('geometry');
-    while(geometry.firstChild)parkedGeometry.appendChild(geometry.firstChild);
-  }
+  const geometry=$('geometry');
+  if(!parkedGeometry)parkedGeometry=document.createDocumentFragment();
+  if(geometry.firstChild&&manualViewportMode)parkedGeometry.replaceChildren();
+  while(geometry.firstChild)parkedGeometry.appendChild(geometry.firstChild);
   manualViewportMode=true;
   document.body.classList.add('local-editor-active','manual-local-zoom');
 }
@@ -285,8 +284,10 @@ function scheduleManualZoomRefresh(){
       unit=screenUnitsPerPixel(view,$('canvas').clientWidth,$('canvas').clientHeight);
     if(!manualFocus){
       const path=[...selected].find(i=>doc.paths[i]?.kind!=='image');
-      if(Number.isInteger(path))manualFocus={path,
-        point:[view.x+view.width/2,view.y+view.height/2]};
+      if(Number.isInteger(path)){
+        manualFocus={path,point:[view.x+view.width/2,view.y+view.height/2]};
+        localEditor(path); // index at first zoom, not every wheel frame
+      }
     }
     if(!manualGlyphBuildUnit||Math.max(unit/manualGlyphBuildUnit,
       manualGlyphBuildUnit/unit)>1.8)drawLocalEditorOverlay();
@@ -297,8 +298,9 @@ function scheduleManualZoomRefresh(){
   });
 }
 function drawLocalEditorOverlay(){
-  if(!curveEditing()||!localEditors.size)return;
+  if(!curveEditing())return;
   document.body.classList.add('local-editor-active');
+  if(!localEditors.size){refreshLocalZoomGeometry();return;}
   // The staged segments stay mounted across clicks, panning and mouseup.
   // Only the <=200 nearby glyphs are replaced, never all accumulated patches.
   const glyphs=$('manual-glyphs');glyphs.replaceChildren();
