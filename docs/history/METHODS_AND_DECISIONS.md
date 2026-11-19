@@ -1,3 +1,9 @@
+## M-060. Canvas native raster and DOM parking before zoom (2026-11-19)
+**Решение 1.** Растрировать исходный вектор с помощью Canvas2D/Path2D M,L,Q,C,Z и evenodd для compound вместо `createImageBitmap(SVG Blob)` на 1975 объектах. Матрица mm→pixels; в Worker 0.21.1 передавать typed RGBA ArrayBuffer transferable с точными width/height. UI progress/Cancel; safety fail-closed.
+**Решение 2.** В ручном zoom до обновления `viewBox` отцеплять тяжелую `#geometry` во fragment, а на SVG root оставлять 420+180 (макс.600) локальных сегментов из immutable spatial index всех фигур. Коалесцировать wheel в rAF; возвращать полный исходник на Fit/exit. Индексом пользоваться лишь в редакторе; не затрагивать экспорт EPS/проверку.
+**Решение 3.** Event journal хранит только compact budget stats + scopeCount, не nested original document (11.35 MB). Не терять объективные счётчики / ошибки.
+Разбор [ALPHA60_CANVAS_RASTER_AND_VIEWPORT.md](ALPHA60_CANVAS_RASTER_AND_VIEWPORT.md). Браузерные тесты по настоящему Chromium, исходный EPS от пользователя отдельно требует e2e-приёмки.
+
 ## M-059. Срабатывание на нижней границе дефектов и viewport-local canvas
 2026-11-19. Для частично проверенного EPS факт наличия 11 дефектов достаточен **для запуска попытки восстановления**, но недостаточен для утверждения отсутствия других дефектов. Порог принятия трассировки оставлен `after.complete&&after.fullScope&&afterIssues.length<originalCount&&IoU>=.95&&areaRatio 0.95..1.05`. Реальная версия DoctorTracer взята из gh-pages `48dfa7b6`, не из устаревшего main. Для manual zoom вместо полного SVG repaint рисовать только nearby indexed native Bézier segments; на глубоком зуме source SVG скрыть `display:none` (исходный DOM не менять), rAF coalescing, обновлять glyph attributes без destroy/create. См. [ALPHA59_DOCTORTRACER_ZOOM.md](ALPHA59_DOCTORTRACER_ZOOM.md).
 
