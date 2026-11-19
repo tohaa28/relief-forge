@@ -1,3 +1,17 @@
+## 0.2.0-alpha.61 — опубликована 2026-11-19
+- PR #93 merged into main: f594e38e5aeb3466dc468c29862774fc2ad69dad.
+- Final PR CI 44524863713 SUCCESS: 346/346 JS, 17/17 Rust, WASM compilation and browser smoke.
+- Main Pages 44525261601 SUCCESS: both build and deploy jobs completed successfully.
+- Public URL: https://tohaa28.github.io/relief-forge/?v=alpha61
+- Rollback to previous published alpha.60: 94cc59b1b92519642452ad2b932f1a25f0e9ebb2.
+- New fallback retries original EPS raster at 100%, 70%, 45% only if DoctorTracer 0.21.1 SVG exceeds 200000-node limit.
+- Original-resolution IoU>=95%, area 95..105%, complete native/Rust diagnosis and fewer residual errors remain compulsory.
+- Browser smoke was generic CI, NOT the private user EPS 8101921_maket_7_121126_163426.eps;
+  real-user SVG result and zoom FPS are still unverified because EPS bytes were not uploaded.
+- Intermediate PR runs during version-key migration failed/cancelled (44524487570, 44524562343,
+  44524626582, 44524688389, 44524752903); final synchronized version run passed.
+- Full documentation: docs/history/ALPHA61_ADAPTIVE_DOCTORTRACER.md; F-061 and M-061.
+
 ## 0.2.0-alpha.61 — CANDIDATE (2026-11-19)
 - Branch feature/alpha61-adaptive-doctortracer-node-budget, draft PR #93.
 - Safe rollback to published alpha.60, main commit 94cc59b1b92519642452ad2b932f1a25f0e9ebb2.
