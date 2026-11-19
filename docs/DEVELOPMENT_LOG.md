@@ -866,3 +866,12 @@ Next: if user still sees discrepancy, obtain same file/marked location and ArtCA
 - Метод безопасности: составные M…Z одной фигуры растрируются **единым evenodd-path**, чтобы внутренние отверстия не закрашивались, а открытые сегменты остаются одномиллиметровыми? **Нет** — имеют ширину **один пиксель растра**, не 1 мм.
 - Источник для отката: main alpha.57 `9449e4d409ba8ec339d8fb066100d30e0ca18283`. Независимость DoctorTracer 0.16.0 и GPL лицензии сохранена.
 
+## 0.2.0-alpha.58 — ПОДТВЕРЖДЕНО ИСХОДНИКАМИ, CI И GITHUB PAGES (2026-11-19)
+- **Функциональная публикация:** [PR #89](https://github.com/tohaa28/relief-forge/pull/89) merged main `e940da99b0f91f117bbb20d7c44857ec343b04b9`.
+- **Проверка финального PR head:** [GitHub Actions 44479387420](https://github.com/tohaa28/relief-forge/actions/runs/44479387420) **SUCCESS**, 336/336 JavaScript, 17/17 Rust, релизный wasm build/check.
+- **Реальный main build + GitHub Pages deploy:** [GitHub Actions 44479645492](https://github.com/tohaa28/relief-forge/actions/runs/44479645492) **SUCCESS**, оба jobs build/deploy успешны. Страница: https://tohaa28.github.io/relief-forge/?v=alpha58. Независимое внешнее открытие страницы через браузер/тест реального пользовательского PDF **не подтверждены**, не выдавать публикацию за пользовательскую приёмку.
+- **Алгоритм:** из импортированного original path построить 300DPI-силуэт ROI, ≤2400 px/8MP; отдельный установленный на том же origin DoctorTracer Web 0.16.0 Rust WASM Worker `/DoctorTracer/worker.js`; трассировка; возврат SVG в исходные миллиметры; проверка IoU ≥0.95, площади ±5%, полной native+Rust диагностики и строго меньшего числа остаточных дефектов. Автозапуск при **>10** только после полной диагностики ПОСЛЕ и обработки всего вектора. Ошибки/неопределённость не изменяют исходник; DO/Undo и EPS сохранены.
+- **Проверенные неудачи:** CI 44478801368 335/336 JS (двойной пробел между Z и M), исправлено нормализацией, тестом compound evenodd отверстия и green 44478991540/44479387420. Пакет GPL DoctorTracer НЕ скопирован в MIT Relief Forge.
+- **Rollback:** 0.2.0-alpha.57, main commit `9449e4d409ba8ec339d8fb066100d30e0ca18283`. Не публиковать пользовательский PDF.
+- **Следующая приёмка:** реальный бракованный EPS/PDF с >10 подтверждёнными остаточными ошибками в браузере, Worker loaded/самое точное raster silhouette, mm bounding, контрольная печать EPS, undo и отсутствие петли при повторных настройках. В этом цикле фактический запуск DoctorTracer Worker **не проверялся браузерно** — CI использует mocked Worker и API контракты релиза.
+
