@@ -56,6 +56,7 @@ export function createDeferredCurveEditor(path){
   // One O(N) copy at entry per path, never on mousemove or mouseup.
   let commands=(path.artwork?path.commands:
     path.points.map((p,i)=>[i?'L':'M',...p]).concat(path.closed?[['Z']]:[])).map(cp);
+  const initialCommands=commands.map(cp);
   let {parts,byIndex}=indexCommands(commands);
   let segmentPart=new Map();
   function updatePartIndex(){
@@ -105,28 +106,40 @@ export function createDeferredCurveEditor(path){
   }
   function restore(frame){
     for(const [i,c] of frame.entries)commands[i]=cp(c);
-    kinds={...frame.kinds};dirty=frame.dirty;
-    for(const [i,p] of frame.positions){const node=nodeMap.get(i);if(node)node.point=[...p];}
-    for(const node of nodes)if(kinds[node.index])node.type=kinds[node.index];
+    for(const [i,k] of frame.kindValues){
+      if(k===undefined)delete kinds[i];else kinds[i]=k;
+    }
+    for(const [i,p] of frame.positions){
+      const node=nodeMap.get(i);if(node)node.point=[...p];
+    }
+    for(const [i,type] of frame.nodeTypes){
+      const node=nodeMap.get(i);if(node)node.type=type;
+    }
+    dirty=frame.dirty;
     for(const i of frame.touched)touched.add(i);
   }
-  function capture(ids){
-    const entries=new Map(ids.filter(i=>i!==null&&i!==undefined&&commands[i]).map(i=>[i,cp(commands[i])]));
-    const positions=new Map();
-    // O(k) where k is 1..3 changed commands. Do NOT walk every Bézier
-    // anchor in the 7,545-segment compound path at every completed gesture.
-    for(const i of entries.keys()){
+  function capture(ids,additionalNodeIds=[]){
+    const entries=new Map(ids.filter(i=>i!==null&&i!==undefined&&commands[i])
+      .map(i=>[i,cp(commands[i])]));
+    const positions=new Map(),nodeTypes=new Map(),kindValues=new Map();
+    // Per gesture: at most 1-3 SVG commands and directly affected anchors.
+    // Do not clone a full 7k-node array or nodeKinds map for each Undo step.
+    const watched=new Set([...entries.keys(),...additionalNodeIds]);
+    for(const i of watched){
       const node=nodeMap.get(i);
-      if(node)positions.set(i,[...node.point]);
+      if(node){positions.set(i,[...node.point]);nodeTypes.set(i,node.type);}
+      kindValues.set(i,kinds[i]);
     }
-    return {entries,positions,kinds:{...kinds},dirty,touched:[...ids]};
+    return {entries,positions,nodeTypes,kindValues,dirty,touched:[...ids]};
   }
-  function perform(ids,operation){
-    const prior=capture(ids);operation();
-    const changed=ids.some(i=>i!==null&&JSON.stringify(prior.entries.get(i))!==JSON.stringify(commands[i]))||
-      JSON.stringify(prior.kinds)!==JSON.stringify(kinds);
+  function perform(ids,operation,extraIds=[]){
+    const prior=capture(ids,extraIds);operation();
+    const changed=ids.some(i=>i!==null&&
+      JSON.stringify(prior.entries.get(i))!==JSON.stringify(commands[i]))||
+      [...prior.kindValues].some(([i,k])=>kinds[i]!==k);
     if(!changed)return [];
-    undo.push({before:prior,after:capture(ids)});redo.length=0;dirty=true;
+    undo.push({before:prior,after:capture(ids,extraIds)});
+    redo.length=0;dirty=true;
     for(const i of ids)if(i!==null&&i!==undefined)touched.add(i);
     return ids;
   }
@@ -211,12 +224,13 @@ export function createDeferredCurveEditor(path){
         right[1]=at[0]+dir[0]*lout;right[2]=at[1]+dir[1]*lout;
       }
       kinds[index]=kind;node.type=kind;
-    });
+    },[index]);
   }
   function affectedSVG(indices=null){
     if(!dirty)return [];
     const paths=[];
     for(const i of indices??touched){
+      if(JSON.stringify(commands[i])===JSON.stringify(initialCommands[i]))continue;
       const c=segment(i);
       if(c)paths.push({key:i,d:svgSegment(c.controls)});
     }
