@@ -45,9 +45,7 @@ jobs:
           cp target/wasm32-unknown-unknown/release/relief_forge.wasm web/engine.wasm
           node scripts/check-wasm.mjs
       - name: Browser smoke — genuine Chromium Canvas/Path2D and indexed zoom
-        run: |
-          npx playwright install chromium
-          node scripts/alpha60-browser-smoke.mjs
+        run: node scripts/alpha60-browser-smoke.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: relief-forge-wasm-web
