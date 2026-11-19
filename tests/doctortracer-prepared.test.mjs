@@ -110,7 +110,7 @@ test('alpha65: full-resolution alpha8 and RGBA8 have identical source-vs-result 
  const before={width:4,height:1,alpha:a};
  const after={width:4,height:1,alpha:b};
  assert.deepEqual(maskSimilarity(before,after),{iou:1,areaRatio:1,sourcePixels:2,resultPixels:2});
- const asRgba=values=>Uint8Array.from(values.flatMap(v=>[0,0,0,v]));
+ const asRgba=values=>Uint8Array.from(Array.from(values).flatMap(v=>[0,0,0,v]));
  assert.deepEqual(maskSimilarity({...before,alpha:undefined,pixels:asRgba(a)},after),
   maskSimilarity(before,after));
  assert.throws(()=>maskSimilarity(before,{width:4,height:1,alpha:new Uint8Array(3)}),/alpha8/);
