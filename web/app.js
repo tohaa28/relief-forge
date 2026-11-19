@@ -232,13 +232,17 @@ function refreshLocalZoomGeometry(){
   if(!manualViewportIndex)manualViewportIndex=buildManualViewportIndex(doc);
   const focusPath=manualFocus?.path??[...selected].find(i=>doc.paths[i]?.kind!=='image');
   const focusEditor=localEditors.get(focusPath);
+  // The heavy native editor's per-path segment index is only needed at
+  // deep zoom. At broad scales the immutable ALL-document index paints it.
+  const deep=Boolean(focusEditor)&&view.width<doc.width*.28&&
+    view.height<doc.height*.28;
   const groups=manualViewportIndex.query(frame,{
-    limit:420,focusPath,excludePath:focusEditor?focusPath:null,padding:.32
+    limit:420,focusPath,excludePath:deep?focusPath:null,padding:.32
   });
-  if(focusEditor){
+  if(deep){
     const center=[view.x+view.width/2,view.y+view.height/2];
     const segments=focusEditor.visibleSegmentSVG(center,
-      Math.hypot(view.width,view.height)*.8,{limit:240});
+      Math.hypot(view.width,view.height)*.8,{limit:180});
     if(segments.length)groups.unshift({path:focusPath,d:segments.map(s=>s.d).join(' '),
       segments:segments.length});
   }
