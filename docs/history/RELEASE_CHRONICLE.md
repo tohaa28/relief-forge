@@ -1,3 +1,13 @@
+## 0.2.0-alpha.61 — CANDIDATE (2026-11-19)
+- Branch feature/alpha61-adaptive-doctortracer-node-budget, draft PR #93.
+- Safe rollback to published alpha.60, main commit 94cc59b1b92519642452ad2b932f1a25f0e9ebb2.
+- New 29-event user journal: 398 residual, Canvas RGBA 1262x1795 ready, then SVG import rejected (200000-node cap).
+- New bounded DoctorTracer retry 100%/70%/45% only for the exact node-cap error.
+- Required acceptance remains high-resolution IoU>=95%, area 95..105%, complete Rust+native validation and reduced issues.
+- Real input EPS was NOT supplied; browser/WASM fidelity and zoom FPS not verified.
+- ALPHA61_ADAPTIVE_DOCTORTRACER.md, F-061, M-061. PR CI/deployment pending.
+- Do not claim alpha.61 published before green PR CI, main merge and successful Pages build+deploy.
+
 ## 0.2.0-alpha.60 — опубликованная версия (2026-11-19)
 - **PR [#92](https://github.com/tohaa28/relief-forge/pull/92)** объединён с main, merge commit `9d461a5180907e532c7e4fd4607ae773418d1e4d`. **Предыдущая alpha.59** для отката: `345fac5b7df66120fdaa84284c2a5985b9d497ad`.
 - Финальная CI ветки [44513193512](https://github.com/tohaa28/relief-forge/actions/runs/44513193512) **SUCCESS**, **343/343 JS**, **17/17 Rust**, WASM release build + check.

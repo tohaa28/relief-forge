@@ -931,3 +931,13 @@ Added a2-million native segment-comparison budget per compound path; if full int
 - **Не проверено браузером на самом EPS**: передан только диагностический JSONL, а не байты `8101921_maket_7_121126_163426.eps`; не измерен реальный FPS и не подтверждён конец-to-конец Worker DoctorTracer WASM на этом изображении. Внешняя UI приёмка: открыть именно EPS; после 11+ residual появится `doctortracer-rgba-ready`, Worker progress; сравнить до/после, маску IoU, Undo и экспорт. Для zoom сравнить ×5–×20 на 1,975 shapes. Исходный документ не перезаписывается при отклонённой трассировке.
 - Полный план/методы `docs/history/ALPHA60_CANVAS_DOCTORTRACER_PERFORMANCE.md`; провалы F-060, методы M-060, события `logs/actions.jsonl`.
 
+
+## 0.2.0-alpha.61 — CANDIDATE (2026-11-19)
+- Branch feature/alpha61-adaptive-doctortracer-node-budget, draft PR #93.
+- Safe rollback to published alpha.60, main commit 94cc59b1b92519642452ad2b932f1a25f0e9ebb2.
+- New 29-event user journal: 398 residual, Canvas RGBA 1262x1795 ready, then SVG import rejected (200000-node cap).
+- New bounded DoctorTracer retry 100%/70%/45% only for the exact node-cap error.
+- Required acceptance remains high-resolution IoU>=95%, area 95..105%, complete Rust+native validation and reduced issues.
+- Real input EPS was NOT supplied; browser/WASM fidelity and zoom FPS not verified.
+- ALPHA61_ADAPTIVE_DOCTORTRACER.md, F-061, M-061. PR CI/deployment pending.
+- Do not claim alpha.61 published before green PR CI, main merge and successful Pages build+deploy.

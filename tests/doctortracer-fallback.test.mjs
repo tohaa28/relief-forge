@@ -4,7 +4,8 @@ import {readFileSync} from 'node:fs';
 import {DOMParser} from '@xmldom/xmldom';
 import {needsDoctorTracer,rasterPlan,vectorRasterSvg,doctorTracerWorkerUrl,
   traceWithDoctorTracer,remapDoctorTracerSvg,maskSimilarity,acceptRetracing,
-  rasterizeDocument,paintDocumentSilhouette,validateDoctorTracerRgba} from '../web/doctortracer-fallback.js';
+  rasterizeDocument,paintDocumentSilhouette,validateDoctorTracerRgba,
+  scaledDoctorTracerPlan,isDoctorTracerNodeBudgetError,traceDocumentWithNodeBudget} from '../web/doctortracer-fallback.js';
 const p=(coordinates,closed=true)=>({
   kind:'vector',artwork:'<path fill="none" stroke="#123"/>',offset:[0,0],
   commands:coordinates.map((pt,i)=>[i?'L':'M',...pt]).concat(closed?[['Z']]:[]),
@@ -203,10 +204,61 @@ test('AFTER integration takes source, rechecks candidate and keeps undo; does no
   const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
   assert.match(app,/retryUnfixableWithDoctorTracer\(preview,report,callRust,generation\)/);
   assert.match(app,/rasterPlan\(source\)/);
-  assert.match(app,/remapDoctorTracerSvg\(source,traced\.svg,plan\)/);
+  assert.match(app,/traceDocumentWithNodeBudget\(source,plan,/);
   assert.match(app,/acceptRetracing\(originalCount,checked,similarity\)/);
   assert.match(app,/preview\.result=candidate/);
   assert.match(app,/preview\.comparisonData\.afterDoc=candidate/);
   assert.match(app,/checkpoint\(baseline\);doc=clone\(pv\.result\)/);
   assert.match(html,/id="doctortracer-status"/);
+});
+
+
+test('bounded node-budget fallback retries the original artwork at 70 percent, preserving mm',async()=>{
+ const source=doc(),snapshot=structuredClone(source);
+ const plan={x:3,y:5,widthMm:45,heightMm:30,width:1200,height:800,dpi:300};
+ const rasters=[],attempts=[],retries=[];
+ const out=await traceDocumentWithNodeBudget(source,plan,{
+  firstRaster:{width:1200,height:800},
+  rasterize:async(_s,p)=>{rasters.push([p.width,p.height]);return {width:p.width,height:p.height};},
+  trace:async r=>{attempts.push([r.width,r.height]);return {svg:'<svg/>',backend:'mock'};},
+  remap:(_s,_svg,p)=>{
+   if(p.width===1200)throw Error('SVG: превышен лимит 200000 узлов');
+   return {pathCount:1};
+  },onRetry:r=>retries.push(r)
+ });
+ assert.deepEqual(attempts,[[1200,800],[840,560]]);
+ assert.deepEqual(rasters,[[840,560]]);
+ assert.equal(retries.length,1);
+ assert.equal(out.attempts,2);
+ assert.equal(out.tracePlan.widthMm,45);
+ assert.equal(out.tracePlan.heightMm,30);
+ assert.deepEqual(source,snapshot);
+});
+test('unrelated SVG error aborts immediately; persistent node budget stops after three retries',async()=>{
+ const source=doc(),plan={x:0,y:0,widthMm:30,heightMm:20,width:1000,height:600,dpi:300};
+ let calls=0;
+ const options={firstRaster:{width:1000,height:600},
+  rasterize:async(_s,p)=>({width:p.width,height:p.height}),
+  trace:async()=>{calls++;return {svg:'<svg/>'};}};
+ await assert.rejects(traceDocumentWithNodeBudget(source,plan,{
+  ...options,remap:()=>{throw Error('SVG: неподдерживаемая геометрия');}
+ }),/неподдерживаемая геометрия/);
+ assert.equal(calls,1);
+ await assert.rejects(traceDocumentWithNodeBudget(source,plan,{
+  ...options,remap:()=>{throw Error('SVG: превышен лимит 200000 узлов');}
+ }),/200000 узлов/);
+ assert.equal(calls,4);
+});
+test('cancellation stops follow-up retries; invalid scale series cannot increase limits',async()=>{
+ const source=doc(),plan={x:0,y:0,widthMm:30,heightMm:20,width:1000,height:600,dpi:300};
+ const ctrl=new AbortController();
+ await assert.rejects(traceDocumentWithNodeBudget(source,plan,{
+  firstRaster:{width:1000,height:600},signal:ctrl.signal,
+  trace:async()=>{ctrl.abort();return {svg:'<svg/>'};},
+  remap:()=>{throw Error('candidate should never be parsed');}
+ }),/отменена/);
+ assert.equal(isDoctorTracerNodeBudgetError(Error('SVG: превышен лимит 200000 узлов')),true);
+ assert.equal(isDoctorTracerNodeBudgetError(Error('SVG: parse failed')),false);
+ assert.throws(()=>scaledDoctorTracerPlan(plan,1),/масштаб/);
+ await assert.rejects(traceDocumentWithNodeBudget(source,plan,{scales:[1,1]}),/некорректный план/);
 });

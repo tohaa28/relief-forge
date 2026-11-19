@@ -1,3 +1,10 @@
+## F-061. DoctorTracer traced SVG over 200000 nodes (2026-11-19)
+- User alpha.60 JSONL: RGBA ready (1262x1795); fallback rejected because importRichSvg reached total 200000 nodes.
+- The previous F-060 SVG decoder fault is fixed; this new failure happens AFTER RGBA/Worker.
+- Keep the 200k safety limit; do not accept unverified output or raise memory budget.
+- M-061: bounded re-trace original source at 70%/45%, preserve high-resolution candidate verification.
+- Real user EPS not supplied, fidelity on that source NOT verified.
+
 ## F-060. SVG Blob не декодируется перед Worker; чрезмерный repaint при zoom (2026-11-19)
 - User JSONL: `8101921_maket_7_121126_163426.eps`, 1975 vectors, 398 after issues, `doctortracer-fallback-start`→`doctortracer-fallback-rejected` за 75ms с `The source image could not be decoded.`. Неверный диагноз «не сработал триггер»; реальный failure в `createImageBitmap` большого сгенерированного SVG Blob до DoctorTracer 0.21.1 Worker.
 - Решение: нативный Canvas2D raster M/L/Q/C/Z + fill evenodd + stroke open → RGBA8, validate exact payload and backend journal event. Zoom: cache ROI across wheel, bounded local path+issue paint, hide main SVG early. O(1) HTML wheel processing until ROI boundary, no serialized 11MB large-preview in JSONL.

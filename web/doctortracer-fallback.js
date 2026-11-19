@@ -1,5 +1,5 @@
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.60';
-import {importRichSvg} from './rich-svg.js?v=0.2.0-alpha.60';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.61';
+import {importRichSvg} from './rich-svg.js?v=0.2.0-alpha.61';
 
 // The linked DoctorTracer 0.21.1 WASM gh-pages site owns its Worker and its GPL
 // dependencies. Nothing from that distribution is copied or relicensed here.
@@ -251,4 +251,50 @@ export function acceptRetracing(beforeIssues,afterReport,similarity,{minIou=.95}
     afterReport?.complete===true&&afterReport.fullScope===true&&
     Array.isArray(afterReport.issues)&&afterReport.issues.length<beforeIssues&&
     similarity?.iou>=minIou&&similarity.areaRatio>=.95&&similarity.areaRatio<=1.05;
+}
+
+
+// When DoctorTracer 0.21.1 returns >200,000 nodes, preserve the RichSVG
+// safety ceiling. Retry tracing the ORIGINAL input at bounded lower pixel
+// resolutions. Final acceptance still uses the original-size raster mask.
+export function isDoctorTracerNodeBudgetError(error){
+  return String(error?.message||error)==='SVG: превышен лимит 200000 узлов';
+}
+export function scaledDoctorTracerPlan(plan,scale){
+  if(!Number.isFinite(scale)||scale<=0||scale>=1)
+    throw Error('DoctorTracer: неверный масштаб повторной трассировки');
+  const width=Math.max(1,Math.floor(plan.width*scale));
+  const height=Math.max(1,Math.floor(plan.height*scale));
+  if(width===plan.width&&height===plan.height)
+    throw Error('DoctorTracer: повторная трассировка не снижает разрешение');
+  return {...plan,width,height,dpi:plan.dpi*Math.min(width/plan.width,height/plan.height)};
+}
+export async function traceDocumentWithNodeBudget(source,plan,{
+  firstRaster,scales=[1,.70,.45],signal,rasterize=rasterizeDocument,
+  trace=traceWithDoctorTracer,remap=remapDoctorTracerSvg,traceOptions={},
+  onAttempt=()=>{},onRetry=()=>{}
+}={}){
+  if(!Array.isArray(scales)||!scales.length||scales.length>4||
+    scales[0]!==1||scales.some((s,i)=>!Number.isFinite(s)||s<=0||
+      (i>0&&s>=scales[i-1])))
+    throw Error('DoctorTracer: некорректный план ограничения узлов');
+  for(let i=0;i<scales.length;i++){
+    if(signal?.aborted)throw Error('DoctorTracer: операция отменена');
+    const current=i===0?plan:scaledDoctorTracerPlan(plan,scales[i]);
+    const raster=i===0&&firstRaster?firstRaster:
+      await rasterize(source,current,{signal});
+    if(signal?.aborted)throw Error('DoctorTracer: операция отменена');
+    onAttempt({attempt:i+1,total:scales.length,plan:current});
+    const traced=await trace(raster,{...traceOptions,signal});
+    if(signal?.aborted)throw Error('DoctorTracer: операция отменена');
+    try{
+      const candidate=remap(source,traced.svg,current);
+      return {candidate,traced,tracePlan:current,attempts:i+1};
+    }catch(error){
+      if(!isDoctorTracerNodeBudgetError(error)||i===scales.length-1)throw error;
+      onRetry({attempt:i+1,total:scales.length,plan:current,
+        nextPlan:scaledDoctorTracerPlan(plan,scales[i+1]),reason:error.message});
+    }
+  }
+  throw Error('DoctorTracer: не удалось получить безопасный вектор');
 }
