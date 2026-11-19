@@ -1258,8 +1258,9 @@ async function retryUnfixableWithDoctorTracer(preview,report,callRust,generation
     progressStage('DoctorTracer: растрирование импортированного вектора',10);
     const plan=rasterPlan(source);
     const raster=await rasterizeDocument(source,plan,{signal:abort.signal});
-    record('doctortracer-rgba-ready',{backend:raster.backend,width:raster.width,
-      height:raster.height,bytes:raster.pixels.byteLength,source:source.sourceFileName});
+    record('doctortracer-rgba-ready',{backend:raster.backend,
+      mask:raster.mask,width:raster.width,height:raster.height,
+      bytes:raster.pixels.byteLength,source:source.sourceFileName});
     if(cancelled())return report;
     // Worker transfers its RGBA ArrayBuffer; retain a separate pixel mask
     // for independent silhouette fidelity verification.
