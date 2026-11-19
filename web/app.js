@@ -128,7 +128,8 @@ let manualFocus=null,manualLocalTimer=null,manualLocalGeneration=0;
 
 let localEditors=new Map(),localEditUndo=[],localEditRedo=[],localEditCount=0;
 let localEditorIndexes=new Map(),localPatchElements=new Map();
-let manualGlyphBuildUnit=0,manualZoomFrame=0;
+let manualGlyphBuildUnit=0,manualZoomFrame=0,manualZoomRegion=null,manualZoomDirty=true;
+let manualPathBounds=null;
 const localPatchKey=(path,segment)=>path+':'+segment;
 function syncLocalPatches({path=null,segments=null,reset=false}={}){
   const layer=$('manual-patches');
@@ -182,7 +183,8 @@ function resetLocalEditors(){
   $('manual-glyphs').replaceChildren();
   $('manual-local-geometry').replaceChildren();
   if(manualZoomFrame)cancelAnimationFrame(manualZoomFrame);
-  manualZoomFrame=0;manualGlyphBuildUnit=0;
+  manualZoomFrame=0;manualGlyphBuildUnit=0;manualZoomRegion=null;
+  manualZoomDirty=true;manualPathBounds=null;
   document.body.classList.remove('local-editor-active','manual-local-zoom');
 }
 function localEditorToolbar(){
@@ -202,38 +204,83 @@ function localEditorToolbar(){
 }
 // On deep zoom, hide the original compound Béziers from painting and show
 // ONLY native segments intersecting the current viewport; no source rewrite.
+function nearbyManualPaths(center,radius){
+  // Compute once per editor session, not once per wheel/animation frame.
+  if(!manualPathBounds)manualPathBounds=doc.paths.map((p,i)=>{
+    if(p.kind==='image')return null;
+    let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+    for(const [x,y] of p.points||[]){
+      x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y);
+    }
+    return Number.isFinite(x0)?{path:i,x0,y0,x1,y1}:null;
+  }).filter(Boolean);
+  return manualPathBounds.filter(b=>b.x1>=center[0]-radius&&b.x0<=center[0]+radius&&
+    b.y1>=center[1]-radius&&b.y0<=center[1]+radius)
+    .sort((a,b)=>{
+      const distance=v=>Math.hypot(Math.max(v.x0-center[0],0,center[0]-v.x1),
+        Math.max(v.y0-center[1],0,center[1]-v.y1));
+      return distance(a)-distance(b);
+    });
+}
 function refreshLocalZoomGeometry(){
   const layer=$('manual-local-geometry'),view=$('canvas').viewBox.baseVal;
-  const sourceNodes=doc.paths.reduce((n,p)=>n+(p.commands?.length||p.points?.length||0),0);
-  const active=curveEditing()&&sourceNodes>1800&&
-    view.width<doc.width*.35&&view.height<doc.height*.35;
+  const active=curveEditing()&&doc.paths.length>25&&
+    view.width<doc.width*1.13&&view.height<doc.height*1.13;
   if(!active){
     document.body.classList.remove('manual-local-zoom');
     if(layer.childElementCount)layer.replaceChildren();
-    return;
+    manualZoomRegion=null;return;
   }
-  const path=manualFocus?.path??[...selected].find(i=>doc.paths[i]?.kind!=='image');
-  if(!Number.isInteger(path)||!doc.paths[path]||doc.paths[path].kind==='image'){
-    document.body.classList.remove('manual-local-zoom');return;
-  }
-  const editor=localEditor(path);
-  if(!editor){document.body.classList.remove('manual-local-zoom');return;}
   const center=[view.x+view.width/2,view.y+view.height/2];
-  const segments=editor.visibleSegmentSVG(center,Math.hypot(view.width,view.height)*.75,{limit:600});
-  if(!segments.length){
-    document.body.classList.remove('manual-local-zoom');
-    if(layer.childElementCount)layer.replaceChildren();
-    return;
+  const span=Math.hypot(view.width,view.height);
+  // Keep the previous Bézier viewport margin while it still encompasses
+  // all visible pixels. Wheel events no longer rebuild the SVG d attribute.
+  const cached=manualZoomRegion;
+  if(!manualZoomDirty&&cached&&
+    Math.hypot(center[0]-cached.center[0],center[1]-cached.center[1])+
+    span*.51<=cached.radius){
+    document.body.classList.add('manual-local-zoom');return;
   }
-  let hit=layer.querySelector('.manual-local-hit');
-  if(!hit)hit=el('path',{class:'manual-local-hit','data-path':path},layer);
-  let visual=layer.querySelector('.manual-local-stroke');
-  if(!visual)visual=el('path',{class:'manual-local-stroke','data-path':path},layer);
-  const d=segments.map(s=>s.d).join(' ');
-  hit.setAttribute('data-path',path);
-  visual.setAttribute('data-path',path);
-  hit.setAttribute('d',d);
-  visual.setAttribute('d',d);
+  const desired=span*1.65;
+  const focus=manualFocus?.path;
+  const neighbors=nearbyManualPaths(center,desired);
+  const chosen=neighbors.slice(0,24);
+  if(Number.isInteger(focus)&&doc.paths[focus]&&!chosen.some(v=>v.path===focus))
+    chosen.unshift({path:focus});
+  const fragments=[],hitPaths=[];
+  let available=600;
+  for(const {path} of chosen){
+    if(available<=0)break;
+    const editor=localEditor(path);
+    if(!editor)continue;
+    const segments=editor.visibleSegmentSVG(center,desired,{limit:available});
+    if(!segments.length)continue;
+    const d=segments.map(s=>s.d).join(' ');
+    fragments.push(d);available-=segments.length;
+    hitPaths.push({path,d});
+  }
+  if(!fragments.length){
+    // Nothing nearby: avoid resurrecting the 1975-vector SVG. Keep
+    // a deliberately empty local layer; the source remains untouched.
+    layer.replaceChildren();
+    manualZoomRegion={center,radius:desired};
+    manualZoomDirty=false;
+    document.body.classList.add('manual-local-zoom');return;
+  }
+  // One bounded SVG polyline for everything near the viewport (not the
+  // imported artwork). Individual transparent hit paths retain path ids.
+  layer.replaceChildren();
+  for(const {path,d} of hitPaths)
+    el('path',{class:'manual-local-hit','data-path':path,d},layer);
+  el('path',{class:'manual-local-stroke',d:fragments.join(' ')},layer);
+  const unit=screenUnitsPerPixel(view,$('canvas').clientWidth,$('canvas').clientHeight);
+  const marks=issues.filter(q=>q?.point&&q.point[0]>=center[0]-view.width*.65&&
+    q.point[0]<=center[0]+view.width*.65&&q.point[1]>=center[1]-view.height*.65&&
+    q.point[1]<=center[1]+view.height*.65).slice(0,80);
+  for(const mark of marks)el('circle',{cx:mark.point[0],cy:mark.point[1],
+    r:unit*6,class:'manual-local-issue'},layer);
+  manualZoomRegion={center,radius:desired};
+  manualZoomDirty=false;
   document.body.classList.add('manual-local-zoom');
 }
 function rescaleLocalEditorGlyphs(unit){
@@ -262,10 +309,13 @@ function scheduleManualZoomRefresh(){
       if(Number.isInteger(path))manualFocus={path,
         point:[view.x+view.width/2,view.y+view.height/2]};
     }
+    // Glyph icons are re-created only after a significant zoom change;
+    // the native Bézier layer is recycled across many wheel frames.
     if(!manualGlyphBuildUnit||Math.max(unit/manualGlyphBuildUnit,
       manualGlyphBuildUnit/unit)>1.8)drawLocalEditorOverlay();
     else {
-      rescaleLocalEditorGlyphs(unit);
+      if(Math.max(unit/manualGlyphBuildUnit,manualGlyphBuildUnit/unit)>1.12)
+        rescaleLocalEditorGlyphs(unit);
       refreshLocalZoomGeometry();
     }
   });
@@ -334,6 +384,7 @@ function localEditorModified(path,action,changedSegments=null){
   // changes can renumber commands, so rebuild their overlay just once.
   if(changedSegments)syncLocalPatches({path,segments:changedSegments});
   else syncLocalPatches({reset:true});
+  manualZoomDirty=true;
   drawLocalEditorOverlay();
   status('Локальная правка сохранена в редакторе ('+localEditCount+
     '). Общий пересчёт и проверка только после «Готово».');
@@ -1199,7 +1250,9 @@ async function retryUnfixableWithDoctorTracer(preview,report,callRust,generation
   try{
     progressStage('DoctorTracer: растрирование импортированного вектора',10);
     const plan=rasterPlan(source);
-    const raster=await rasterizeDocument(source,plan);
+    const raster=await rasterizeDocument(source,plan,{signal:abort.signal});
+    record('doctortracer-rgba-ready',{backend:raster.backend,width:raster.width,
+      height:raster.height,bytes:raster.pixels.byteLength,source:source.sourceFileName});
     if(cancelled())return report;
     // Worker transfers its RGBA ArrayBuffer; retain a separate pixel mask
     // for independent silhouette fidelity verification.
@@ -1212,7 +1265,7 @@ async function retryUnfixableWithDoctorTracer(preview,report,callRust,generation
     if(cancelled())return report;
     const candidate=remapDoctorTracerSvg(source,traced.svg,plan);
     progressStage('DoctorTracer: сверка растрового силуэта',72);
-    const candidateRaster=await rasterizeDocument(candidate,plan);
+    const candidateRaster=await rasterizeDocument(candidate,plan,{signal:abort.signal});
     const similarity=maskSimilarity(originalMask,candidateRaster);
     if(similarity.iou<.95||similarity.areaRatio<.95||similarity.areaRatio>1.05)
       throw Error('новая геометрия заметно отличается от исходного растра (IoU '+
