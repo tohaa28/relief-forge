@@ -1,5 +1,5 @@
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.63';
-import {paintFromArtwork} from './eps-paint.js?v=0.2.0-alpha.63';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.64';
+import {paintFromArtwork} from './eps-paint.js?v=0.2.0-alpha.64';
 
 // CNC micro-detail filter. Use analytic Bézier extrema, NOT sampled preview
 // or a polygonal bounding box. The two width/height tests are independent:

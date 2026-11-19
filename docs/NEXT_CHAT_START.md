@@ -1,3 +1,15 @@
+## 0.2.0-alpha.64 — КАНДИДАТ · 2026-11-19
+- Новый пользовательский `relief-forge-session (2).jsonl` (38 событий) относится к alpha.63. Реальный EPS `8101921_maket_7_121126_163426.eps` не приложен, только журнал; не публиковать его.
+- Исходник 1 226 967 B; импорт 1 975 векторов / 22 219 узлов; диагностика 1 115 проблем, неполная. После preview 21 271 узел и 398 остаточных проблем.
+- Alpha.63: black-transparent 1262×1795; DoctorTracer 0.21.1 реально получил одну краску и вернул `paths:1,paletteCount:1` при всех 3 попытках. 1262×1795 и 883×1256: RichSVG >200000 узлов. 567×807: отклонён по IoU=0.491 и areaRatio=1.797. Ровно тот же результат, что у alpha.62; гипотеза о `colors:2` НЕ решила проблему.
+- Анализ исходника: `paintDocumentSilhouette` раньше при каждом понижении DPI заново создавал открытую линию толщиной 1 пиксель. На 45% по ширине это в ~2.22 раза больше физическая толщина, чем в оригинальном растре. Это подтверждённый дефект стабильности геометрии повторных попыток, но одного JSONL недостаточно для доказательства, что только он вызвал IoU=.491.
+- Исправление: `strokeWidthMm` фиксируется при построении первоначального плана. При node-budget retry вместо переотрисовки EPS используется area-weighted box downsample независимой копии исходного RGBA alpha; RGB остаётся строго чёрным, альфа усредняется без бинаризации, мм граница неизменна.
+- Новая диагностика: самостоятельное сравнение переданной маски и возвращённых DoctorTracer `segments` (alpha label preview) до SVG; в журнал пишутся только aggregate `segmentation.iou`, `areaRatio`, counts без пикселей. Если сегментация хорошая, а геометрия плохая — следующий раз диагностировать SVG/Compound contours; если уже плохая — изучать alpha handling hard-mode 0.21.1.
+- Не менять `DoctorTracer 0.21.1`, единичную чёрную палитру, 200000 node cap, оригинальный исходник, Undo, защиту IoU>=.95 + 0.95..1.05 площади + полную повторную Rust/native диагностику.
+- Ветка `feature/alpha64-stable-mask-downsampling-segmentation-audit`. База и откат: опубликованная alpha.63 `2b13e06b54331d20311308d36f152036394128a7`. PR/CI/Pages ещё не подтверждены.
+- Тесты: fractional-alpha box weights, original-mask immutability, invariant physical stroke mm, Worker segmentation alpha IoU, triple retry from reference. Real-user IoU and Windows zoom FPS НЕ подтверждены.
+- Подробно: docs/history/ALPHA64_STABLE_MASK_DOWNSAMPLE.md, F-064, M-064; logs/actions.jsonl.
+
 ## 0.2.0-alpha.63 — ОПУБЛИКОВАНА 2026-11-19
 - Journal alpha.62: black-transparent 1262x1795 OK; 398 residual; retries 1262x1795 and 883x1256 hit RichSVG 200000 nodes; 567x807 failed IoU .491 / area 1.797; rejected correctly, original preserved.
 - DoctorTracer gh-pages 0.21.1 traceFixed treats transparency label255 as background (-1), not an ink. Alpha.63 sends `category:'hard', colors:1, palette:[[0,0,0]]`, retaining alpha and all safe gates. This is a hypothesis-driven fix; no actual user EPS bytes available.

@@ -1,5 +1,5 @@
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.63';
-import {importRichSvg} from './rich-svg.js?v=0.2.0-alpha.63';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.64';
+import {importRichSvg} from './rich-svg.js?v=0.2.0-alpha.64';
 
 // The linked DoctorTracer 0.21.1 WASM gh-pages site owns its Worker and its GPL
 // dependencies. Nothing from that distribution is copied or relicensed here.
@@ -48,11 +48,16 @@ export function rasterPlan(document,{dpi=300,maxSide=2400,maxPixels=8000000,padd
   const height=Math.max(1,Math.floor(heightMm*scale));
   if(width*height>maxPixels||Math.max(width,height)>maxSide)
     throw Error('DoctorTracer: превышено разрешение растра');
-  return {x:x0,y:y0,widthMm,heightMm,width,height,dpi:scale*25.4,segments};
+  // Physical width of a pixel in the ORIGINAL full-resolution mask.
+  // Scaling the retry resolution must not make open vector strokes thicker.
+  const strokeWidthMm=Math.max(widthMm/width,heightMm/height);
+  return {x:x0,y:y0,widthMm,heightMm,width,height,dpi:scale*25.4,
+    segments,strokeWidthMm};
 }
 export function vectorRasterSvg(document,plan){
   const view=[plan.x,plan.y,plan.widthMm,plan.heightMm].map(fmt).join(' ');
-  const stroke=fmt(Math.max(plan.widthMm/plan.width,plan.heightMm/plan.height));
+  const stroke=fmt(plan.strokeWidthMm??
+    Math.max(plan.widthMm/plan.width,plan.heightMm/plan.height));
   const paths=[];
   for(const path of document.paths){
     const commands=geometryCommands(path);
@@ -105,7 +110,7 @@ export function paintDocumentSilhouette(ctx,document,plan,{batchSize=0,signal}={
     ctx.globalAlpha=1;
     ctx.globalCompositeOperation='source-over';
     ctx.fillStyle='#000000';ctx.strokeStyle='#000000';
-    ctx.lineWidth=Math.max(1/sx,1/sy);
+    ctx.lineWidth=plan.strokeWidthMm??Math.max(1/sx,1/sy);
     ctx.lineJoin='round';ctx.lineCap='round';
     for(const path of document.paths){
       if(signal?.aborted)throw Error('DoctorTracer: операция отменена');
@@ -171,6 +176,58 @@ export function blackTransparentRgba8(pixels){
   return pixels;
 }
 
+// Area-preserving downsample from the ORIGINAL alpha mask. Repainting source
+// vectors at smaller sizes with a new one-pixel-wide stroke changes the actual
+// geometry: at 45% resolution an open curve becomes 2.22 times wider in mm.
+// Use alpha-weighted box coverage instead; do not threshold or flatten.
+export function downsampleBlackTransparentRgba8(source,width,height){
+  const sw=source?.width,sh=source?.height,rgba=source?.pixels;
+  if(!Number.isSafeInteger(sw)||!Number.isSafeInteger(sh)||
+    !Number.isSafeInteger(width)||!Number.isSafeInteger(height)||
+    width<1||height<1||width>sw||height>sh||
+    !(rgba instanceof Uint8Array)||rgba.byteLength!==sw*sh*4)
+    throw Error('DoctorTracer: неверный размер опорной альфа-маски');
+  const result=new Uint8Array(width*height*4);
+  const dx=sw/width,dy=sh/height,area=dx*dy;
+  for(let y=0;y<height;y++){
+    const ya=y*dy,yb=(y+1)*dy;
+    for(let x=0;x<width;x++){
+      const xa=x*dx,xb=(x+1)*dx;
+      let covered=0;
+      for(let sy=Math.floor(ya);sy<Math.min(sh,Math.ceil(yb));sy++){
+        const wy=Math.max(0,Math.min(sy+1,yb)-Math.max(sy,ya));
+        if(!wy)continue;
+        for(let sx=Math.floor(xa);sx<Math.min(sw,Math.ceil(xb));sx++){
+          const wx=Math.max(0,Math.min(sx+1,xb)-Math.max(sx,xa));
+          if(wx)covered+=rgba[(sy*sw+sx)*4+3]*wy*wx;
+        }
+      }
+      result[(y*width+x)*4+3]=Math.round(covered/area);
+    }
+  }
+  return {width,height,pixels:result,mask:'black-transparent-rgba8',
+    backend:'original-alpha-box-downsample'};
+}
+
+// The DoctorTracer 0.21.1 Worker returns its segmentation preview RGBA.
+// Compare the foreground label alpha with the exact input alpha BEFORE SVG
+// fitting to isolate segmentation errors from later vector/paint problems.
+// Store only aggregate counts; the source and Worker bitmaps stay private.
+export function compareSegmentedAlpha(sourceBits,segmentRgba){
+  if(!(sourceBits instanceof Uint8Array)||
+    !(segmentRgba instanceof Uint8Array)||
+    segmentRgba.byteLength!==sourceBits.byteLength*4)
+    throw Error('DoctorTracer: неверная длина сегментированной маски');
+  let both=0,either=0,source=0,result=0;
+  for(let i=0;i<sourceBits.byteLength;i++){
+    const a=sourceBits[i]!==0,b=segmentRgba[4*i+3]>=128;
+    source+=Number(a);result+=Number(b);
+    both+=Number(a&&b);either+=Number(a||b);
+  }
+  return {iou:either?both/either:0,areaRatio:source?result/source:0,
+    sourcePixels:source,segmentedPixels:result};
+}
+
 export function doctorTracerWorkerUrl(pageUrl){
   const page=new URL(pageUrl);
   if(page.protocol!=='https:'||page.hostname!=='tohaa28.github.io')
@@ -208,6 +265,11 @@ export function traceWithDoctorTracer(raster,{pageUrl=globalThis.location?.href,
     raster.pixels.byteLength===raster.pixels.buffer.byteLength &&
     raster.pixels.buffer instanceof ArrayBuffer ?
       raster.pixels : new Uint8Array(raster.pixels));
+  // ArrayBuffer ownership transfers to Worker; retain only one byte per
+  // pixel (binary alpha) to audit its returned segmentation independently.
+  const sourceBits=new Uint8Array(raster.width*raster.height);
+  for(let i=0;i<sourceBits.length;i++)sourceBits[i]=
+    pixels[4*i+3]>=128?1:0;
   return new Promise((resolve,reject)=>{
     let worker,settled=false,timer;
     const cleanup=()=>{
@@ -226,8 +288,12 @@ export function traceWithDoctorTracer(raster,{pageUrl=globalThis.location?.href,
         if(data.error){finish(Error('DoctorTracer: '+data.error));return;}
         if(typeof data.svg!=='string'||!data.svg.includes('<path'))
           {finish(Error('DoctorTracer: не получены векторные кривые'));return;}
+        let segmentation=null;
+        if(data.segments instanceof ArrayBuffer &&
+          data.segments.byteLength===sourceBits.byteLength*4)
+          segmentation=compareSegmentedAlpha(sourceBits,new Uint8Array(data.segments));
         finish(null,{svg:data.svg,paths:data.paths,geometry:data.geometry,
-          backend:data.backend,inkCount:data.colors,
+          backend:data.backend,inkCount:data.colors,segmentation,
           paletteCount:Array.isArray(data.metrics?.palette)?
             data.metrics.palette.length:null});
       };
@@ -307,7 +373,8 @@ export function scaledDoctorTracerPlan(plan,scale){
   return {...plan,width,height,dpi:plan.dpi*Math.min(width/plan.width,height/plan.height)};
 }
 export async function traceDocumentWithNodeBudget(source,plan,{
-  firstRaster,scales=[1,.70,.45],signal,rasterize=rasterizeDocument,
+  firstRaster,referenceRaster,scales=[1,.70,.45],signal,
+  rasterize=rasterizeDocument,
   trace=traceWithDoctorTracer,remap=remapDoctorTracerSvg,traceOptions={},
   onAttempt=()=>{},onTraced=()=>{},onRetry=()=>{}
 }={}){
@@ -315,20 +382,33 @@ export async function traceDocumentWithNodeBudget(source,plan,{
     scales[0]!==1||scales.some((s,i)=>!Number.isFinite(s)||s<=0||
       (i>0&&s>=scales[i-1])))
     throw Error('DoctorTracer: некорректный план ограничения узлов');
+  if(referenceRaster){
+    if(referenceRaster.width!==plan.width||
+      referenceRaster.height!==plan.height||
+      !(referenceRaster.pixels instanceof Uint8Array)||
+      referenceRaster.pixels.byteLength!==plan.width*plan.height*4)
+      throw Error('DoctorTracer: опорная маска не соответствует исходному плану');
+    if(firstRaster&&referenceRaster.pixels.buffer===firstRaster.pixels.buffer)
+      throw Error('DoctorTracer: опорная маска должна быть независима от Worker буфера');
+  }
   for(let i=0;i<scales.length;i++){
     if(signal?.aborted)throw Error('DoctorTracer: операция отменена');
     const current=i===0?plan:scaledDoctorTracerPlan(plan,scales[i]);
     const raster=i===0&&firstRaster?firstRaster:
-      await rasterize(source,current,{signal});
+      i>0&&referenceRaster?
+        downsampleBlackTransparentRgba8(referenceRaster,current.width,current.height):
+        await rasterize(source,current,{signal});
     if(signal?.aborted)throw Error('DoctorTracer: операция отменена');
-    onAttempt({attempt:i+1,total:scales.length,plan:current});
+    onAttempt({attempt:i+1,total:scales.length,plan:current,
+      rasterBackend:raster.backend??null});
     const traced=await trace(raster,{...traceOptions,signal});
     if(signal?.aborted)throw Error('DoctorTracer: операция отменена');
     // Keep a compact diagnostic of EACH returned trace, even if the next
     // RichSVG parse rejects >200k nodes. Never persist the SVG or pixel data.
     onTraced({attempt:i+1,total:scales.length,plan:current,
       paths:Number.isInteger(traced.paths)?traced.paths:null,
-      paletteCount:traced.paletteCount,backend:traced.backend});
+      paletteCount:traced.paletteCount,backend:traced.backend,
+      segmentation:traced.segmentation??null});
     try{
       const candidate=remap(source,traced.svg,current);
       return {candidate,traced,tracePlan:current,attempts:i+1};

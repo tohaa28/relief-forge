@@ -6,7 +6,8 @@ import {needsDoctorTracer,rasterPlan,vectorRasterSvg,doctorTracerWorkerUrl,
   traceWithDoctorTracer,remapDoctorTracerSvg,maskSimilarity,acceptRetracing,
   rasterizeDocument,paintDocumentSilhouette,validateDoctorTracerRgba,
   scaledDoctorTracerPlan,isDoctorTracerNodeBudgetError,traceDocumentWithNodeBudget,
-  blackTransparentRgba8} from '../web/doctortracer-fallback.js';
+  blackTransparentRgba8,downsampleBlackTransparentRgba8,
+  compareSegmentedAlpha} from '../web/doctortracer-fallback.js';
 const p=(coordinates,closed=true)=>({
   kind:'vector',artwork:'<path fill="none" stroke="#123"/>',offset:[0,0],
   commands:coordinates.map((pt,i)=>[i?'L':'M',...pt]).concat(closed?[['Z']]:[]),
@@ -325,7 +326,8 @@ test('alpha62: production integration normalizes BOTH initial and retry rasters 
  assert.match(source,/const pixels=blackTransparentRgba8\(/);
  assert.match(source,/worker\.postMessage\(\{pixels:pixels\.buffer/);
  assert.match(source,/alpha:true,willReadFrequently:true/);
- assert.match(app,/firstRaster:raster,signal:abort\.signal/);
+ assert.match(app,/firstRaster:raster,referenceRaster:originalMask,signal:abort\.signal/);
+ assert.match(source,/downsampleBlackTransparentRgba8\(referenceRaster,current\.width,current\.height\)/);
  assert.match(source,/await rasterize\(source,current,\{signal\}\)/);
 });
 
@@ -367,4 +369,117 @@ test('alpha63: DoctorTracer hard-edge palette fixes black as the sole ink and ne
  assert.deepEqual(sent[0].rgba,[0,0,0,0,0,0,0,96,0,0,0,255]);
  assert.equal(out.paletteCount,1);
  assert.equal(out.paths,1);
+});
+
+
+test('alpha64: area-weighted retry keeps original 1px lines physically thin and preserves subpixel alpha',()=>{
+ const pixels=new Uint8Array(4*4*4);
+ for(let y=0;y<4;y++){
+  const i=(y*4+1)*4;pixels.set([171,115,41,255],i);
+ }
+ const original=Array.from(pixels);
+ const out=downsampleBlackTransparentRgba8({width:4,height:4,pixels},2,2);
+ assert.equal(out.backend,'original-alpha-box-downsample');
+ assert.equal(out.mask,'black-transparent-rgba8');
+ assert.deepEqual(Array.from(out.pixels),[
+  0,0,0,128,0,0,0,0,
+  0,0,0,128,0,0,0,0
+ ]);
+ assert.deepEqual(Array.from(pixels),original,'source mask remains immutable');
+ assert.throws(()=>downsampleBlackTransparentRgba8({width:4,height:4,pixels},5,3),/опорной/);
+});
+
+test('alpha64: fractional-size resampling conserves integrated alpha mass within quantization bound',()=>{
+ const pixels=new Uint8Array(9*7*4);
+ for(let i=0;i<9*7;i++){
+  pixels[4*i]=(i*7)%255;
+  pixels[4*i+3]=(i*73+27)%256;
+ }
+ const src={width:9,height:7,pixels};
+ const out=downsampleBlackTransparentRgba8(src,4,3);
+ const originalAlpha=pixels.reduce((sum,v,i)=>sum+(i%4===3?v:0),0);
+ const reducedAlpha=out.pixels.reduce((sum,v,i)=>sum+(i%4===3?v:0),0)*9*7/(4*3);
+ assert.ok(Math.abs(originalAlpha-reducedAlpha)<(9*7/(4*3))*6.1,
+  'box-resampled alpha coverage is conserved apart from 8-bit rounding');
+ assert.ok(Array.from(out.pixels).every((v,i)=>i%4===3||v===0));
+});
+
+test('alpha64: physical stroke width stays fixed on 45-percent retry',()=>{
+ const open=doc([p([[10,15],[20,20]],false)]);
+ const base=rasterPlan(open),low=scaledDoctorTracerPlan(base,.45);
+ assert.ok(base.strokeWidthMm>0);
+ assert.equal(low.strokeWidthMm,base.strokeWidthMm);
+ assert.ok(Math.max(low.widthMm/low.width,low.heightMm/low.height)>base.strokeWidthMm*2);
+ const widths=[];
+ for(const plan of [base,low]){
+  const ctx={
+   clearRect(){},save(){},restore(){},setTransform(){},
+   beginPath(){},moveTo(){},lineTo(){},quadraticCurveTo(){},
+   bezierCurveTo(){},closePath(){},fill(){},
+   stroke(){widths.push(this.lineWidth);}
+  };
+  paintDocumentSilhouette(ctx,open,plan);
+ }
+ assert.deepEqual(widths,[base.strokeWidthMm,base.strokeWidthMm]);
+});
+
+test('alpha64: worker segmentation alpha audit identifies background pollution before vector parsing',async()=>{
+ const mask=Uint8Array.from([1,0,1,0]);
+ const segmented=Uint8Array.from([0,0,0,255,0,0,0,0,0,0,0,0,0,0,0,255]);
+ const report=compareSegmentedAlpha(mask,segmented);
+ assert.equal(report.iou,1/3);
+ assert.equal(report.areaRatio,1);
+ assert.equal(report.sourcePixels,2);
+ assert.equal(report.segmentedPixels,2);
+ assert.throws(()=>compareSegmentedAlpha(mask,new Uint8Array(12)),/неверная длина/);
+ const worker=()=>({postMessage(data){
+  assert.equal(data.colors,1);
+  queueMicrotask(()=>this.onmessage({data:{
+   svg:'<svg><path d="M0 0L1 1Z"/></svg>',paths:1,backend:'Rust WASM CPU',
+   segments:segmented.buffer}}));
+ },terminate(){}});
+ const traced=await traceWithDoctorTracer({width:4,height:1,
+  pixels:Uint8Array.from([
+   0,0,0,255,0,0,0,0,0,0,0,255,0,0,0,0])},{
+    pageUrl:'https://tohaa28.github.io/relief-forge/',workerFactory:worker
+ });
+ assert.deepEqual(traced.segmentation,report);
+});
+
+test('alpha64: retry downsamples independent original mask, never re-rasterizes enlarged 1px strokes',async()=>{
+ const source=doc(),snapshot=structuredClone(source);
+ const plan={x:0,y:0,widthMm:40,heightMm:40,width:4,height:4,dpi:2.54,strokeWidthMm:10};
+ const pixels=new Uint8Array(4*4*4);
+ for(let y=0;y<4;y++)pixels[(y*4+1)*4+3]=255;
+ const original={width:4,height:4,pixels:new Uint8Array(pixels)};
+ const firstRaster={width:4,height:4,pixels:new Uint8Array(pixels)};
+ const calls=[],reports=[];
+ const out=await traceDocumentWithNodeBudget(source,plan,{
+  firstRaster,referenceRaster:original,
+  rasterize:async()=>{throw Error('must not repaint geometry on retry');},
+  trace:async(r)=>{
+   calls.push({width:r.width,rgba:Array.from(r.pixels),backend:r.backend});
+   return {svg:'<svg/>',paths:1,segmentation:{iou:1,areaRatio:1}};
+  },
+  scales:[1,.5],
+  remap:(_s,_svg,p)=>{
+   if(p.width===4)throw Error('SVG: превышен лимит 200000 узлов');
+   return {ok:true};
+  },
+  onTraced:info=>reports.push(info)
+ });
+ assert.equal(out.attempts,2);
+ assert.deepEqual(calls.map(c=>c.width),[4,2]);
+ assert.equal(calls[1].backend,'original-alpha-box-downsample');
+ assert.deepEqual(calls[1].rgba,[
+   0,0,0,128,0,0,0,0,
+   0,0,0,128,0,0,0,0
+ ]);
+ assert.deepEqual(Array.from(original.pixels),Array.from(pixels));
+ assert.deepEqual(source,snapshot);
+ assert.deepEqual(reports.map(r=>r.segmentation?.iou),[1,1]);
+ await assert.rejects(traceDocumentWithNodeBudget(source,plan,{
+   firstRaster,referenceRaster:firstRaster,
+   trace:async()=>({svg:'<svg/>'})
+ }),/независима/);
 });

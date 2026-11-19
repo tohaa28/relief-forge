@@ -1,3 +1,12 @@
+## M-064. Физически стабильная референсная alpha-маска при уменьшении разрешения (2026-11-19)
+- Первичное рендерирование EPS/SVG → Canvas2D RGBA black+alpha. План сохраняет `strokeWidthMm=max(widthMm/width,heightMm/height)`; любые уменьшения разрешения сохраняют эту величину, чтобы 1px в источнике НЕ превращался в 2.22px в физических единицах при retry .45.
+- У `app.js` уже имеется неизменяемый `originalMask` как независимый Uint8Array к первичному `firstRaster`. Передать `referenceRaster:originalMask` в `traceDocumentWithNodeBudget`. Для 70% и 45% не пере-рисовать кривые: строить box-filter с точным альфа-покрытием исходного пикселя. Bounded memory, no canvas snapshot, source EPS unchanged.
+- Каждый выходной RGBA пиксель имеет R=G=B=0, A=round(sum(sourceA * пересечение пиксельных площадей) / площадь выходного пикселя), поэтому суммарная альфа-площадь сохраняется с погрешностью квантования <=0.5 на пиксель.
+- Дополнительная проверка алгоритма DoctorTracer `traceFixed`: Worker 0.21.1 возвращает `segments:ArrayBuffer` с RGBA размеченной маской. Сравнивать binary(alpha>=128) входного растра и Worker segments alpha до парсинга SVG. Хранить только числа (IoU, areaRatio, sourcePixels, segmentedPixels) в `doctortracer-trace-result`.
+- Если сегментация уже отличается от оригинала — причина до SVG (WASM stage). Если она совпадает, но конечный EPS отклонён — искать ошибки SVG, fill-rule, compound M..Z, координат или сглаживания. Не модифицировать DoctorTracer приложение без независимого доказательства.
+- Guardrails: 200000-node cap, оригинальный bbox в mm, full-resolution IoU>=.95, площадь 0.95..1.05, полная native/Rust диагностика и меньшие остаточные проблемы до commit AFTER; исходные объекты и Undo всегда доступны.
+- Bounded defaults unchanged: 100%,70%,45%; отсутствие `referenceRaster` поддерживает прежний rasterize fallback, но новое `strokeWidthMm` предотвращает physical growth и там. Подробнее ALPHA64_STABLE_MASK_DOWNSAMPLE.md.
+
 ## M-063. Одноцветная палитра и наблюдаемость качества повторной трассировки (2026-11-19)
 - В RGBA8 все RGB=0, непрозрачность A=0..255. ДокторТрассер 0.21.1 трактует `label=255` как прозрачный фон вне палитры, см. `gh-pages/desktop-curves.mjs` `shared=labels.map(v=>v===255?-1:v)`.
 - Передавать Worker `category:'hard',colors:1,palette:[[0,0,0]],detail:2,speckle:0,polygon:false,gpu:false`. Не смешивать прозрачность со вторым печатным цветом. 
