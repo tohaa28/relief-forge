@@ -41,6 +41,11 @@ let clearanceKey='',clearanceJob=0,clearanceTimer=null,clearanceWorker=null,clea
 function updateClearance(document,unit){
   const layer=$('clearance-markers'),label=$('clearance-status'),raw=settingNumber('clearance-threshold');
   const threshold=Number.isFinite(raw)&&raw>0&&raw<=1000?raw:null;
+  if(manualReviewPending){
+    layer.replaceChildren();
+    label.textContent='Зазоры после ручной правки не проверялись. Нажмите «Проверить дефекты», если нужна новая диагностика.';
+    return;
+  }
   if(curveEditing()){
     // Manual edits must never launch a full-document clearance Worker.
     layer.replaceChildren();
@@ -126,7 +131,7 @@ function finalizePendingSettingsApply(preview){
 }
 
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',near_node:'Сближенные узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
-let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null,manualDiagnosticsPending=false;
+let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null,manualDiagnosticsPending=false,manualReviewPending=false;
 let doctorTracerAbort=null;
 // Temporary, RAM-only preimport raster. Never store it in doc, history or
 // exported EPS, and never share its transferable buffer with the Worker.
@@ -399,7 +404,7 @@ function localEditorModified(path,action,changedSegments=null){
   localEditUndo.push(path);localEditRedo=[];localEditCount++;
   manualDiagnosticsPending=true;diagnosticComplete=false;
   record('manual-staged-'+action,{path,edits:localEditCount,
-    geometryCommitted:false,fullDiagnosticDeferred:true});
+    geometryCommitted:false,fullDiagnosticDeferred:false,diagnosticOnDemand:true});
   // Keep the original spatial index during repeated point moves; rebuilding
   // thousands of anchors here was the last O(N) cost on every mouseup.
   // A move or handle drag touches only 1..3 native segments. Structural
@@ -409,7 +414,7 @@ function localEditorModified(path,action,changedSegments=null){
   manualZoomDirty=true;
   drawLocalEditorOverlay();
   status('Локальная правка сохранена в редакторе ('+localEditCount+
-    '). Общий пересчёт и проверка только после «Готово».');
+    '). После «Готово» поиск дефектов не запускается.');
 }
 function exitDeferredCurveEditor(){
   clearTimeout(manualLocalTimer);++manualLocalGeneration;
@@ -429,15 +434,16 @@ function exitDeferredCurveEditor(){
     return false;
   }
   const operations=localEditCount;
+  clearTimeout(settingsTimeout);
   if(updated.size)checkpoint();
   for(const [path,vector] of updated)doc.paths[path]=vector;
   mode='select';activeCurveNode=null;manualFocus=null;resetLocalEditors();
   if(updated.size){
     record('manual-batch-commit',{paths:[...updated.keys()],operations});
-    changed('curve-session-commit');
-  }else{render();requestRecalculation();}
-  status(updated.size?'Локальные изменения применены. Запущена общая повторная проверка.':
-    'Редактор закрыт; исходная фигура без изменений.');
+    changed('curve-session-commit',{skipDiagnostics:true});
+  }else render();
+  status(updated.size?'Локальные изменения применены без повторного поиска дефектов. Для проверки нажмите «Проверить дефекты».':
+    'Редактор закрыт без изменений. Диагностика не запускалась.');
   return true;
 }
 
@@ -505,17 +511,28 @@ function beginFileHistory(filename){
   renderFileHistory();
   return activeHistoryId;
 }
-function changed(action){
+function changed(action,{skipDiagnostics=false}={}){
   // A cached 600dpi silhouette is valid ONLY for the exact imported geometry.
   // Any committed edit invalidates it before another preview can reference it.
   if(!action.startsWith('import-'))doctorMaskCache.invalidate();
-  suppressNextDiagnostic=false;comparisonSelectionExplicit=false;
+  suppressNextDiagnostic=skipDiagnostics;comparisonSelectionExplicit=false;
+  manualReviewPending=skipDiagnostics;
+  if(skipDiagnostics){
+    // After a committed manual session only repaint the stored vectors.
+    // Clear queued whole-document work and do not silently treat zero
+    // displayed markers as a clean diagnostics result.
+    clearTimeout(settingsTimeout);clearTimeout(clearanceTimer);
+    clearanceWorker?.terminate();clearanceWorker=null;
+    ++clearanceJob;clearanceKey='';clearanceReport=null;
+  }
   if(importedBefore&&!action.startsWith('import-'))importedBefore.pending=false;
   if(!action.startsWith('curve-node')&&action!=='move-nodes')activeCurveNode=null;
   // During manual Bézier editing, the previous witnessed defects remain visible
   // while the changed geometry is rechecked. Only a successful new scan may
   // remove them; clearing here falsely makes an unhealed point look healthy.
-  if(retainsIssuesDuringManualChange(mode,action)){
+  if(skipDiagnostics){
+    issues=[];metrics=[];diagnosticComplete=false;manualDiagnosticsPending=false;
+  }else if(retainsIssuesDuringManualChange(mode,action)){
     manualDiagnosticsPending=true;
     diagnosticComplete=false;
   }else{
@@ -524,8 +541,10 @@ function changed(action){
   markersVisible=true;appliedComparison=null;curvePreview=null;compareStage='before';
   if(activeHistoryId&&!action.startsWith('import-')&&action!=='auto-apply')
     updateFileHistory({status:'Изменён · требуется повторная проверка',diagnosis:null,repair:null});
-  record(action,{paths:doc.paths.length,nodes:doc.paths.reduce((n,p)=>n+p.points.length,0)});
+  record(action,{paths:doc.paths.length,nodes:doc.paths.reduce((n,p)=>n+p.points.length,0),
+    diagnosticOnDemand:skipDiagnostics});
   render();
+  if(skipDiagnostics)return;
   if(retainsIssuesDuringManualChange(mode,action))scheduleManualLocalRecheck();
   else if(!action.startsWith('import-')&&action!=='unified-apply')requestRecalculation();
 }
@@ -796,7 +815,8 @@ function render(){
   const marked=markersVisible?renderIssueMarkers($('markers'),visibleIssues,markerUnit,
     {x:0,y:0,width:visibleDoc.width,height:visibleDoc.height},
     {interactive:!curveEditing()}):0;
-  $('marker-status').textContent=visibleIssues.length?
+  $('marker-status').textContent=manualReviewPending?
+    'После ручных изменений дефекты не перепроверялись. Старые маркеры скрыты.':visibleIssues.length?
     curveEditing()&&markersVisible?'В редакторе: '+marked+' маркеров проблем'+(manualDiagnosticsPending?' · идёт повторная проверка':' · не перекрывают узлы и ручки')+'.':markersVisible?'На чертеже: '+marked+' пространственно распределённых цветных маркеров'+
       (visibleIssues.length>marked?' из '+visibleIssues.length:'')+'. Нажмите кольцо, чтобы приблизить.':
       'Отметки проблем скрыты. Включите их в разделе «Видимость точек».':
@@ -805,12 +825,13 @@ function render(){
   if(!reviewing&&draft.length)el('path',{d:pathData({points:draft}),class:'path selected'},$('draft'));
   $('issues').replaceChildren();
   const counts={};visibleIssues.forEach(x=>counts[x.kind]=(counts[x.kind]||0)+1);
-  if(manualDiagnosticsPending&&curveEditing())$('summary').textContent='Идёт повторная проверка после редактирования. Прежние маркеры сохраняются: '+visibleIssues.length+'.';
+  if(manualReviewPending)$('summary').textContent='Диагностика после ручного редактирования не выполнялась. При необходимости нажмите «Проверить дефекты».';
+  else if(manualDiagnosticsPending&&curveEditing())$('summary').textContent='Локальные изменения не проверены. Прежние маркеры показаны только как подсказка.';
   else if(!diagnosticComplete&&!comparison)$('summary').textContent='Диагностика частичная: лимит точек, блоки или ограничения движка. Найдено замечаний: '+visibleIssues.length+'. Межблочные дефекты не исключены.';
   else if(visibleIssues.length)$('summary').textContent='Замечаний: '+visibleIssues.length+' · '+Object.entries(counts).slice(0,2).map(([k,n])=>(names[k]||k)+': '+n).join(' · ');
   else $('summary').textContent=curvePreview&&compareStage==='after'&&!curvePreview.afterDiagnosed?'Диагностика оптимизированного результата пока недоступна.':comparison?'Для этой стадии замечаний не найдено.':metrics.length?'Проверка завершена: замечаний не найдено.':'Откройте SVG или нарисуйте векторы.';
   $('summary').title=Object.entries(counts).map(([k,n])=>(names[k]||k)+': '+n).join(' · ');
-  $('issue-count').textContent=visibleIssues.length;
+  $('issue-count').textContent=manualReviewPending?'—':visibleIssues.length;
   visibleIssues.slice(0,100).forEach((x,i)=>{
     const b=document.createElement('button');b.className='issue';
     b.textContent=(i+1)+'. '+(names[x.kind]||x.kind)+' · '+(x.path+1)+(x.other!==x.path?' ↔ '+(x.other+1):'')+issueDistanceLabel(x);
@@ -821,8 +842,10 @@ function render(){
   $('toggle-markers-label').textContent=markersVisible?'Скрыть маркеры':'Показать маркеры';
   $('apply-changes').disabled=busy||!ready||!doc.paths.some(p=>p.kind!=='image')||
     (!settingsDirty&&(!curvePreview||!curvePreview.hasGeometryChange));
-  $('auto-status').textContent=busy?'Идёт расчёт…':curveEditing()?'Редактирование узлов · Ctrl+Z — отмена.':curvePreview?'Предварительный результат рассчитан, просмотрите ПОСЛЕ.':appliedComparison?'Изменения применены. ДО / ПОСЛЕ доступны для проверки.':doc.paths.length?'Проверка и расчёт после открытия файла.':'Откройте файл для автоматической проверки.';
+  $('auto-status').textContent=busy?'Идёт расчёт…':manualReviewPending?'Ручные правки сохранены · проверка дефектов не выполнялась.':curveEditing()?'Редактирование узлов · Ctrl+Z — отмена.':curvePreview?'Предварительный результат рассчитан, просмотрите ПОСЛЕ.':appliedComparison?'Изменения применены. ДО / ПОСЛЕ доступны для проверки.':doc.paths.length?'Проверка и расчёт после открытия файла.':'Откройте файл для автоматической проверки.';
   $('toggle-markers').disabled=busy||!(visibleIssues.length||clearanceReport?.markers.length);
+  $('recheck-defects').disabled=busy||!ready||curveEditing()||reviewing||
+    !doc.paths.some(p=>p.kind!=='image');
   $('undo').disabled=busy||!past.length;$('redo').disabled=busy||!future.length;
   $('delete').disabled=busy||reviewing||curveEditing();
   for(const id of ['new','line','rect','circle','select'])$(id).disabled=busy||reviewing;
@@ -1046,6 +1069,11 @@ async function applySettingsAndChanges(){
   else status('Геометрия уже соответствует применённым настройкам.');
 }
 $('apply-changes').onclick=()=>{void applySettingsAndChanges();};
+$('recheck-defects').onclick=()=>{
+  if(busy||!ready||curveEditing()||currentComparison())return;
+  record('manual-diagnostics-request');
+  calculate(0,{diagnosticsOnly:true});
+};
 
 function spawnWorker(){
   ready=false;$('engine').textContent='○ Загрузка Rust / WASM…';
@@ -1459,7 +1487,7 @@ async function checkPreviewAfter(preview){
   }
 }
 
-async function runProgressiveDiagnostics(indices,tolerance){
+async function runProgressiveDiagnostics(indices,tolerance,{diagnosticsOnly=false}={}){
   const generation=++diagnosticGeneration;
   const scope=[],contours=[],unreadable=[];
   lock(true,{coverCanvas:false});
@@ -1497,6 +1525,7 @@ async function runProgressiveDiagnostics(indices,tolerance){
         try{const native=await runNativeJob({action:'diagnose',document:clone(doc),issues:results,indices,tolerance});if(generation!==diagnosticGeneration)return;results.splice(0,results.length,...native.issues);complete=complete&&native.complete;record('native-diagnostic-refinement',{complete:native.complete,unresolved:native.unresolved,nativeLocations:native.nativeLocations});}catch(error){complete=false;nativeFailure=true;const witnessed=results.filter(i=>i.kind!=='coincident'&&i.kind!=='short');results.splice(0,results.length,...witnessed);record('native-diagnostic-error',{error:error.message});}
         if(generation!==diagnosticGeneration)return;
         diagnosticComplete=complete;
+        manualReviewPending=false;
         markersVisible=true;
         issues=curveEditing()?resolveManualIssues(issues,results,{
           failed:failedBatches>0||nativeFailure||unreadable.length>0||plan.skipped.length>0
@@ -1521,6 +1550,10 @@ async function runProgressiveDiagnostics(indices,tolerance){
           (complete?'':' Проверка частичная: межблочные связи, лимит замечаний или ошибки не исключены.')+
           (failedBatches?' Блоков с ошибкой: '+failedBatches+'.':'')+
           (misplaced?' Исключены '+misplaced+' маркеров вне соответствующих контуров.':''));
+        if(diagnosticsOnly){
+          record('user-requested-diagnostics',{issues:issues.length,complete});
+          return;
+        }
         // Large EPS files may pass Rust diagnostics completely while still
         // containing tens of thousands of original Bézier segments. Running
         // their Union/smoothing synchronously stalls the browser on ПОСЛЕ.
@@ -1574,7 +1607,7 @@ async function runProgressiveDiagnostics(indices,tolerance){
   }
 }
 
-function calculate(action){
+function calculate(action,{diagnosticsOnly=false}={}){
   if(!ready||busy)return;
   if(currentComparison()&&action){status('Закройте режим ДО/ПОСЛЕ перед ручным редактированием.');return;}
   const selectedScope=doc.paths.map((_,i)=>i).filter(i=>(!settingChecked('selection-only')||!selected.size||selected.has(i))&&doc.paths[i].kind!=='image');
@@ -1582,7 +1615,7 @@ function calculate(action){
   const tol=settingNumber('tolerance'),parameter=Number($('loop-percent').value);
   if(!Number.isFinite(tol)||tol<1e-9||tol>1000){status('Укажите допуск от 0.000000001 до 1000 мм');return;}
   if(action&&selectedScope.some(i=>doc.paths[i].artwork)){status('Исходные EPS-кривые сохранены. Для лечения сначала создайте полилинии кнопкой «Копия для лечения».');return;}
-  if(action===0){void runProgressiveDiagnostics(selectedScope,tol);return;}
+  if(action===0){void runProgressiveDiagnostics(selectedScope,tol,{diagnosticsOnly});return;}
   try{
     const scope=[],paths=[];
     for(const i of selectedScope)for(const p of sampledContours(doc.paths[i],tol)){scope.push(i);paths.push(p);}
@@ -1654,9 +1687,9 @@ function startCurveEditor(){
     point:[view.x+view.width/2,view.y+view.height/2]};
   render();
   if(manualFocus)drawLocalEditorOverlay();
-  // A single full scan is scheduled on exit. The old rings stay visible as
-  // witnesses while the operator edits the local command buffer.
-  status('Режим локальной правки: полная геометрия и проверка обновятся только после «Готово».');
+  // Preserve existing witness rings during editing, but discard them on
+  // commit. The operator decides whether to run another diagnostic scan.
+  status('Режим локальной правки: «Готово» сохранит кривые без поиска дефектов.');
 }
 function runLocalNodeEdit(path,action,details={}){
   if(busy||!curveEditing())return false;
@@ -1957,7 +1990,7 @@ $('undo').onclick=()=>{
   }
   if(curveEditing()){status('Для отмены предыдущей операции сначала завершите локальный редактор.');return;}
   if(!past.length)return;
-  future.push(clone(doc));doc=past.pop();selected.clear();changed('undo');
+  future.push(clone(doc));doc=past.pop();selected.clear();changed('undo',{skipDiagnostics:manualReviewPending});
 };
 $('redo').onclick=()=>{
   if(busy)return;
@@ -1974,7 +2007,7 @@ $('redo').onclick=()=>{
   }
   if(curveEditing()){status('Для повторения предыдущей операции завершите локальный редактор.');return;}
   if(!future.length)return;
-  past.push(clone(doc));doc=future.pop();selected.clear();changed('redo');
+  past.push(clone(doc));doc=future.pop();selected.clear();changed('redo',{skipDiagnostics:manualReviewPending});
 };
 $('delete').onclick=()=>{if(!selected.size)return;checkpoint();doc.paths=doc.paths.filter((_,i)=>!selected.has(i));selected.clear();changed('delete');};
 $('new').onclick=()=>{
