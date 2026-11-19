@@ -8,6 +8,7 @@ import {issuesForManualEditor,resolveManualIssues,retainsIssuesDuringManualChang
 import {diagnoseLocalNodeArea,localNodeRadius} from './local-node-diagnostics.js?v=0.2.0-alpha.59';
 import {buildAnchorIndex,nearbyAnchors,createLiveCurvePatch,drawLiveCurvePatch} from './manual-edit-performance.js?v=0.2.0-alpha.59';
 import {createDeferredCurveEditor} from './deferred-curve-editor.js?v=0.2.0-alpha.59';
+import {buildManualViewportIndex} from './manual-viewport-index.js?v=0.2.0-alpha.60';
 import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.59';
 import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.59';
 import {packedInput} from './auto-repair.js?v=0.2.0-alpha.59';
@@ -129,6 +130,8 @@ let manualFocus=null,manualLocalTimer=null,manualLocalGeneration=0;
 let localEditors=new Map(),localEditUndo=[],localEditRedo=[],localEditCount=0;
 let localEditorIndexes=new Map(),localPatchElements=new Map();
 let manualGlyphBuildUnit=0,manualZoomFrame=0;
+let manualViewportIndex=null,manualViewportMode=false,parkedGeometry=null;
+const manualLocalElements=new Map();
 const localPatchKey=(path,segment)=>path+':'+segment;
 function syncLocalPatches({path=null,segments=null,reset=false}={}){
   const layer=$('manual-patches');
@@ -181,6 +184,8 @@ function resetLocalEditors(){
   $('manual-patches').replaceChildren();
   $('manual-glyphs').replaceChildren();
   $('manual-local-geometry').replaceChildren();
+  manualLocalElements.clear();manualViewportIndex=null;manualViewportMode=false;
+  parkedGeometry=null;
   if(manualZoomFrame)cancelAnimationFrame(manualZoomFrame);
   manualZoomFrame=0;manualGlyphBuildUnit=0;
   document.body.classList.remove('local-editor-active','manual-local-zoom');
@@ -200,41 +205,62 @@ function localEditorToolbar(){
     'Локальное редактирование узла '+(active.index+1)+' · изменения фигуры и диагностика после выхода.':
     'Локальный режим: выберите узел. Исходная фигура не изменяется до кнопки «Готово».';
 }
-// On deep zoom, hide the original compound Béziers from painting and show
-// ONLY native segments intersecting the current viewport; no source rewrite.
+// A customer EPS can contain 1975 SVG objects. Hiding them with CSS AFTER
+// wheel invalidates their render tree too late. Park their unchanged DOM in a
+// detached DocumentFragment BEFORE any viewBox edit; restore on Fit/exit.
+function enableManualViewportMode(){
+  if(!curveEditing())return;
+  if(!manualViewportIndex)manualViewportIndex=buildManualViewportIndex(doc);
+  if(!manualViewportMode){
+    parkedGeometry=document.createDocumentFragment();
+    const geometry=$('geometry');
+    while(geometry.firstChild)parkedGeometry.appendChild(geometry.firstChild);
+  }
+  manualViewportMode=true;
+  document.body.classList.add('local-editor-active','manual-local-zoom');
+}
+function disableManualViewportMode(){
+  manualViewportMode=false;
+  if(parkedGeometry){$('geometry').append(parkedGeometry);parkedGeometry=null;}
+  $('manual-local-geometry').replaceChildren();manualLocalElements.clear();
+  document.body.classList.remove('manual-local-zoom');
+}
 function refreshLocalZoomGeometry(){
-  const layer=$('manual-local-geometry'),view=$('canvas').viewBox.baseVal;
-  const sourceNodes=doc.paths.reduce((n,p)=>n+(p.commands?.length||p.points?.length||0),0);
-  const active=curveEditing()&&sourceNodes>1800&&
-    view.width<doc.width*.35&&view.height<doc.height*.35;
-  if(!active){
-    document.body.classList.remove('manual-local-zoom');
-    if(layer.childElementCount)layer.replaceChildren();
-    return;
+  if(!curveEditing()||!manualViewportMode)return;
+  const view=$('canvas').viewBox.baseVal,
+    frame={x:view.x,y:view.y,width:view.width,height:view.height},
+    layer=$('manual-local-geometry');
+  if(!manualViewportIndex)manualViewportIndex=buildManualViewportIndex(doc);
+  const focusPath=manualFocus?.path??[...selected].find(i=>doc.paths[i]?.kind!=='image');
+  const focusEditor=localEditors.get(focusPath);
+  const groups=manualViewportIndex.query(frame,{
+    limit:420,focusPath,excludePath:focusEditor?focusPath:null,padding:.32
+  });
+  if(focusEditor){
+    const center=[view.x+view.width/2,view.y+view.height/2];
+    const segments=focusEditor.visibleSegmentSVG(center,
+      Math.hypot(view.width,view.height)*.8,{limit:240});
+    if(segments.length)groups.unshift({path:focusPath,d:segments.map(s=>s.d).join(' '),
+      segments:segments.length});
   }
-  const path=manualFocus?.path??[...selected].find(i=>doc.paths[i]?.kind!=='image');
-  if(!Number.isInteger(path)||!doc.paths[path]||doc.paths[path].kind==='image'){
-    document.body.classList.remove('manual-local-zoom');return;
+  const alive=new Set();
+  for(const item of groups){
+    alive.add(item.path);
+    let pair=manualLocalElements.get(item.path);
+    if(!pair){
+      const hit=el('path',{class:'manual-local-hit','data-path':item.path},layer);
+      const visual=el('path',{class:'manual-local-stroke','data-path':item.path},layer);
+      pair={hit,visual,d:null};manualLocalElements.set(item.path,pair);
+    }
+    if(pair.d!==item.d){
+      pair.hit.setAttribute('d',item.d);pair.visual.setAttribute('d',item.d);
+      pair.d=item.d;
+    }
   }
-  const editor=localEditor(path);
-  if(!editor){document.body.classList.remove('manual-local-zoom');return;}
-  const center=[view.x+view.width/2,view.y+view.height/2];
-  const segments=editor.visibleSegmentSVG(center,Math.hypot(view.width,view.height)*.75,{limit:600});
-  if(!segments.length){
-    document.body.classList.remove('manual-local-zoom');
-    if(layer.childElementCount)layer.replaceChildren();
-    return;
+  for(const [path,pair] of manualLocalElements){
+    if(alive.has(path))continue;
+    pair.hit.remove();pair.visual.remove();manualLocalElements.delete(path);
   }
-  let hit=layer.querySelector('.manual-local-hit');
-  if(!hit)hit=el('path',{class:'manual-local-hit','data-path':path},layer);
-  let visual=layer.querySelector('.manual-local-stroke');
-  if(!visual)visual=el('path',{class:'manual-local-stroke','data-path':path},layer);
-  const d=segments.map(s=>s.d).join(' ');
-  hit.setAttribute('data-path',path);
-  visual.setAttribute('data-path',path);
-  hit.setAttribute('d',d);
-  visual.setAttribute('d',d);
-  document.body.classList.add('manual-local-zoom');
 }
 function rescaleLocalEditorGlyphs(unit){
   const glyphs=$('manual-glyphs');
