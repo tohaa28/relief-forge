@@ -1,3 +1,15 @@
+## 0.2.0-alpha.62 — КАНДИДАТ · 2026-11-19
+- Запрос: передать DoctorTracer 0.21.1 чёрное изображение на полностью прозрачном фоне; не перекрашивать EPS/PDF-источник.
+- Ветка: feature/alpha62-black-transparent-tracer-input; PR #94 https://github.com/tohaa28/relief-forge/pull/94
+- База и точка отката: опубликованная alpha.61, main 2035f00eaaa654ca1e1780997be5933e5827fd2b.
+- Временный trace raster: RGB каждого пикселя = 0, Alpha фона/отверстий = 0, фигуры = 255, сглаженные края сохраняют alpha 1..254; запрещено flatten/threshold.
+- Canvas запрашивает alpha:true; нормализация производится после getImageData и непосредственно перед Worker (включая inject/retry). Несмежные Uint8Array-view копируются в упакованный буфер до transfer.
+- Инварианты: исходная окраска/цветовое пространство/Bezier и Undo не изменяются; IoU >=95%, area 95..105%, полная повторная Rust+native диагностика сохраняются.
+- Область: только tohaa28/relief-forge. DoctorTracer gh-pages 0.21.1 не изменяется; проверен RGBA Worker protocol.
+- Тесты: отдельные synthetic cases для RGB грязных прозрачных пикселей, полутона альфы, плотного transfer; глобальный CI/публикация пока НЕ подтверждены.
+- Исходный приватный EPS пользователя не загружен; end-to-end на нём и zoom FPS остаются непроверенными.
+- Полное описание: docs/history/ALPHA62_BLACK_TRANSPARENT_TRACER_INPUT.md; F-062 / M-062; logs/actions.jsonl.
+
 ## 0.2.0-alpha.61 — опубликована 2026-11-19
 - PR #93 merged into main: f594e38e5aeb3466dc468c29862774fc2ad69dad.
 - Final PR CI 44524863713 SUCCESS: 346/346 JS, 17/17 Rust, WASM compilation and browser smoke.

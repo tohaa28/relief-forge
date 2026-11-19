@@ -1,3 +1,9 @@
+## F-062. Отсутствовала обязательная гарантия чёрного RGB на границе DoctorTracer Worker (2026-11-19)
+- Это выявленный при ревизии контрактный пробел, а не подтверждённый повреждённый пиксель пользовательского EPS. Alpha.61 рисует чёрным на прозрачном Canvas, но validateDoctorTracerRgba не запрещает произвольные RGB и до Worker не канонизирует их.
+- Опасность: цветные RGB в окрашенных исходных масках / ошибочных Canvas-mock / внедрённом растре могут вызвать лишние цвета и лишние узлы при сегментации. Прозрачный фон и антисглаживание тоже не должны превращаться в белую подложку.
+- Исправление M-062: всегда RGB=0, сохранять исходный 8-bit alpha, запрашивать alpha:true, корректно упаковывать offset-view для передачи и проверять это на Canvas + Worker tests.
+- Не трогать исходный EPS и не повышать лимит SVG 200000 узлов. Ссылки на приёмку и ограничения: ALPHA62_BLACK_TRANSPARENT_TRACER_INPUT.md.
+
 ## F-061. DoctorTracer traced SVG over 200000 nodes (2026-11-19)
 - User alpha.60 JSONL: RGBA ready (1262x1795); fallback rejected because importRichSvg reached total 200000 nodes.
 - The previous F-060 SVG decoder fault is fixed; this new failure happens AFTER RGBA/Worker.
