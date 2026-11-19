@@ -969,3 +969,10 @@ Next: if user still sees discrepancy, obtain same file/marked location and ArtCA
 - PR #95 https://github.com/tohaa28/relief-forge/pull/95 ; initial rollback published alpha.62 main b461a5fd1df0d043e27f721c32c3f3a7c516e7cf. GitHub Pages publication pending until CI and deploy succeed.
 - Detailed investigation and test limitations: docs/history/ALPHA63_MONOCHROME_TRACER_LOG.md, F-063 / M-063.
 
+
+### Alpha.63 — verified published checkpoint 2026-11-19
+- PR #95 MERGED: https://github.com/tohaa28/relief-forge/pull/95, main `ea698f7089277ffbcae1a3561f75d3869529dd10`.
+- CI https://github.com/tohaa28/relief-forge/actions/runs/44546808673 SUCCESS 352 JS, 17 Rust, WASM/browser. GitHub Pages https://github.com/tohaa28/relief-forge/actions/runs/44547200595 build+deploy SUCCESS.
+- URL https://tohaa28.github.io/relief-forge/?v=alpha63 ; rollback alpha.62 `b461a5fd1df0d043e27f721c32c3f3a7c516e7cf`.
+- This is a targeted single-ink palette hypothesis based on alpha.62 session log and DoctorTracer transparency handling; actual private EPS result/IoU still UNVERIFIED. Never claim 0.491 fixed before a new run.
+

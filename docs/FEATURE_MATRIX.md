@@ -1,3 +1,15 @@
+## 0.2.0-alpha.63 — ОПУБЛИКОВАНА 2026-11-19
+- Journal alpha.62: black-transparent 1262x1795 OK; 398 residual; retries 1262x1795 and 883x1256 hit RichSVG 200000 nodes; 567x807 failed IoU .491 / area 1.797; rejected correctly, original preserved.
+- DoctorTracer gh-pages 0.21.1 traceFixed treats transparency label255 as background (-1), not an ink. Alpha.63 sends `category:'hard', colors:1, palette:[[0,0,0]]`, retaining alpha and all safe gates. This is a hypothesis-driven fix; no actual user EPS bytes available.
+- Per-attempt event `doctortracer-trace-result` includes attempt pixel dimensions, path count, reported paletteCount, backend. No SVG or bitmap logged.
+- PR #95 merged main `ea698f7089277ffbcae1a3561f75d3869529dd10` https://github.com/tohaa28/relief-forge/pull/95
+- PR CI SUCCESS https://github.com/tohaa28/relief-forge/actions/runs/44546808673 (352/352 JS, 17/17 Rust, WASM compile, generic browser smoke).
+- Main Pages SUCCESS both build and deploy: https://github.com/tohaa28/relief-forge/actions/runs/44547200595
+- Public URL: https://tohaa28.github.io/relief-forge/?v=alpha63
+- Rollback to previously published alpha.62: `b461a5fd1df0d043e27f721c32c3f3a7c516e7cf`.
+- Limitations: CI synthetic fixtures, NOT private EPS 8101921_maket_7_121126_163426.eps. Needs fresh session JSONL and/or EPS to confirm IoU improvement and complete native/Rust diagnosis.
+- Full investigation: docs/history/ALPHA63_MONOCHROME_TRACER_LOG.md, F-063 / M-063, logs/actions.jsonl.
+
 ## 0.2.0-alpha.63: one-ink DoctorTracer after alpha.62 IoU rejection (CANDIDATE 2026-11-19)
 - Source log `relief-forge-session (1).jsonl`: 33 events, version alpha.62, source EPS 8101921_maket_7_121126_163426.eps was NOT uploaded (only metadata log).
 - Black/transparent RGBA input ready 1262x1795, DoctorTracer started 398 issues; node limit >200000 first two attempts; final 567x807 returned geometry but failed high-res mask IoU=.491, areaRatio=1.797. The refusal correctly preserved source.

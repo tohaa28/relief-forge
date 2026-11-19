@@ -501,3 +501,10 @@ F-051 verified: PR78 and Pages run42985447239 green; live browser regression PAS
 - PR CI 44534174806: 350/350 JS, 17/17 Rust; main Pages 44534559435 build+deploy success.
 - Это контрактная гарантия на RGBA; не доказана проблема в конкретном пользовательском EPS (байты файла недоступны).
 
+
+### Alpha.63 — verified published checkpoint 2026-11-19
+- PR #95 MERGED: https://github.com/tohaa28/relief-forge/pull/95, main `ea698f7089277ffbcae1a3561f75d3869529dd10`.
+- CI https://github.com/tohaa28/relief-forge/actions/runs/44546808673 SUCCESS 352 JS, 17 Rust, WASM/browser. GitHub Pages https://github.com/tohaa28/relief-forge/actions/runs/44547200595 build+deploy SUCCESS.
+- URL https://tohaa28.github.io/relief-forge/?v=alpha63 ; rollback alpha.62 `b461a5fd1df0d043e27f721c32c3f3a7c516e7cf`.
+- This is a targeted single-ink palette hypothesis based on alpha.62 session log and DoctorTracer transparency handling; actual private EPS result/IoU still UNVERIFIED. Never claim 0.491 fixed before a new run.
+
