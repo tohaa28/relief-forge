@@ -822,3 +822,11 @@ Functional PR https://github.com/tohaa28/relief-forge/pull/78 merged 5c8169a50e3
 F-051: true coordinate coincidence separated from near_node; unrelated subpaths rely on pink clearance, densely spaced local runs excluded by control-polygon upper bound. Witness coordinates and distance are double precision in mm, display five significant digits. Near-node marker substitutes only the two actual owner+coordinate anchors. Other diagnostics and repair/export geometry unchanged. Local original gerb project snapshot (not a new EPS import): source1686/after25 vs alpha50 source1729/after29, same 11493->9668 anchors and exact paths/paint, both downloaded EPS matching-after9668. 25 remaining include9near/1coincident and unchanged crossings/overlaps; two Boolean groups still protected. ArtCAM parity and user's exact discrepancy not verified.
 Next: if user still sees discrepancy, obtain same file/marked location and ArtCAM settings; do not widen eps, change curve geometry or remove legitimate diagnostics to force count parity. Preserve alpha50 parallel engine download/cancellation fixes, native provenance, exact AFTER exports and Undo. Base rollback b2f8116.
 
+## 0.2.0-alpha.57 CANDIDATE — 2026-11-19 (не опубликовано)
+- Запрос: отдельная опция справа для безопасного разведения совпадающих несоседних узлов кривой.
+- PR: https://github.com/tohaa28/relief-forge/pull/88; ветка `feature/alpha57-separate-coincident-nonadjacent-nodes`. Основная контрольная alpha.56 main `252e57e39d9ec499750db384447332744062028f`.
+- Код: spatial hash узлов, 16 направлений, наименьший безопасный сдвиг с переносом двух инцидентных ручек C/Q, точное сравнение локальных пересечений Bézier; риск новых/неустранённых пересечений => пропуск. Приоритет — сохранение топологии и оформления, Undo, отсутствие полного расчёта при ручном редактировании.
+- Статус на момент записи: source committed / tests written; PR CI ещё не подтверждён; браузер и Pages не проверены. Требуется реальный PASS CI (Rust, JS, WASM, Chromium), затем принятие/публикация. Подробно: [ALPHA57_COINCIDENT_NODES.md](history/ALPHA57_COINCIDENT_NODES.md).
+
+- Попытка без проверки пересечений отклонена; исходный X-крест нельзя лечить произвольным малым смещением.
+- Новые тесты и алгоритм закреплены в PR #88; внешний CI и браузерная приёмка ещё не подтверждены.

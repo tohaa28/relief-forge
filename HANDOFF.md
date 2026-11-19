@@ -850,3 +850,10 @@ Exact helper-only repair compared through independent winding-aware Clipper XOR:
 
 ### alpha.38 bounded-work and UI regression checkpoint
 Added a2-million native segment-comparison budget per compound path; if full interval coverage is not proved within it, the candidate is retained and the existing skipped counter records the limit. Eight unit regressions now cover work-budget fallback in addition to exact/partial/near-parallel/curved/stroke/scope/idempotency cases. 206JS PASS. Actual source+proof/export recheck PASS (helper-only XOR0, isolated full affected-object3overlaps->0, whole doc still partial). Source-owned browser covered-retrace scene PASS: visible repair count1, actual different BEFORE/AFTER, Apply, Undo restores7original anchors, EPS saves4repaired anchors; all8mode/PDF/project/editor gates PASS. No actual test gate weakened.
+
+## 0.2.0-alpha.57 CANDIDATE — 2026-11-19 (не опубликовано)
+- Запрос: отдельная опция справа для безопасного разведения совпадающих несоседних узлов кривой.
+- PR: https://github.com/tohaa28/relief-forge/pull/88; ветка `feature/alpha57-separate-coincident-nonadjacent-nodes`. Основная контрольная alpha.56 main `252e57e39d9ec499750db384447332744062028f`.
+- Код: spatial hash узлов, 16 направлений, наименьший безопасный сдвиг с переносом двух инцидентных ручек C/Q, точное сравнение локальных пересечений Bézier; риск новых/неустранённых пересечений => пропуск. Приоритет — сохранение топологии и оформления, Undo, отсутствие полного расчёта при ручном редактировании.
+- Статус на момент записи: source committed / tests written; PR CI ещё не подтверждён; браузер и Pages не проверены. Требуется реальный PASS CI (Rust, JS, WASM, Chromium), затем принятие/публикация. Подробно: [ALPHA57_COINCIDENT_NODES.md](history/ALPHA57_COINCIDENT_NODES.md).
+
