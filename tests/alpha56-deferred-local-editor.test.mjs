@@ -120,3 +120,58 @@ test('local smooth/symmetric type edits restore anchor geometry and kind with Un
  assert.equal(editor.getNode(18).type,typeBefore);
  assert.deepEqual(editor.finish().commands,original.commands);
 });
+
+test('breaking a closed contour rotates exactly at the selected anchor, preserving its Bezier silhouette',()=>{
+ const path={kind:'vector',closed:true,offset:[0,0],artwork:'<path/>',
+  commands:[['M',0,0],['L',10,0],['L',10,10],['L',0,10],['Z'],
+    ['M',20,20],['C',22,20,28,30,30,30]],
+  points:[[0,0],[10,0],[10,10],[0,10],[20,20],[30,30]],
+  nodeKinds:{2:'cusp',6:'smooth'}};
+ const before=structuredClone(path),e=createDeferredCurveEditor(path);
+ e.breakAt(2);
+ const result=e.finish();
+ assert.deepEqual(result.commands[0],['M',10,10],
+  'opened contour must begin at the chosen node, not at the old contour start');
+ assert.deepEqual(result.commands[4],['L',10,10],
+  'closed edge becomes the final open segment at the chosen node');
+ assert.ok(!result.commands.slice(0,5).some(c=>c[0]==='Z'));
+ assert.deepEqual(result.commands.slice(-2),path.commands.slice(-2),
+  'another compound subpath must remain geometrically untouched');
+ assert.equal(result.nodeKinds[2],undefined,'a moved node label must follow the point, not an obsolete command ID');
+ assert.equal(result.nodeKinds[0],'cusp');
+ assert.equal(result.nodeKinds[6],'smooth');
+ assert.deepEqual(path,before);
+ assert.equal(e.undoLocal(),true);
+ assert.deepEqual(e.finish().commands,path.commands);
+ assert.equal(e.redoLocal(),true);
+ assert.deepEqual(e.finish().commands,result.commands);
+});
+
+test('reversing one compound subpath retains other subpaths and restores exact geometry on undo',()=>{
+ const path=fixture(80);
+ const commands=path.commands.concat([['M',200,200],['L',205,205]]);
+ const compound={...path,commands,points:[...path.points,[200,200],[205,205]]};
+ const e=createDeferredCurveEditor(compound);
+ const original=structuredClone(compound.commands);
+ e.reversePart(42);
+ const reversed=e.finish().commands;
+ assert.deepEqual(reversed.slice(-2),original.slice(-2));
+ assert.deepEqual(reversed[0].slice(1),original[80].slice(-2));
+ assert.equal(e.undoLocal(),true);
+ assert.deepEqual(e.finish().commands,original);
+ assert.equal(e.redoLocal(),true);
+ assert.deepEqual(e.finish().commands,reversed);
+});
+
+test('closing the first of two open subpaths remaps later saved node types without modifying source',()=>{
+ const path={kind:'vector',closed:false,offset:[0,0],artwork:'<path/>',
+   commands:[['M',0,0],['L',5,0],['M',20,20],['C',22,20,28,25,30,25]],
+   points:[[0,0],[5,0],[20,20],[30,25]],nodeKinds:{3:'smooth'}};
+ const e=createDeferredCurveEditor(path);
+ e.closeAt(1);
+ assert.deepEqual(e.finish().commands[2],['Z']);
+ assert.equal(e.finish().nodeKinds[4],'smooth');
+ assert.equal(e.undoLocal(),true);
+ assert.equal(e.finish().nodeKinds[3],'smooth');
+ assert.deepEqual(path.commands[2],['M',20,20]);
+});
