@@ -389,9 +389,18 @@ export function remapDoctorTracerSvg(source,svg,plan,{Parser=globalThis.DOMParse
 export function maskSimilarity(before,after,{cutoff=128}={}){
   if(before.width!==after.width||before.height!==after.height)
     throw Error('DoctorTracer: размер контрольной маски изменился');
+  const count=before.width*before.height;
+  const alphaAt=mask=>{
+    if(mask.alpha instanceof Uint8Array&&mask.alpha.byteLength===count)
+      return i=>mask.alpha[i];
+    if(mask.pixels instanceof Uint8Array&&mask.pixels.byteLength===count*4)
+      return i=>mask.pixels[4*i+3];
+    throw Error('DoctorTracer: контрольная маска должна быть alpha8 или RGBA8');
+  };
+  const originalAlpha=alphaAt(before),candidateAlpha=alphaAt(after);
   let both=0,either=0,a=0,b=0;
-  for(let i=3;i<before.pixels.length;i+=4){
-    const x=before.pixels[i]>=cutoff,y=after.pixels[i]>=cutoff;
+  for(let i=0;i<count;i++){
+    const x=originalAlpha(i)>=cutoff,y=candidateAlpha(i)>=cutoff;
     both+=Number(x&&y);either+=Number(x||y);a+=Number(x);b+=Number(y);
   }
   return {iou:either?both/either:0,areaRatio:a?b/a:0,sourcePixels:a,resultPixels:b};
