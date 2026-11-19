@@ -1,3 +1,9 @@
+## 0.2.0-alpha.57 CANDIDATE — 2026-11-19 (не опубликовано)
+- Запрос: отдельная опция справа для безопасного разведения совпадающих несоседних узлов кривой.
+- PR: https://github.com/tohaa28/relief-forge/pull/88; ветка `feature/alpha57-separate-coincident-nonadjacent-nodes`. Основная контрольная alpha.56 main `252e57e39d9ec499750db384447332744062028f`.
+- Код: spatial hash узлов, 16 направлений, наименьший безопасный сдвиг с переносом двух инцидентных ручек C/Q, точное сравнение локальных пересечений Bézier; риск новых/неустранённых пересечений => пропуск. Приоритет — сохранение топологии и оформления, Undo, отсутствие полного расчёта при ручном редактировании.
+- Статус на момент записи: source committed / tests written; PR CI ещё не подтверждён; браузер и Pages не проверены. Требуется реальный PASS CI (Rust, JS, WASM, Chromium), затем принятие/публикация. Подробно: [ALPHA57_COINCIDENT_NODES.md](history/ALPHA57_COINCIDENT_NODES.md).
+
 # 0.2.0-alpha.56 VERIFIED SOURCE RELEASE — 2026-11-19
 
 Functional PR https://github.com/tohaa28/relief-forge/pull/86 **merged to main** at `1e9ff2b617c7b1df57f3d4bf96ac870eba12a80d`. Full real-WASM + browser CI https://github.com/tohaa28/relief-forge/actions/runs/44464521648 **SUCCESS**: **318/318 JavaScript tests, 17/17 Rust tests**, EPS/PDF/Union/CNC/import/export/Undo, current startup recovery. Browser stress: synthetic **2300 cubic segments**; **40 mousemoves and seven completed mouseups with 0 rebuilds of the underlying #geometry**, local Ctrl+Z/Ctrl+Y and **one final commit on «Готово»**. User's gerb2.pdf was earlier inspected as one compound object with 7545 cubic segments; **direct browser acceptance on that exact private PDF has not been performed**. GitHub Pages live deployment was not independently verifiable; source/main and PR CI are verified, not public-site freshness.
