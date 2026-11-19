@@ -1,3 +1,15 @@
+## 0.2.0-alpha.64 — ОПУБЛИКОВАНА · 2026-11-19
+- Пользовательский журнал alpha.63 `relief-forge-session (2).jsonl` (38 событий): original EPS `8101921_maket_7_121126_163426.eps` не загружен. 1975 объектов, 398 остаточных ошибок, raster 1262×1795; one-ink DoctorTracer 0.21.1 3 попытки: 2×200000 узлов и последняя IoU=.491 / areaRatio=1.797, отказ сохранён.
+- Подтверждённый в коде дефект alpha.61-63: при retry 70%/45% 1px stroke перерисовывался в другом физическом масштабе (~2.22× шире в мм на последнем разрешении). Исправление alpha64: стабильный `strokeWidthMm`, area-weighted downsample исходной независимой RGBA-маски вместо повторного рендера EPS. RGB=0, исходная alpha остаётся без порога.
+- Новый журнал `doctortracer-trace-result.segmentation`: сравнение исходного alpha>=128 с alpha фактической сегментации Worker 0.21.1 ДО SVG, только IoU/areaRatio/количества пикселей, без содержимого EPS/SVG.
+- PR #96 https://github.com/tohaa28/relief-forge/pull/96 MERGED, main `58498bea4bdbab54dd18dcc7b06c14ddc486bbef`.
+- Final PR CI https://github.com/tohaa28/relief-forge/actions/runs/44557430633 SUCCESS: 357/357 JS, 17/17 Rust, WASM compile/ABI and browser smoke.
+- Main GitHub Pages https://github.com/tohaa28/relief-forge/actions/runs/44557865477 SUCCESS (build + deploy). Public URL: https://tohaa28.github.io/relief-forge/?v=alpha64
+- Previous published rollback alpha63 `2b13e06b54331d20311308d36f152036394128a7`.
+- Failed initial candidate CI 44557050466 (356/357 JS, wrong Russian test regex) documented; intermediate 44557267989 cancelled due superseding push; final CI green.
+- Actual IoU on private EPS cannot be claimed fixed from this JSONL alone. Need rerun same EPS in alpha64 and supply new journal/actual source for confirmation. Keep 200k-node cap, IoU>=0.95, area 0.95..1.05, complete full native/Rust diagnosis and Undo intact.
+- Full analysis: docs/history/ALPHA64_STABLE_MASK_DOWNSAMPLE.md, F-064, M-064, logs/actions.jsonl.
+
 ## 0.2.0-alpha.64 — КАНДИДАТ · 2026-11-19
 - Новый пользовательский `relief-forge-session (2).jsonl` (38 событий) относится к alpha.63. Реальный EPS `8101921_maket_7_121126_163426.eps` не приложен, только журнал; не публиковать его.
 - Исходник 1 226 967 B; импорт 1 975 векторов / 22 219 узлов; диагностика 1 115 проблем, неполная. После preview 21 271 узел и 398 остаточных проблем.

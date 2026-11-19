@@ -1,3 +1,10 @@
+### Alpha64 — verified published checkpoint 2026-11-19
+- Alpha63 user EPS JSONL 38 events: one-ink did not solve IoU=.491 / areaRatio=1.797. Alpha64 fixes physical-stroke growth on 45% retry and resamples the immutable original black alpha mask. Independent Worker segmentation mask IoU/area metrics now logged.
+- CI first run 44557050466 FAILED 356/357 JS due /длину/ vs /неверная длина/ test assertion. Corrected d2c65c88. Superseded run 44557267989 CANCELLED. Final PR CI https://github.com/tohaa28/relief-forge/actions/runs/44557430633 SUCCESS: 357/357 JS, 17/17 Rust, WASM, browser smoke.
+- PR #96 merged 58498bea4bdbab54dd18dcc7b06c14ddc486bbef. Main Pages https://github.com/tohaa28/relief-forge/actions/runs/44557865477 both build+deploy SUCCESS. Public https://tohaa28.github.io/relief-forge/?v=alpha64.
+- Previous published rollback alpha63: 2b13e06b54331d20311308d36f152036394128a7.
+- User's private source EPS bytes not available. Do not claim improvement in actual IoU or solved tracer geometry until fresh journal. If segmentation IoU is already low, investigate DoctorTracer hard mode; if segmentation good but final low, inspect SVG, compound holes and raster remapping. Retain fail-closed 200k cap/IoU>=95%/native+Rust full validation/Undo.
+
 ## M-064. Физически стабильная референсная alpha-маска при уменьшении разрешения (2026-11-19)
 - Первичное рендерирование EPS/SVG → Canvas2D RGBA black+alpha. План сохраняет `strokeWidthMm=max(widthMm/width,heightMm/height)`; любые уменьшения разрешения сохраняют эту величину, чтобы 1px в источнике НЕ превращался в 2.22px в физических единицах при retry .45.
 - У `app.js` уже имеется неизменяемый `originalMask` как независимый Uint8Array к первичному `firstRaster`. Передать `referenceRaster:originalMask` в `traceDocumentWithNodeBudget`. Для 70% и 45% не пере-рисовать кривые: строить box-filter с точным альфа-покрытием исходного пикселя. Bounded memory, no canvas snapshot, source EPS unchanged.

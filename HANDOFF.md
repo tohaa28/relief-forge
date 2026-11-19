@@ -1007,3 +1007,11 @@ Added a2-million native segment-comparison budget per compound path; if full int
 - Baseline/rollback: published alpha.63 main `2b13e06b54331d20311308d36f152036394128a7`. Feature `feature/alpha64-stable-mask-downsampling-segmentation-audit`.
 - Detailed journal: `docs/history/ALPHA64_STABLE_MASK_DOWNSAMPLE.md`, F-064, M-064; `logs/actions.jsonl`.
 
+
+### Alpha64 — verified published checkpoint 2026-11-19
+- Alpha63 user EPS JSONL 38 events: one-ink did not solve IoU=.491 / areaRatio=1.797. Alpha64 fixes physical-stroke growth on 45% retry and resamples the immutable original black alpha mask. Independent Worker segmentation mask IoU/area metrics now logged.
+- CI first run 44557050466 FAILED 356/357 JS due /длину/ vs /неверная длина/ test assertion. Corrected d2c65c88. Superseded run 44557267989 CANCELLED. Final PR CI https://github.com/tohaa28/relief-forge/actions/runs/44557430633 SUCCESS: 357/357 JS, 17/17 Rust, WASM, browser smoke.
+- PR #96 merged 58498bea4bdbab54dd18dcc7b06c14ddc486bbef. Main Pages https://github.com/tohaa28/relief-forge/actions/runs/44557865477 both build+deploy SUCCESS. Public https://tohaa28.github.io/relief-forge/?v=alpha64.
+- Previous published rollback alpha63: 2b13e06b54331d20311308d36f152036394128a7.
+- User's private source EPS bytes not available. Do not claim improvement in actual IoU or solved tracer geometry until fresh journal. If segmentation IoU is already low, investigate DoctorTracer hard mode; if segmentation good but final low, inspect SVG, compound holes and raster remapping. Retain fail-closed 200k cap/IoU>=95%/native+Rust full validation/Undo.
+
