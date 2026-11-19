@@ -1,3 +1,12 @@
+## 0.2.0-alpha.64 — stable-alpha retries and true DoctorTracer segmentation audit (CANDIDATE 2026-11-19)
+- Source journal: `relief-forge-session (2).jsonl`, 38 alpha.63 records; real `8101921_maket_7_121126_163426.eps` not attached. 1975 imported paths, 398 remaining; 1262x1795 and 883x1256 exceed 200k nodes; 567x807 fails high-res silhouette IoU=.491, area=1.797. One-ink change (alpha.63) did NOT change these figures.
+- Confirmed code defect: independent 1px open strokes at every retry DPI changed physical thickness by factor ~2.22 at 45%. Preserve original full-res alpha via area-weighted box filter for downscales (using immutable `originalMask` already present) and fix mm stroke width in plan.
+- New Worker segmentation stage audit compares alpha>=128 of each input RGBA with returned label RGBAs. Logs only alpha IoU, area ratio, 2 pixel counts, pixel dimensions/engine. No bitmap/SVG/input EPS persisted.
+- Keep black on transparent, hard 1-ink DoctorTracer 0.21.1, 200k parser safety cap, original bbox, full resolution IoU>=95%, area 95..105%, complete Rust/native diagnosis, Undo and source immutable.
+- New unit tests cover exact fractional box weights, conservation of alpha coverage, mm-scale stability, data privacy, Worker segmentation audit and retry independence. PR/CI/Pages status pending verification; never claim real EPS geometry improved until new source run.
+- Baseline/rollback: published alpha.63 main `2b13e06b54331d20311308d36f152036394128a7`. Feature `feature/alpha64-stable-mask-downsampling-segmentation-audit`.
+- Detailed journal: `docs/history/ALPHA64_STABLE_MASK_DOWNSAMPLE.md`, F-064, M-064; `logs/actions.jsonl`.
+
 ## 0.2.0-alpha.63 — ОПУБЛИКОВАНА 2026-11-19
 - Journal alpha.62: black-transparent 1262x1795 OK; 398 residual; retries 1262x1795 and 883x1256 hit RichSVG 200000 nodes; 567x807 failed IoU .491 / area 1.797; rejected correctly, original preserved.
 - DoctorTracer gh-pages 0.21.1 traceFixed treats transparency label255 as background (-1), not an ink. Alpha.63 sends `category:'hard', colors:1, palette:[[0,0,0]]`, retaining alpha and all safe gates. This is a hypothesis-driven fix; no actual user EPS bytes available.
