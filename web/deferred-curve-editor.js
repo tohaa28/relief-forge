@@ -88,6 +88,7 @@ export function createDeferredCurveEditor(path){
       nodeKinds:kinds};
     nodes=curveNodesTyped(pathView).map(n=>({...n,point:[...n.point]}));
     nodeMap=new Map(nodes.map(n=>[n.index,n]));
+    rebuildSegmentIndex();
   }
   function incident(index){
     const entry=byIndex.get(index);if(!entry)return null;
@@ -144,6 +145,7 @@ export function createDeferredCurveEditor(path){
     undo.push({before:prior,after:capture(ids,extraIds)});
     redo.length=0;dirty=true;
     for(const i of ids)if(i!==null&&i!==undefined)touched.add(i);
+    updateIndexedSegments(ids);
     return ids;
   }
   function moveAnchor(index,target){
@@ -251,16 +253,76 @@ export function createDeferredCurveEditor(path){
     return paths;
   }
   function nodePosition(index){return getNode(index)?.point?.slice()||null;}
-  const editableSegmentIndices=()=>[...segmentPart.keys()];
-  // Spatial query against a persistent cheap control-bounds index can be
-  // added independently. Unlike the former nearestCurveSegment this probes
-  // only a bounded set of command polygons in the cursor vicinity.
+  // Index conservative control-polygon bounding boxes once on entry.
+  // Dragging one node updates at most its incident control hulls.
+  let segmentCell=1,segmentBins=new Map(),segmentMembership=new Map(),
+    globalSegments=new Set(),lastNearestCandidates=0;
+  const binKey=(x,y)=>x+':'+y;
+  function removeIndexedSegment(index){
+    for(const key of segmentMembership.get(index)||[]){
+      const group=segmentBins.get(key);
+      if(group){group.delete(index);if(!group.size)segmentBins.delete(key);}
+    }
+    segmentMembership.delete(index);globalSegments.delete(index);
+  }
+  function indexSegment(index){
+    removeIndexedSegment(index);
+    const points=segment(index)?.controls;
+    if(!points)return;
+    const x0=Math.min(...points.map(p=>p[0])),x1=Math.max(...points.map(p=>p[0])),
+      y0=Math.min(...points.map(p=>p[1])),y1=Math.max(...points.map(p=>p[1]));
+    const xa=Math.floor(x0/segmentCell),xb=Math.floor(x1/segmentCell),
+      ya=Math.floor(y0/segmentCell),yb=Math.floor(y1/segmentCell),
+      count=(xb-xa+1)*(yb-ya+1);
+    if(!Number.isFinite(count)||count>64){globalSegments.add(index);return;}
+    const keys=[];
+    for(let x=xa;x<=xb;x++)for(let y=ya;y<=yb;y++){
+      const key=binKey(x,y);
+      if(!segmentBins.has(key))segmentBins.set(key,new Set());
+      segmentBins.get(key).add(index);keys.push(key);
+    }
+    segmentMembership.set(index,keys);
+  }
+  function rebuildSegmentIndex(){
+    segmentBins=new Map();segmentMembership=new Map();globalSegments=new Set();
+    let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+    for(const node of nodes){
+      const p=node.point;
+      x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);
+      x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1]);
+    }
+    const area=Math.max(.01,(x1-x0)*(y1-y0));
+    segmentCell=Math.max(.05,Math.sqrt(area/Math.max(1,segmentPart.size))*2.5);
+    for(const index of segmentPart.keys())indexSegment(index);
+  }
+  function updateIndexedSegments(ids){
+    for(const id of new Set(ids))
+      if(id!==null&&id!==undefined&&segmentPart.has(id))
+        indexSegment(id);
+  }
+  function localSegmentCandidates(point,radius){
+    if(!Number.isFinite(radius))return [...segmentPart.keys()];
+    const xa=Math.floor((point[0]-radius)/segmentCell),
+      xb=Math.floor((point[0]+radius)/segmentCell),
+      ya=Math.floor((point[1]-radius)/segmentCell),
+      yb=Math.floor((point[1]+radius)/segmentCell),
+      candidates=new Set(globalSegments),count=(xb-xa+1)*(yb-ya+1);
+    if(!Number.isFinite(count)||count>15000)return [...segmentPart.keys()];
+    for(let x=xa;x<=xb;x++)for(let y=ya;y<=yb;y++)
+      for(const index of segmentBins.get(binKey(x,y))||[])candidates.add(index);
+    return [...candidates];
+  }
+  rebuildSegmentIndex();
+  function segmentIndexStats(){return {segments:segmentPart.size,bins:segmentBins.size,
+    global:globalSegments.size,lastNearestCandidates};}
   function nearestSegment(point,threshold=Infinity){
     if(!finite(point))return null;
     let best=null;
     const world=point.map((v,i)=>v-offset[i]);
     const square=threshold*threshold;
-    for(const index of editableSegmentIndices()){
+    const candidates=localSegmentCandidates(point,threshold);
+    lastNearestCandidates=candidates.length;
+    for(const index of candidates){
       const data=segment(index);if(!data)continue;
       const pts=data.controls.map(p=>p.map((v,i)=>v-offset[i]));
       let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
@@ -412,14 +474,14 @@ export function createDeferredCurveEditor(path){
     if(op.structure){
       commands=op.before.commands.map(cp);kinds={...op.before.kinds};
       rebuildNodeIndex();touched.clear();
-    }else restore(op.before);
+    }else{restore(op.before);updateIndexedSegments([...op.before.entries.keys()]);}
     redo.push(op);dirty=undo.length>0;return true;
   }
   function redoLocal(){
     const op=redo.pop();if(!op)return false;
     if(op.structure){
       commands=op.after.map(cp);kinds={...op.kindsAfter};rebuildNodeIndex();touched.clear();
-    }else restore(op.after);
+    }else{restore(op.after);updateIndexedSegments([...op.after.entries.keys()]);}
     undo.push(op);dirty=true;return true;
   }
   function historySize(){return undo.length;}
@@ -428,6 +490,6 @@ export function createDeferredCurveEditor(path){
     return {commands:commands.map(cp),nodeKinds:{...kinds},dirty};
   }
   return {moveAnchor,moveHandle,setKind,setSegment,viewPatch,affectedSVG,nodePosition,nodeList,
-    addSegment,removeAnchor,closeAt,breakAt,reversePart,nearestSegment,
+    addSegment,removeAnchor,closeAt,breakAt,reversePart,nearestSegment,segmentIndexStats,
     modified,undoLocal,redoLocal,historySize,finish,getNode,incident};
 }
