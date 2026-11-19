@@ -18,7 +18,7 @@ import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry
 import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.60';
 import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.60';
 import {separateCoincidentNonadjacentNodes} from './coincident-node-separation.js?v=0.2.0-alpha.60';
-import {needsDoctorTracer,rasterPlan,rasterizeDocument,traceWithDoctorTracer,remapDoctorTracerSvg,maskSimilarity,acceptRetracing} from './doctortracer-fallback.js?v=0.2.0-alpha.60';
+import {needsDoctorTracer,rasterPlan,rasterizeDocument,traceDocumentWithNodeBudget,maskSimilarity,acceptRetracing} from './doctortracer-fallback.js?v=0.2.0-alpha.60';
 import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode,finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.60';
 import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.60';
 import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.60';
@@ -1265,12 +1265,24 @@ async function retryUnfixableWithDoctorTracer(preview,report,callRust,generation
     // for independent silhouette fidelity verification.
     const originalMask={width:raster.width,height:raster.height,pixels:new Uint8Array(raster.pixels)};
     progressStage('DoctorTracer: трассировка Rust WASM',30);
-    const traced=await traceWithDoctorTracer(raster,{
-      signal:abort.signal,timeoutMs:240000,
-      progress:(pct,stage)=>progressStage('DoctorTracer: '+(stage||'трассировка'),
-        Math.min(70,30+Math.round(pct*.4)),Math.round(pct)+'%')});
+    const {candidate,traced,tracePlan,attempts}=await traceDocumentWithNodeBudget(source,plan,{
+      firstRaster:raster,signal:abort.signal,
+      traceOptions:{timeoutMs:240000,
+        progress:(pct,stage)=>progressStage('DoctorTracer: '+(stage||'трассировка'),
+          Math.min(70,30+Math.round(pct*.4)),Math.round(pct)+'%')},
+      onAttempt:({attempt,total,plan:attemptPlan})=>{
+        record('doctortracer-trace-attempt',{attempt,total,width:attemptPlan.width,
+          height:attemptPlan.height});
+        progressStage('DoctorTracer: трассировка WASM · попытка '+attempt+'/'+total,30);
+      },
+      onRetry:({attempt,nextPlan,reason})=>{
+        record('doctortracer-node-limit-retry',{attempt,reason,
+          nextWidth:nextPlan.width,nextHeight:nextPlan.height});
+        label.textContent='DoctorTracer 0.21.1: превышен лимит 200000 узлов. '+
+          'Повторная трассировка '+nextPlan.width+'×'+nextPlan.height+' px…';
+      }
+    });
     if(cancelled())return report;
-    const candidate=remapDoctorTracerSvg(source,traced.svg,plan);
     progressStage('DoctorTracer: сверка растрового силуэта',72);
     const candidateRaster=await rasterizeDocument(candidate,plan,{signal:abort.signal});
     const similarity=maskSimilarity(originalMask,candidateRaster);
@@ -1295,7 +1307,7 @@ async function retryUnfixableWithDoctorTracer(preview,report,callRust,generation
     preview.result=candidate;
     preview.hasGeometryChange=true;
     preview.stats.doctorTracer={triggered:true,accepted:true,before:originalCount,
-      after:checked.issues.length,backend:traced.backend,similarity,plan};
+      after:checked.issues.length,backend:traced.backend,similarity,plan,tracePlan,attempts};
     preview.stats.actualNodesAfter=candidate.paths.reduce((sum,p)=>sum+p.commands?.filter(
       c=>['M','L','C','Q'].includes(c[0])).length??p.points?.length??0,0);
     preview.comparisonData.afterDoc=candidate;
