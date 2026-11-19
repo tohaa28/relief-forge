@@ -506,13 +506,14 @@ function scheduleManualLocalRecheck(){
     diagnosticComplete=false;
     record('manual-local-diagnosis',{path:focus.path,point:focus.point,radius,
       localCount:report.localCount,examined:report.examined,verified:report.verified,reason:report.reason});
-    render();
+    drawLocalEditorOverlay();
     status(report.verified?
       'Локально перепроверена область '+Math.round(radius/unit)+' пикселей вокруг курсора. Остальной документ не пересчитывался.':
       'Локальная проверка не подтверждена ('+report.reason+'). Прежние маркеры сохранены.');
   },50);
 }
 function fit(){const pad=Math.max(doc.width,doc.height)*.07;
+  if(curveEditing())disableManualViewportMode(); // one full overview repaint
   $('canvas').setAttribute('viewBox',`${-pad} ${-pad} ${doc.width+pad*2} ${doc.height+pad*2}`);
   if(curveEditing())scheduleManualZoomRefresh();else render();
 }
@@ -521,6 +522,7 @@ function zoom(factor,center){
   const box=$('canvas').viewBox.baseVal,
     view=zoomBox({x:box.x,y:box.y,width:box.width,height:box.height},factor,center);
   if(!view)return;
+  if(curveEditing())enableManualViewportMode(); // BEFORE DOM invalidation
   $('canvas').setAttribute('viewBox',`${view.x} ${view.y} ${view.width} ${view.height}`);
   if(curveEditing())scheduleManualZoomRefresh();else render();
 }
@@ -531,6 +533,7 @@ function focusIssue(issue){
   const next=issueViewBox({x:view.x,y:view.y,width:view.width,height:view.height},issue.point,doc,tolerance);
   if(!next){status('Невозможно перейти к замечанию: неверные координаты.');return;}
   if(!currentComparison())selected=new Set([issue.path,issue.other].filter(i=>Number.isInteger(i)&&i>=0&&i<doc.paths.length));
+  if(curveEditing())enableManualViewportMode();
   canvas.setAttribute('viewBox',`${next.x} ${next.y} ${next.width} ${next.height}`);
   record('focus-issue',{kind:issue.kind,path:issue.path,other:issue.other,point:issue.point});
   if(curveEditing()){manualFocus={path:issue.path,point:[...issue.point]};drawLocalEditorOverlay();}
@@ -1702,7 +1705,7 @@ const scheduleLiveDrag=()=>{
 const flushLiveDrag=()=>{if(liveDragFrame){cancelAnimationFrame(liveDragFrame);liveDragFrame=0;}};
 $('canvas').addEventListener('pointermove',e=>{
   const pos=at(e);$('coords').textContent=`X ${pos[0].toFixed(2)} · Y ${pos[1].toFixed(2)} мм`;
-  if(pan){const b=$('canvas').viewBox.baseVal;const dx=pos[0]-pan.pos[0],dy=pos[1]-pan.pos[1];b.x-=dx;b.y-=dy;if(curveEditing())scheduleManualZoomRefresh();return;}
+  if(pan){if(curveEditing())enableManualViewportMode();const b=$('canvas').viewBox.baseVal;const dx=pos[0]-pan.pos[0],dy=pos[1]-pan.pos[1];b.x-=dx;b.y-=dy;if(curveEditing())scheduleManualZoomRefresh();return;}
   if(!drag||busy)return;
   if(drag.live&&(drag.curveHandle||drag.curveNode!==undefined)){
     // No model mutation, SVG reconstruction, Bézier parse or diagnostic
@@ -1756,7 +1759,22 @@ $('canvas').addEventListener('pointercancel',()=>{
     drag=null;pan=null;drawLocalEditorOverlay();return;}
   if(drag)doc=drag.before;drag=null;pan=null;render();
 });
-$('canvas').addEventListener('wheel',e=>{if(busy)return;e.preventDefault();zoom(e.deltaY>0?1.15:1/1.15,at(e));},{passive:false});
+let manualWheelFrame=0,manualWheelBatch=null;
+$('canvas').addEventListener('wheel',e=>{
+  if(busy)return;
+  e.preventDefault();
+  if(!curveEditing()){zoom(e.deltaY>0?1.15:1/1.15,at(e));return;}
+  enableManualViewportMode(); // detach heavy SVG BEFORE wheel changes viewBox
+  const center=at(e),factor=e.deltaY>0?1.15:1/1.15;
+  if(!manualWheelBatch)manualWheelBatch={factor:1,center};
+  manualWheelBatch.factor*=factor;
+  manualWheelBatch.center=center;
+  if(!manualWheelFrame)manualWheelFrame=requestAnimationFrame(()=>{
+    manualWheelFrame=0;
+    const batch=manualWheelBatch;manualWheelBatch=null;
+    if(batch&&curveEditing())zoom(batch.factor,batch.center);
+  });
+},{passive:false});
 document.addEventListener('keydown',e=>{
   if(busy||e.target.matches('input,textarea,select')||e.target.isContentEditable)return;
   if(e.key==='Escape'){
