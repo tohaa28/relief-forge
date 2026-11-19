@@ -41,7 +41,7 @@ let clearanceKey='',clearanceJob=0,clearanceTimer=null,clearanceWorker=null,clea
 function updateClearance(document,unit){
   const layer=$('clearance-markers'),label=$('clearance-status'),raw=settingNumber('clearance-threshold');
   const threshold=Number.isFinite(raw)&&raw>0&&raw<=1000?raw:null;
-  if(manualReviewPending){
+  if(manualReviewPending||manualClearancePaused){
     layer.replaceChildren();
     label.textContent='Зазоры после ручной правки не проверялись. Нажмите «Проверить дефекты», если нужна новая диагностика.';
     return;
@@ -131,7 +131,7 @@ function finalizePendingSettingsApply(preview){
 }
 
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',near_node:'Сближенные узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
-let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null,manualDiagnosticsPending=false,manualReviewPending=false;
+let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null,manualDiagnosticsPending=false,manualReviewPending=false,manualClearancePaused=false;
 let doctorTracerAbort=null;
 // Temporary, RAM-only preimport raster. Never store it in doc, history or
 // exported EPS, and never share its transferable buffer with the Worker.
@@ -434,6 +434,7 @@ function exitDeferredCurveEditor(){
     return false;
   }
   const operations=localEditCount;
+  manualClearancePaused=true;
   clearTimeout(settingsTimeout);
   if(updated.size)checkpoint();
   for(const [path,vector] of updated)doc.paths[path]=vector;
@@ -517,6 +518,7 @@ function changed(action,{skipDiagnostics=false}={}){
   if(!action.startsWith('import-'))doctorMaskCache.invalidate();
   suppressNextDiagnostic=skipDiagnostics;comparisonSelectionExplicit=false;
   manualReviewPending=skipDiagnostics;
+  manualClearancePaused=skipDiagnostics;
   if(skipDiagnostics){
     // After a committed manual session only repaint the stored vectors.
     // Clear queued whole-document work and do not silently treat zero
@@ -1525,7 +1527,7 @@ async function runProgressiveDiagnostics(indices,tolerance,{diagnosticsOnly=fals
         try{const native=await runNativeJob({action:'diagnose',document:clone(doc),issues:results,indices,tolerance});if(generation!==diagnosticGeneration)return;results.splice(0,results.length,...native.issues);complete=complete&&native.complete;record('native-diagnostic-refinement',{complete:native.complete,unresolved:native.unresolved,nativeLocations:native.nativeLocations});}catch(error){complete=false;nativeFailure=true;const witnessed=results.filter(i=>i.kind!=='coincident'&&i.kind!=='short');results.splice(0,results.length,...witnessed);record('native-diagnostic-error',{error:error.message});}
         if(generation!==diagnosticGeneration)return;
         diagnosticComplete=complete;
-        manualReviewPending=false;
+        manualReviewPending=false;manualClearancePaused=false;
         markersVisible=true;
         issues=curveEditing()?resolveManualIssues(issues,results,{
           failed:failedBatches>0||nativeFailure||unreadable.length>0||plan.skipped.length>0

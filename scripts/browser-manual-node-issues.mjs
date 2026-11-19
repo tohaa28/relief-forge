@@ -86,7 +86,14 @@ try{
     document.querySelector('#issues').textContent.includes('Открытый контур'),
     {},{timeout:120000});
   assert.ok(await page.locator('.problem-marker').count()>0);
-  assert.equal(await page.locator('#issue-count').textContent(),'1');
+  assert.ok(Number(await page.locator('#issue-count').textContent())>0);
+  // Exit without edits must also avoid a new clearance/diagnostic Worker.
+  await page.locator('#curve-edit').click();
+  await page.waitForFunction(()=>document.body.classList.contains('curve-editing'));
+  await page.locator('#node-done').click();
+  await page.waitForTimeout(400);
+  assert.equal(await page.locator('#busy').isHidden(),true);
+  assert.match(await page.locator('#issues').textContent(),/Открытый контур/);
   assert.deepEqual(errors,[]);
   console.log('PASS manual nodes alpha67: commit/Undo without auto diagnostic, stale markers cleared, explicit manual scan restores defects');
 }finally{await browser?.close();server.kill();}

@@ -16,7 +16,7 @@ test('stale scan results cannot be displayed as zero problems or markers',()=>{
  assert.match(app,/manualReviewPending\?'—':visibleIssues\.length/);
  assert.match(app,/manualReviewPending\)\$\('summary'\)\.textContent=/);
  assert.match(app,/issues=\[\];metrics=\[\];diagnosticComplete=false;manualDiagnosticsPending=false/);
- assert.match(app,/if\(manualReviewPending\)\{[\s\S]*?layer\.replaceChildren\(\)/);
+ assert.match(app,/if\(manualReviewPending\|\|manualClearancePaused\)\{[\s\S]*?layer\.replaceChildren\(\)/);
  assert.match(app,/changed\('undo',\{skipDiagnostics:manualReviewPending\}\)/);
  assert.match(app,/changed\('redo',\{skipDiagnostics:manualReviewPending\}\)/);
 });
@@ -26,4 +26,11 @@ test('user-initiated defect scan only diagnoses, does not start automatic optimi
  assert.match(app,/calculate\(0,\{diagnosticsOnly:true\}\)/);
  assert.match(app,/if\(diagnosticsOnly\)\{[\s\S]*?record\('user-requested-diagnostics'/);
  assert.match(app,/manualReviewPending=false;\n        markersVisible=true/);
+});
+
+test('unchanged exit pauses clearance Worker without mislabeling existing valid defect witnesses',()=>{
+ assert.match(app,/manualClearancePaused=true;\n  clearTimeout\(settingsTimeout\)/);
+ assert.match(app,/\}else render\(\);\n  status\(updated\.size/);
+ assert.match(app,/manualReviewPending=skipDiagnostics;\n  manualClearancePaused=skipDiagnostics;/);
+ assert.match(app,/manualReviewPending=false;manualClearancePaused=false;/);
 });
