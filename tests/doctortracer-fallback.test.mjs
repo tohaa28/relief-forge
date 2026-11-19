@@ -89,7 +89,8 @@ test('worker handshake uses native DoctorTracer hard-edge Rust WASM request with
     {pageUrl:'https://tohaa28.github.io/relief-forge/',workerFactory:factory,
       progress:(pct,stage)=>seen.push([pct,stage])});
   assert.match(createdUrl,/DoctorTracer\/worker\.js\?v=0\.21\.1$/);
-  assert.equal(sent.category,'hard');assert.equal(sent.colors,2);
+  assert.equal(sent.category,'hard');assert.equal(sent.colors,1);
+  assert.deepEqual(sent.palette,[[0,0,0]]);
   assert.equal(sent.detail,2);assert.equal(sent.gpu,false);
   assert.equal(out.paths,1);assert.equal(terminated,true);
   assert.deepEqual(seen,[[55,'Построение кривых']]);
@@ -326,4 +327,44 @@ test('alpha62: production integration normalizes BOTH initial and retry rasters 
  assert.match(source,/alpha:true,willReadFrequently:true/);
  assert.match(app,/firstRaster:raster,signal:abort\.signal/);
  assert.match(source,/await rasterize\(source,current,\{signal\}\)/);
+});
+
+
+test('alpha63: each retry uses one explicit ink while transparency stays an independent mask',async()=>{
+ const plan={x:0,y:0,widthMm:48,heightMm:20,width:1000,height:400,dpi:300};
+ const input=doc(),requested=[],traces=[];
+ await traceDocumentWithNodeBudget(input,plan,{
+  firstRaster:{width:1000,height:400},
+  rasterize:async(_s,p)=>({width:p.width,height:p.height}),
+  trace:async r=>{requested.push([r.width,r.height]);return{
+    svg:'<svg/>',paths:2,paletteCount:1,backend:'Rust WASM'};},
+  remap:(_source,_svg,p)=>{
+    if(p.width===1000)throw Error('SVG: превышен лимит 200000 узлов');
+    return {paths:[]};
+  },
+  onTraced:trace=>traces.push(trace)
+ });
+ assert.deepEqual(requested,[[1000,400],[700,280]]);
+ assert.equal(traces.length,2);
+ assert.deepEqual(traces.map(x=>x.paletteCount),[1,1]);
+ assert.deepEqual(traces.map(x=>x.attempt),[1,2]);
+});
+
+test('alpha63: DoctorTracer hard-edge palette fixes black as the sole ink and never treats transparency as an ink',async()=>{
+ const sent=[];
+ const mockWorker=()=>({postMessage(data){
+   sent.push({category:data.category,colors:data.colors,palette:data.palette,
+    w:data.width,h:data.height,rgba:Array.from(new Uint8Array(data.pixels))});
+   queueMicrotask(()=>this.onmessage({data:{svg:'<svg><path d="M0 0L1 1Z"/></svg>',
+     paths:1,metrics:{palette:[[0,0,0]]},backend:'Rust WASM'}}));
+ },terminate(){}});
+ const out=await traceWithDoctorTracer({
+   width:3,height:1,pixels:Uint8Array.from([
+      250,180,90,0, 220,100,80,96, 100,90,80,255])
+ },{pageUrl:'https://tohaa28.github.io/relief-forge/',workerFactory:mockWorker});
+ assert.equal(sent[0].colors,1);
+ assert.deepEqual(sent[0].palette,[[0,0,0]]);
+ assert.deepEqual(sent[0].rgba,[0,0,0,0,0,0,0,96,0,0,0,255]);
+ assert.equal(out.paletteCount,1);
+ assert.equal(out.paths,1);
 });
