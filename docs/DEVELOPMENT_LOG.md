@@ -830,3 +830,16 @@ Next: if user still sees discrepancy, obtain same file/marked location and ArtCA
 
 - Попытка без проверки пересечений отклонена; исходный X-крест нельзя лечить произвольным малым смещением.
 - Новые тесты и алгоритм закреплены в PR #88; внешний CI и браузерная приёмка ещё не подтверждены.
+
+## Alpha.57 — исходники объединены с main, проверки кода пройдены (2026-11-19)
+- **PR #88:** https://github.com/tohaa28/relief-forge/pull/88 — merged 2026-11-19, commit `9d211f05f22ec4bc696c5dc21f7c3a4f750d445f`. Проверенная голова функциональной ветки `59ea17f4afd5aa18a04a4a8659147f26e53b4772`.
+- **PR CI успешно:** https://github.com/tohaa28/relief-forge/actions/runs/44468034227 (325/325 JavaScript, 17/17 Rust, `cargo build --locked --release --target wasm32-unknown-unknown`, `node scripts/check-wasm.mjs`, сборка web-artifact). Это **не** независимый browser smoke или пользовательский тест на `gerb2.pdf`.
+- **Main workflow:** https://github.com/tohaa28/relief-forge/actions/runs/44468487398 — запуск после merge; факт deploy необходимо проверить отдельно, не путать успешный PR build с публикацией сайта.
+- **Неудачные CI:** https://github.com/tohaa28/relief-forge/actions/runs/44467633646 и https://github.com/tohaa28/relief-forge/actions/runs/44467807182 — устаревшие URL cache keys `alpha.56`, проверка версии в NEXT_CHAT_START и устаревшая текстовая проверка `const after=filtered.document` после добавленного этапа. Исправлено изменением всех 32 versioned imports, docs и явной проверкой нового after snapshot. Последующие jobs 44467960468 и 44467999889 отменены автоматическим concurrency из-за новых push, это не геометрические сбои.
+- **Поведение:** отдельная настройка справа `Разводить наложенные несоседние узлы`, применяется после нажатия «Применить изменения». При точном совпадении несоседних опорных узлов смещается один с локальными управляющими ручками C/Q, выбирается минимальный допустимый перенос, новые пересечения veto; исходные C/Q и SVG paint остаются. Ручной editor alpha.56 не менялся.
+- **Приёмка:** зелёный unit/Rust/WASM CI; прямой браузерный smoke новой сборки **не выполнялся**; `gerb2.pdf` в публичный репозиторий не выгружался и на новой версии не тестировался. Неразрешимые X-crossing и плотные/неоднозначные места пропускаются без изменения.
+- **Восстановление:** исходный rollback alpha.56 `252e57e39d9ec499750db384447332744062028f`. Подробности: [ALPHA57_COINCIDENT_NODES.md](history/ALPHA57_COINCIDENT_NODES.md).
+
+- **Observed failure:** initial CI 44467633646 and 44467807182 failed 3 JS structure/version tests, not due to exposed regression in six native-geometry fixtures. Previous conditional version replacement affected only app.js; 32 imported JS URLs were still stale. All were synchronized and brittle expectation for AFTER was updated. GitHub Actions 44468034227 fully green; no false green claimed for old attempts.
+- **Observed merge:** PR #88 merged main commit 9d211f05f22ec4bc696c5dc21f7c3a4f750d445f.
+- **Limit:** actual public Pages deployment and browser acceptance remain separate from GitHub Actions PR build.
