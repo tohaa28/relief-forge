@@ -18,7 +18,8 @@ import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry
 import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.64';
 import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.64';
 import {separateCoincidentNonadjacentNodes} from './coincident-node-separation.js?v=0.2.0-alpha.64';
-import {needsDoctorTracer,rasterPlan,rasterizeDocument,traceDocumentWithNodeBudget,maskSimilarity,acceptRetracing} from './doctortracer-fallback.js?v=0.2.0-alpha.64';
+import {needsDoctorTracer,rasterPlan,rasterizeDocument,rasterizeDocumentAlpha,traceDocumentWithNodeBudget,maskSimilarity,acceptRetracing} from './doctortracer-fallback.js?v=0.2.0-alpha.65';
+import {createDoctorTracerMaskCache,preparedRasterPlan,boundedWorkerRasterPlan,workerRasterFromPreparedMask,PREPARED_RASTER_DPI} from './doctortracer-prepared.js?v=0.2.0-alpha.65';
 import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode,finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.64';
 import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.64';
 import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.64';
@@ -124,6 +125,9 @@ function finalizePendingSettingsApply(preview){
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',near_node:'Сближенные узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
 let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null,manualDiagnosticsPending=false;
 let doctorTracerAbort=null;
+// Temporary, RAM-only preimport raster. Never store it in doc, history or
+// exported EPS, and never share its transferable buffer with the Worker.
+const doctorMaskCache=createDoctorTracerMaskCache();
 let manualFocus=null,manualLocalTimer=null,manualLocalGeneration=0;
 
 let localEditors=new Map(),localEditUndo=[],localEditRedo=[],localEditCount=0;
@@ -484,6 +488,9 @@ function beginFileHistory(filename){
   return activeHistoryId;
 }
 function changed(action){
+  // A cached 600dpi silhouette is valid ONLY for the exact imported geometry.
+  // Any committed edit invalidates it before another preview can reference it.
+  if(!action.startsWith('import-'))doctorMaskCache.invalidate();
   suppressNextDiagnostic=false;comparisonSelectionExplicit=false;
   if(importedBefore&&!action.startsWith('import-'))importedBefore.pending=false;
   if(!action.startsWith('curve-node')&&action!=='move-nodes')activeCurveNode=null;
@@ -904,7 +911,8 @@ async function buildUnifiedPreview(){
         '\nПри этих допусках форма не изменена.');
     $('optimization-result').textContent=msg;
     const initial=importedComparison(importedBefore,after);
-    const pv={source:clone(doc),result:after,stats:st,hasGeometryChange:different,
+    const pv={source:clone(doc),doctorMaskToken:doctorMaskCache.generation,
+      result:after,stats:st,hasGeometryChange:different,
       beforeDiagnosticComplete:initial?.beforeDiagnosticComplete??diagnosticComplete,
       afterDiagnosed:false,comparisonData:initial||{
         beforeDoc:clone(doc),afterDoc:after,beforeIssues:clone(issues),afterIssues:[]
@@ -1183,7 +1191,8 @@ async function buildLargeUnifiedPreview(indices){
       p.commands?.filter(c=>['M','L','C','Q'].includes(c[0])).length??p.points.length),0);
     stats.actualNodesBefore=countReal(doc);stats.actualNodesAfter=countReal(after);
     const different=JSON.stringify(doc.paths.map(worldData))!==JSON.stringify(after.paths.map(worldData));
-    const pv={source,result:after,stats,hasGeometryChange:different,beforeDiagnosticComplete:false,
+    const pv={source,doctorMaskToken:doctorMaskCache.generation,
+      result:after,stats,hasGeometryChange:different,beforeDiagnosticComplete:false,
       afterDiagnosed:false,afterDiagnosticComplete:false,afterScope:'unknown',
       comparisonData:importedComparison(importedBefore,after)||{
         beforeDoc:clone(source),afterDoc:after,beforeIssues:clone(issues),afterIssues:[]
