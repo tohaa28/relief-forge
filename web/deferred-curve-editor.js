@@ -10,6 +10,12 @@ const lerp=(a,b,t)=>a.map((n,i)=>n+(b[i]-n)*t);
 const finite=p=>Array.isArray(p)&&p.length===2&&p.every(n=>Number.isFinite(n)&&Math.abs(n)<1e9);
 const cp=c=>c.slice();
 const same=(a,b)=>a[0]===b[0]&&a[1]===b[1];
+// Adding a drag displacement and its inverse changes the last floating
+// bits. Ignore sub-nanometre roundoff in display/dirty comparisons; the
+// stored native command numbers are never rounded or quantized here.
+const equivalentCommands=(a,b)=>Boolean(a&&b&&a[0]===b[0]&&a.length===b.length&&
+  a.slice(1).every((v,i)=>Math.abs(v-b[i+1])<=
+    Math.max(1e-10,16*Number.EPSILON*Math.max(Math.abs(v),Math.abs(b[i+1])))));
 function indexCommands(commands){
   const parts=[],byIndex=new Map();let part=null;
   for(let index=0;index<commands.length;index++){
@@ -246,7 +252,7 @@ export function createDeferredCurveEditor(path){
         if(start&&end&&!same(start,end)&&(!priorZ||changedStart||changedEnd))
           paths.push({key:'z'+i,d:'M'+end.join(' ')+'L'+start.join(' ')});
       }
-      if(JSON.stringify(commands[i])===JSON.stringify(initialCommands[i]))continue;
+      if(equivalentCommands(commands[i],initialCommands[i]))continue;
       const c=segment(i);
       if(c)paths.push({key:i,d:svgSegment(c.controls)});
     }
@@ -468,7 +474,14 @@ export function createDeferredCurveEditor(path){
   }
 
   function nodeList(){return nodes;}
-  function modified(){return dirty;}
+  function modified(){
+    if(!dirty)return false;
+    if(commands.length!==initialCommands.length)return true;
+    if(JSON.stringify(kinds)!==JSON.stringify(path.nodeKinds||{}))return true;
+    // Full comparison is allowed ONLY on explicit session exit. It saves
+    // unnecessary global serialization if all local edits cancel each other.
+    return commands.some((cmd,i)=>!equivalentCommands(cmd,initialCommands[i]));
+  }
   function undoLocal(){
     const op=undo.pop();if(!op)return false;
     if(op.structure){
