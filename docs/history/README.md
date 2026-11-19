@@ -18,3 +18,5 @@
 
 **Документационный checkpoint:** [PR #40](https://github.com/tohaa28/relief-forge/pull/40) merged, merge SHA \`f1f8a71b0f8b2d3f3575c496c2d0a4d0093548b0\`; [PR CI](https://github.com/tohaa28/relief-forge/actions/runs/39951134402): 176/176 JS + 15 Rust + WASM PASS; [main Pages CI](https://github.com/tohaa28/relief-forge/actions/runs/39951445491): build/deploy SUCCESS. Функциональная версия не менялась (alpha.33). Сверяйте более новые workflows перед новым релизом.
 
+
+- [ALPHA66_OPTIN_MANUAL_ZOOM.md](ALPHA66_OPTIN_MANUAL_ZOOM.md) — optional DoctorTracer и bounded manual zoom одного тяжёлого контура, тесты, база отката.
