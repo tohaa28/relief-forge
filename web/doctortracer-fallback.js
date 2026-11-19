@@ -53,7 +53,7 @@ export function vectorRasterSvg(document,plan){
   for(const path of document.paths){
     const commands=geometryCommands(path);
     const d=commands.map(c=>c[0]+c.slice(1).map(fmt).join(' ')).join(' ');
-    const fragments=d.split(/(?=M)/).filter(Boolean);
+    const fragments=d.split(/(?=M)/).map(f=>f.trim()).filter(Boolean);
     // Retrace the geometry, not source paint, which for CNC EPS may be invisible.
     // Closed paths become black silhouettes; open curves use a one-pixel stroke.
     // All closed subpaths of ONE compound shape must be painted together:
