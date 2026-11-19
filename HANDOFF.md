@@ -1015,3 +1015,14 @@ Added a2-million native segment-comparison budget per compound path; if full int
 - Previous published rollback alpha63: 2b13e06b54331d20311308d36f152036394128a7.
 - User's private source EPS bytes not available. Do not claim improvement in actual IoU or solved tracer geometry until fresh journal. If segmentation IoU is already low, investigate DoctorTracer hard mode; if segmentation good but final low, inspect SVG, compound holes and raster remapping. Retain fail-closed 200k cap/IoU>=95%/native+Rust full validation/Undo.
 
+
+## Alpha65 — 600 DPI cached at import BEFORE vector work (candidate, 2026-11-19)
+- Requirement: import EPS/PDF/SVG/JSON, paint black on transparent at target 600dpi and keep an in-memory temporary silhouette before diagnostics / auto-repair. If >10 residual errors after native check and whole-document scope, pass cached raster to DoctorTracer 0.21.1.
+- Implemented in `web/doctortracer-prepared.js` and `web/doctortracer-fallback.js`: 600dpi Canvas2D -> read only alpha strips and keep Uint8Array (1 byte/pixel), 36MP / maxSide9000 cap. Transparent background is alpha=0, black objects are alpha=1..255; original EPS colors and Bézier source untouched.
+- `web/app.js` changed import sequence: openValue -> prepareImportBlackMask (with progress, cancel, per-document generation) -> calculate(0). Worker gets materialized black RGBA from already computed high-res alpha, capped 12MP / maxSide5000; full original alpha remains for strict fidelity at prepared resolution.
+- After user edits, invalidate source mask and do not use it for new preview. Cache miss is explicit in journal, with safe on-demand rebuild from current changed vectors if necessary. Source is not persisted to Git, logs, disk, history or exports.
+- Actual effective resolution may be below 600 if limits exceed; record requestedDpi, effectiveDpi and workerDpi. Do not misrepresent.
+- Original guards: 200k SVG node cap, retries 100/70/45%, IoU>=0.95 / areaRatio 0.95..1.05, full Rust/native diagnosis with fewer issues, source and Undo preserved.
+- Baseline published alpha64 `65e27e8b6f59837c4128952417428e2c138b0f39`; feature `feature/alpha65-import-600dpi-raster-cache`; publication CI and GitHub Pages pending. This doesn't prove alpha64 failure IoU=.491 has been fixed on private user EPS.
+- Unit tests: `tests/doctortracer-prepared.test.mjs` and existing `doctortracer-fallback.test.mjs`. Full log: `docs/history/ALPHA65_IMPORT_600DPI_MASK.md`, F-065/M-065, `logs/actions.jsonl`.
+

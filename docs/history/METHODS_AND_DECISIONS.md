@@ -1,3 +1,13 @@
+## M-065. Import-time immutable alpha cache, 600 dpi → native vector diagnosis → DoctorTracer fallback (2026-11-19)
+- `web/doctortracer-prepared.js` устанавливает целевые 600 dpi, bounded 36 MP/9000 px raster cache, capped 12 MP/5000 px Worker. `createDoctorTracerMaskCache` имеет generation-token, invalidate(), prepare(), get(token) — только актуальная маска одного открытого документа.
+- `rasterizeDocumentAlpha` рисует black+transparent Canvas2D в прежней физической рамке `rasterPlan`, читает только alpha из полос RGBA (<=262144 px за раз), сохраняет Uint8Array(width*height), освобождает canvas. Толщина открытых линий в мм задаётся исходной шириной пикселя (alpha64 M-064).
+- `openValue` вызывает `prepareImportBlackMask` до `calculate(0)`; Cancel abort+invalidate, при ошибке вектор остаётся доступным и диагноз продолжает работу. Для импортированного растра skip, fallback fail closed.
+- `preview.doctorMaskToken` присваивается при обоих путях preview (обычный и large). В `retryUnfixableWithDoctorTracer` cache.get(token) возвращает оригинальный 600dpi alpha. Work input чёрный RGBA реконструируется из 600dpi alpha без повторного рендеринга EPS, при необходимости с area-weighted box filter (не бинаризовать края). Worker transfer получает отдельную копию и НЕ может detached буфер cache.
+- После трассировки сверять кандидат и исходный alpha на полном подготовленном разрешении, `maskSimilarity` принимает alpha8 и RGBA8; revalidate fullScope Rust+native, residual issue count строго меньше, mask IoU >=0.95, areaRatio в 0.95..1.05. Никаких обходов.
+- Исключение: после правок токен кэша инвалидируется, поэтому нельзя использовать маску прежней геометрии; если реконструкция всё же понадобилась, fallback явно повторно готовит 600dpi alpha, пишет cache-miss event.
+- Нельзя держать 4-byte RGBA как долгоживущий кэш для 36MP (144 MB). Не хранить PDF/EPS/raster в action журнале, только metadata. Оригинальные цвета и Undo untouched; больше запросов о manual zoom не влияет на эту цепочку.
+- Публикацию производить через PR и зелёную CI; обновлять точки отката.
+
 ### Alpha64 — verified published checkpoint 2026-11-19
 - Alpha63 user EPS JSONL 38 events: one-ink did not solve IoU=.491 / areaRatio=1.797. Alpha64 fixes physical-stroke growth on 45% retry and resamples the immutable original black alpha mask. Independent Worker segmentation mask IoU/area metrics now logged.
 - CI first run 44557050466 FAILED 356/357 JS due /длину/ vs /неверная длина/ test assertion. Corrected d2c65c88. Superseded run 44557267989 CANCELLED. Final PR CI https://github.com/tohaa28/relief-forge/actions/runs/44557430633 SUCCESS: 357/357 JS, 17/17 Rust, WASM, browser smoke.
