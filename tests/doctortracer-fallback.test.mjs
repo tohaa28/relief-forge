@@ -431,7 +431,7 @@ test('alpha64: worker segmentation alpha audit identifies background pollution b
  assert.equal(report.areaRatio,1);
  assert.equal(report.sourcePixels,2);
  assert.equal(report.segmentedPixels,2);
- assert.throws(()=>compareSegmentedAlpha(mask,new Uint8Array(12)),/длину/);
+ assert.throws(()=>compareSegmentedAlpha(mask,new Uint8Array(12)),/неверная длина/);
  const worker=()=>({postMessage(data){
   assert.equal(data.colors,1);
   queueMicrotask(()=>this.onmessage({data:{
