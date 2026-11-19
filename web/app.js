@@ -18,6 +18,7 @@ import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry
 import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.57';
 import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.57';
 import {separateCoincidentNonadjacentNodes} from './coincident-node-separation.js?v=0.2.0-alpha.57';
+import {needsDoctorTracer,rasterPlan,rasterizeDocument,traceWithDoctorTracer,remapDoctorTracerSvg,maskSimilarity,acceptRetracing} from './doctortracer-fallback.js?v=0.2.0-alpha.57';
 import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode,finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.57';
 import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.57';
 import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.57';
@@ -122,6 +123,7 @@ function finalizePendingSettingsApply(preview){
 
 const names={open:'Открытый контур',coincident:'Совпадающие узлы',near_node:'Сближенные узлы',short:'Короткий отрезок',duplicate:'Дубликат',overlap:'Наложение отрезков',self_intersection:'Самопересечение',intersection:'Пересечение объектов'};
 let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedComparison=null,compareStage='before',displayedIssues=[],curvePreview=null,settingsTimeout=null,manualDiagnosticsPending=false;
+let doctorTracerAbort=null;
 let manualFocus=null,manualLocalTimer=null,manualLocalGeneration=0;
 
 let localEditors=new Map(),localEditUndo=[],localEditRedo=[],localEditCount=0;
@@ -1093,6 +1095,84 @@ async function buildLargeUnifiedPreview(indices){
   }
 }
 
+async function retryUnfixableWithDoctorTracer(preview,report,callRust,generation){
+  const source=preview.source;
+  const vectors=source.paths.filter(p=>p.kind!=='image').length;
+  const scopeComplete=preview.stats.scope?.length===vectors;
+  if(!needsDoctorTracer(report,{scopeComplete,alreadyAttempted:preview.doctorTracerAttempted}))
+    return report;
+  preview.doctorTracerAttempted=true;
+  const originalCount=report.issues.length;
+  const cancelled=()=>generation!==afterDiagnosticGeneration||preview!==curvePreview;
+  const abort=new AbortController();
+  doctorTracerAbort=abort;
+  const label=$('doctortracer-status');
+  label.textContent='DoctorTracer: '+originalCount+' ошибок не устранено; строим новый вектор из растра…';
+  record('doctortracer-fallback-start',{remaining:originalCount,source:source.sourceFileName||null});
+  try{
+    progressStage('DoctorTracer: растрирование импортированного вектора',10);
+    const plan=rasterPlan(source);
+    const raster=await rasterizeDocument(source,plan);
+    if(cancelled())return report;
+    // Worker transfers its RGBA ArrayBuffer; retain a separate pixel mask
+    // for independent silhouette fidelity verification.
+    const originalMask={width:raster.width,height:raster.height,pixels:new Uint8Array(raster.pixels)};
+    progressStage('DoctorTracer: трассировка Rust WASM',30);
+    const traced=await traceWithDoctorTracer(raster,{
+      signal:abort.signal,
+      progress:(pct,stage)=>progressStage('DoctorTracer: '+(stage||'трассировка'),
+        Math.min(70,30+Math.round(pct*.4)),Math.round(pct)+'%')});
+    if(cancelled())return report;
+    const candidate=remapDoctorTracerSvg(source,traced.svg,plan);
+    progressStage('DoctorTracer: сверка растрового силуэта',72);
+    const candidateRaster=await rasterizeDocument(candidate,plan);
+    const similarity=maskSimilarity(originalMask,candidateRaster);
+    if(similarity.iou<.95||similarity.areaRatio<.95||similarity.areaRatio>1.05)
+      throw Error('новая геометрия заметно отличается от исходного растра (IoU '+
+        similarity.iou.toFixed(3)+', площадь '+similarity.areaRatio.toFixed(3)+')');
+    if(cancelled())return report;
+    progressStage('DoctorTracer: повторная диагностика вектора',78);
+    const checked=await diagnoseAfterDocument(candidate,settingNumber('tolerance'),{
+      runBatch:callRust,progress:progressStage,yieldUi:yieldForUi,cancelled
+    });
+    if(!checked||cancelled())return report;
+    const native=await runNativeJob({action:'diagnose',document:candidate,
+      issues:checked.issues,tolerance:settingNumber('tolerance')});
+    if(cancelled())return report;
+    checked.issues=native.issues;
+    checked.complete=checked.complete&&native.complete;
+    checked.nativeUnresolved=native.unresolved;
+    if(!acceptRetracing(originalCount,checked,similarity))
+      throw Error('после трассировки осталось '+checked.issues.length+
+        ' ошибок; безопасность/улучшение не подтверждены');
+    preview.result=candidate;
+    preview.hasGeometryChange=true;
+    preview.stats.doctorTracer={triggered:true,accepted:true,before:originalCount,
+      after:checked.issues.length,backend:traced.backend,similarity,plan};
+    preview.stats.actualNodesAfter=candidate.paths.reduce((sum,p)=>sum+p.commands?.filter(
+      c=>['M','L','C','Q'].includes(c[0])).length??p.points?.length??0,0);
+    preview.comparisonData.afterDoc=candidate;
+    $('optimization-result').textContent+='\nDoctorTracer: из '+originalCount+
+      ' оставшихся ошибок получено '+checked.issues.length+
+      '; вектор пересоздан из растра ('+plan.width+'×'+plan.height+
+      ' px, IoU '+similarity.iou.toFixed(4)+'). Исходные кривые сохранены в ДО / Undo.';
+    label.textContent='DoctorTracer: новый вектор принят · ошибок '+originalCount+
+      ' → '+checked.issues.length+' · совпадение силуэта '+(100*similarity.iou).toFixed(2)+'%.';
+    record('doctortracer-fallback-accepted',preview.stats.doctorTracer);
+    return checked;
+  }catch(error){
+    if(!cancelled()){
+      preview.stats.doctorTracer={triggered:true,accepted:false,before:originalCount,
+        reason:String(error.message)};
+      label.textContent='DoctorTracer: исходный вектор сохранён · '+error.message;
+      record('doctortracer-fallback-rejected',preview.stats.doctorTracer);
+    }
+    return report;
+  }finally{
+    if(doctorTracerAbort===abort)doctorTracerAbort=null;
+  }
+}
+
 // After calculation belongs to the immutable optimized result and is reused
 // by Save EPS; exporting must not trigger a second diagnostic pass.
 async function checkPreviewAfter(preview){
@@ -1107,7 +1187,7 @@ async function checkPreviewAfter(preview){
     worker.postMessage({id,input});
   });
   try{
-    const report=await diagnoseAfterDocument(preview.result,
+    let report=await diagnoseAfterDocument(preview.result,
       settingNumber('tolerance'),{
         runBatch:callRust,progress:progressStage,yieldUi:yieldForUi,
         cancelled:()=>generation!==afterDiagnosticGeneration||preview!==curvePreview
@@ -1116,6 +1196,8 @@ async function checkPreviewAfter(preview){
     const native=await runNativeJob({action:'diagnose',document:preview.result,issues:report.issues,tolerance:settingNumber('tolerance')});
     if(generation!==afterDiagnosticGeneration||preview!==curvePreview)return;
     report.issues=native.issues;report.complete=report.complete&&native.complete;report.nativeUnresolved=native.unresolved;
+    report=await retryUnfixableWithDoctorTracer(preview,report,callRust,generation);
+    if(generation!==afterDiagnosticGeneration||preview!==curvePreview)return;
     preview.comparisonData.afterIssues=report.issues;
     preview.comparisonData.afterDiagnosticComplete=report.complete;
     preview.comparisonData.afterScope=report.fullScope?'full':'partial';
@@ -1587,7 +1669,7 @@ $('toggle-markers').onclick=()=>{
   $('markers').hidden=!markersVisible;render();
 };
 document.querySelectorAll('[data-action]').forEach(e=>e.onclick=()=>{calculate(Number(e.dataset.action));});
-$('cancel').onclick=()=>{pendingSettingsApply=false;clearTimeout(manualLocalTimer);++manualLocalGeneration;cancelNativeJobs();++diagnosticGeneration;++readGeneration;++previewGeneration;++afterDiagnosticGeneration;if(previewActive){previewActive=false;lock(false);status('Оптимизация отменена, оригинальные кривые сохранены.');return;}if(readActive){readActive=false;openingFile=false;updateMascot();lock(false);status('Чтение файла отменено.');return;}if(epsImportActive){stopEps({destroy:true});openingFile=false;updateMascot();lock(false);record('vector-import-cancel');status('Импорт отменён. Предыдущий документ сохранён.');return;}worker.terminate();pending=null;ready=false;suppressNextDiagnostic=true;lock(false);record('engine-cancel');status('Расчёт отменён, документ сохранён.');spawnWorker();};
+$('cancel').onclick=()=>{doctorTracerAbort?.abort();doctorTracerAbort=null;pendingSettingsApply=false;clearTimeout(manualLocalTimer);++manualLocalGeneration;cancelNativeJobs();++diagnosticGeneration;++readGeneration;++previewGeneration;++afterDiagnosticGeneration;if(previewActive){previewActive=false;lock(false);status('Оптимизация отменена, оригинальные кривые сохранены.');return;}if(readActive){readActive=false;openingFile=false;updateMascot();lock(false);status('Чтение файла отменено.');return;}if(epsImportActive){stopEps({destroy:true});openingFile=false;updateMascot();lock(false);record('vector-import-cancel');status('Импорт отменён. Предыдущий документ сохранён.');return;}worker.terminate();pending=null;ready=false;suppressNextDiagnostic=true;lock(false);record('engine-cancel');status('Расчёт отменён, документ сохранён.');spawnWorker();};
 $('undo').onclick=()=>{
   if(busy)return;
   if(curveEditing()&&localEditUndo.length){
