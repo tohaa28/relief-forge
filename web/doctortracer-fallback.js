@@ -1,9 +1,10 @@
 import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.58';
 import {importRichSvg} from './rich-svg.js?v=0.2.0-alpha.58';
 
-// The linked DoctorTracer 0.16.0 WASM site owns its Worker and its GPL
+// The linked DoctorTracer 0.21.1 WASM gh-pages site owns its Worker and its GPL
 // dependencies. Nothing from that distribution is copied or relicensed here.
 export const DOCTORTRACER_URL='https://tohaa28.github.io/DoctorTracer/';
+export const DOCTORTRACER_VERSION='0.21.1';
 export const DOCTORTRACER_THRESHOLD=10;
 export const DOCTORTRACER_WORKER_PATH='/DoctorTracer/worker.js';
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
@@ -11,8 +12,11 @@ const finite=n=>Number.isFinite(n)&&Math.abs(n)<=1e9;
 const point=c=>c.slice(-2);
 const fmt=x=>Number(x.toPrecision(13)).toString();
 export function needsDoctorTracer(report,{threshold=DOCTORTRACER_THRESHOLD,scopeComplete=true,alreadyAttempted=false}={}){
-  return report?.complete===true&&report?.fullScope===true&&scopeComplete&&!alreadyAttempted&&
-    Array.isArray(report.issues)&&report.issues.length>threshold;
+  // A partially scanned huge EPS still has a *confirmed lower bound*.
+  // Do not suppress fallback just because other batches remain unchecked.
+  // Candidate acceptance is separately guarded by complete/full-scope diagnosis.
+  return scopeComplete&&!alreadyAttempted&&Array.isArray(report?.issues)&&
+    report.issues.length>threshold;
 }
 export function rasterPlan(document,{dpi=300,maxSide=2400,maxPixels=8000000,paddingMm=.5}={}){
   if(!document?.paths?.length||document.paths.some(p=>p.kind==='image'))
@@ -89,7 +93,9 @@ export function doctorTracerWorkerUrl(pageUrl){
   const page=new URL(pageUrl);
   if(page.protocol!=='https:'||page.hostname!=='tohaa28.github.io')
     throw Error('DoctorTracer Worker доступен только на общем origin GitHub Pages. '+DOCTORTRACER_URL);
-  return new URL(DOCTORTRACER_WORKER_PATH,page.origin).href;
+  const worker=new URL(DOCTORTRACER_WORKER_PATH,page.origin);
+  worker.searchParams.set('v',DOCTORTRACER_VERSION); // avoid stale 0.16.0 Worker cache
+  return worker.href;
 }
 export function traceWithDoctorTracer(raster,{pageUrl=globalThis.location?.href,
   workerFactory=(url,options)=>new Worker(url,options),signal,timeoutMs=120000,progress=()=>{}}={}){
@@ -147,7 +153,7 @@ export function remapDoctorTracerSvg(source,svg,plan,{Parser=globalThis.DOMParse
   delete result.epsImport;delete result.pdfImport;delete result.sourceSvg;
   result.paths=paths;
   result.svgDefs=traced.svgDefs;
-  result.doctorTracer={engine:'DoctorTracer Web 0.16.0',source:'raster-of-imported-vector',
+  result.doctorTracer={engine:'DoctorTracer Web '+DOCTORTRACER_VERSION,source:'raster-of-imported-vector',
     pixels:[plan.width,plan.height],bboxMm:[plan.x,plan.y,plan.widthMm,plan.heightMm],
     effectiveDpi:plan.dpi,approximation:true};
   return result;
