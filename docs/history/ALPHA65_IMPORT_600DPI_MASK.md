@@ -36,3 +36,16 @@
 - Failure 5: history-integrity required exact `0.2.0-alpha.65` in HANDOFF.md; this is now explicit (ce68a41d4eb5657fda9a53a1e8850c089b81e057).
 - The CI failure is recorded; do NOT claim candidate published or green. New complete CI required after this synchronization.
 
+
+## 0.2.0-alpha.65 — ОПУБЛИКОВАНА 2026-11-19
+- При открытии EPS/PDF/SVG/JSON программа сначала строит black+transparent alpha raster при **целевых 600 dpi**, временно хранит alpha8 только в RAM и запускает `calculate(0)` (векторную проверку) ПОСЛЕ завершения подготовки.
+- При >10 подтверждённых остаточных проблемах после автоисправления и полном scope DoctorTracer 0.21.1 получает black RGBA8, восстановленный из заранее сохранённой маски (без повторного растеризования импортированных исходных кривых). На высоком разрешении сравнивается candidate; исходник/Undo сохраняются до принятия по 200k node cap, IoU>=.95, площади .95..1.05, complete Rust+native и уменьшению ошибок.
+- Cache: 1 байт alpha/px, предел 36MP/9000 px, Worker <=12MP/5000 px; фактические preparedDpi/workerDpi и cacheHit логируются. Если 600dpi превышает лимит памяти, **не заявлять 600**: записывать фактический DPI. Смена файла, ручные изменения, Undo и отмена инвалидируют stale-cache.
+- PR #97 https://github.com/tohaa28/relief-forge/pull/97 merged main: `a9cbec14c5832eb5150fb6e32bfab0f8a54dc146`.
+- Final PR CI https://github.com/tohaa28/relief-forge/actions/runs/44588775856 SUCCESS: **367/367 JavaScript, 17/17 Rust, WASM build/ABI, browser EPS/AFTER/Apply/Undo smoke tests**.
+- Main GitHub Pages https://github.com/tohaa28/relief-forge/actions/runs/44589267391 SUCCESS: build+deploy. Public URL: https://tohaa28.github.io/relief-forge/?v=alpha65
+- Baseline / rollback: previously published alpha64 main `65e27e8b6f59837c4128952417428e2c138b0f39`. Do not delete rollback.
+- Interim PR CI 44588150682 FAILED 362/367 JS: legacy static/VM tests and exact HANDOFF version; subsequent 44588335827 FAILED before all fixes; 44588593552 and 44588631954 superseded/cancelled by newer commits. All failures and fixes recorded. Final run passed.
+- Source EPS `8101921_maket_7_121126_163426.eps` was NOT uploaded, only earlier JSONL; actual IoU on this input remains UNVERIFIED. Next cycle: open this EPS in alpha65 and confirm `doctortracer-mask-prepared` before `diagnostics`, `cacheHit:true`, preparedDpi, IoU and residual issues.
+- Details: docs/history/ALPHA65_IMPORT_600DPI_MASK.md; F-065/M-065; logs/actions.jsonl.
+

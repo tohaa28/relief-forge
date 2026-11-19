@@ -395,3 +395,14 @@ First edit script missed marker import token due to named import order and stopp
 - URL https://tohaa28.github.io/relief-forge/?v=alpha63 ; rollback alpha.62 `b461a5fd1df0d043e27f721c32c3f3a7c516e7cf`.
 - This is a targeted single-ink palette hypothesis based on alpha.62 session log and DoctorTracer transparency handling; actual private EPS result/IoU still UNVERIFIED. Never claim 0.491 fixed before a new run.
 
+
+### 0.2.0-alpha.65 — verified published checkpoint 2026-11-19
+- User requested 600dpi black image on transparent background computed and temporarily cached ON IMPORT, then native vector healing; DoctorTracer 0.21.1 only after >10 residual confirmed issues.
+- Implementation: temporary alpha-only mask (1B/pixel), 36MP/9000px ceiling, 600dpi when safe; reconstruction of black RGBA8 for Worker at <=12MP/5000px, using cached alpha with no EPS re-rasterization on fallback. Source and Undo unchanged; original-resolution IoU >=.95 + area .95..1.05 + full Rust/native diagnostic unchanged.
+- Merge PR #97 https://github.com/tohaa28/relief-forge/pull/97, commit `a9cbec14c5832eb5150fb6e32bfab0f8a54dc146`.
+- PR final CI https://github.com/tohaa28/relief-forge/actions/runs/44588775856 **SUCCESS 367/367 JS, 17/17 Rust, WASM and browser smoke**. GitHub Pages https://github.com/tohaa28/relief-forge/actions/runs/44589267391 **build+deploy success**.
+- Public: https://tohaa28.github.io/relief-forge/?v=alpha65 . Rollback previous published alpha64: `65e27e8b6f59837c4128952417428e2c138b0f39`.
+- Failed interim CI: 44588150682 (362/367 JS, 5 compatibility tests), 44588335827 (intermediate fixes incomplete); canceled 44588593552/44588631954 because commits superseded them. Kept in history.
+- Note: real original user EPS `8101921_maket_7_121126_163426.eps` is NOT uploaded. Do not claim IoU improvement on it; fresh test journal needed to check import-prepared 600dpi, cacheHit and accuracy.
+- Full entry: `docs/history/ALPHA65_IMPORT_600DPI_MASK.md`, F-065/M-065, `logs/actions.jsonl`.
+
