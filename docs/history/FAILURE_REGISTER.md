@@ -1,3 +1,9 @@
+## F-065. Прежняя поздняя подготовка растра нарушает требуемую последовательность (2026-11-19)
+- Alpha.64: `openValue` немедленно запускал `calculate(0)` и автообработку, а в `retryUnfixableWithDoctorTracer` временное изображение растеризовалось только ПОСЛЕ десятков секунд работы и при срабатывании fallback, с исходным растровым планом 300 dpi. Требование: 600dpi mask готова до диагностики вектора.
+- Переход к кешу single alpha позволяет хранить 600dpi в 4 раза компактнее RGBA, сохранять абсолютное покрытие каждого пикселя, исключить старую маску при переоткрытии или изменении документа.
+- Не заменять оригинальную геометрию на bitmap — она идёт в обычную vector-цепочку. Не заявлять точные 600dpi при превышении 36MP cap; логировать actual.
+- F-065/ M-065: preimport 600dpi canvas->alpha strips in memory, Worker black RGBA reconstructed only on fallback, fidelity gate against cached high-res alpha; old alpha64 code and original EPS remain rollback.
+
 ### Alpha64 — verified published checkpoint 2026-11-19
 - Alpha63 user EPS JSONL 38 events: one-ink did not solve IoU=.491 / areaRatio=1.797. Alpha64 fixes physical-stroke growth on 45% retry and resamples the immutable original black alpha mask. Independent Worker segmentation mask IoU/area metrics now logged.
 - CI first run 44557050466 FAILED 356/357 JS due /длину/ vs /неверная длина/ test assertion. Corrected d2c65c88. Superseded run 44557267989 CANCELLED. Final PR CI https://github.com/tohaa28/relief-forge/actions/runs/44557430633 SUCCESS: 357/357 JS, 17/17 Rust, WASM, browser smoke.
@@ -525,4 +531,13 @@ F-051 verified: PR78 and Pages run42985447239 green; live browser regression PAS
 - CI https://github.com/tohaa28/relief-forge/actions/runs/44546808673 SUCCESS 352 JS, 17 Rust, WASM/browser. GitHub Pages https://github.com/tohaa28/relief-forge/actions/runs/44547200595 build+deploy SUCCESS.
 - URL https://tohaa28.github.io/relief-forge/?v=alpha63 ; rollback alpha.62 `b461a5fd1df0d043e27f721c32c3f3a7c516e7cf`.
 - This is a targeted single-ink palette hypothesis based on alpha.62 session log and DoctorTracer transparency handling; actual private EPS result/IoU still UNVERIFIED. Never claim 0.491 fixed before a new run.
+
+
+## Alpha65 first CI failed, regression compatibility fixes (2026-11-19)
+- Workflow https://github.com/tohaa28/relief-forge/actions/runs/44588150682 FAILED at JS: 362/367 passed, 5 failed. Rust 17/17 passed before npm tests; WASM/browser stages not completed.
+- Failure 1: a legacy DoctorTracer test expected literal `rasterPlan(source)` in fallback, but import cache uses `preparedRasterPlan(source)`. Corrected test to expect the new cache contract `doctorMaskCache.get(preview.doctorMaskToken)` (e302bfcae68ea74d6f9266c323600c565dccc46d).
+- Failures 2,3: `real-boolean-union` and `union-node-cleanup` static tests relied on the original literal `const pv={source:clone(doc),result:after`. Restored original property order; cache token assigned after pv creation so geometry and APIs unchanged.
+- Failure 4: `unified-point-apply` VM harness extracts only preview functions and lacks global `doctorMaskCache`; direct access threw, silently nulled `curvePreview`. Now `pv.doctorMaskToken=typeof doctorMaskCache==='undefined'?null:doctorMaskCache.generation` and real application sees actual instance; mocked independent tests can work. Fix commit 31b48285f4a573d376041133e2be07cf4dcf9f3b.
+- Failure 5: history-integrity required exact `0.2.0-alpha.65` in HANDOFF.md; this is now explicit (ce68a41d4eb5657fda9a53a1e8850c089b81e057).
+- The CI failure is recorded; do NOT claim candidate published or green. New complete CI required after this synchronization.
 

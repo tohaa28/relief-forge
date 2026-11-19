@@ -206,7 +206,8 @@ test('AFTER integration takes source, rechecks candidate and keeps undo; does no
   const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
   const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
   assert.match(app,/retryUnfixableWithDoctorTracer\(preview,report,callRust,generation\)/);
-  assert.match(app,/rasterPlan\(source\)/);
+  assert.match(app,/preparedRasterPlan\(source\)/);
+  assert.match(app,/doctorMaskCache\.get\(preview\.doctorMaskToken\)/);
   assert.match(app,/traceDocumentWithNodeBudget\(source,plan,/);
   assert.match(app,/acceptRetracing\(originalCount,checked,similarity\)/);
   assert.match(app,/preview\.result=candidate/);
