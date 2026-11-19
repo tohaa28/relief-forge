@@ -141,8 +141,10 @@ function syncLocalPatches({path=null,segments=null,reset=false}={}){
   if(path===null)return;
   const editor=localEditors.get(path);
   if(!editor)return;
-  for(const piece of editor.affectedSVG(segments)){
+  const visible=editor.affectedSVG(segments),keep=new Set();
+  for(const piece of visible){
     const key=localPatchKey(path,piece.key);
+    keep.add(key);
     let node=localPatchElements.get(key);
     if(node)node.setAttribute('d',piece.d);
     else{
@@ -150,6 +152,14 @@ function syncLocalPatches({path=null,segments=null,reset=false}={}){
         'data-path':path,'data-local-segment':piece.key},layer);
       localPatchElements.set(key,node);
     }
+  }
+  // A move returning a segment to its original coordinates removes the
+  // now-unnecessary overlay without touching the underlying source figure.
+  for(const segment of segments||[]){
+    const key=localPatchKey(path,segment);
+    if(keep.has(key))continue;
+    const stale=localPatchElements.get(key);
+    if(stale){stale.remove();localPatchElements.delete(key);}
   }
 }
 function localEditor(path){
