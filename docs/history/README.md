@@ -20,3 +20,5 @@
 
 
 - [ALPHA66_OPTIN_MANUAL_ZOOM.md](ALPHA66_OPTIN_MANUAL_ZOOM.md) — optional DoctorTracer и bounded manual zoom одного тяжёлого контура, тесты, база отката.
+
+- [ALPHA67_MANUAL_NO_AUTODIAG.md](ALPHA67_MANUAL_NO_AUTODIAG.md) — отключение автоматической диагностики после ручной правки, Undo, ручная проверка и тесты.

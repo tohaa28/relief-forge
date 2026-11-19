@@ -63,20 +63,37 @@ try{
   assert.equal(await page.locator('#geometry').innerHTML(),before);
   await page.locator('#node-done').click();
   await page.waitForFunction(()=>!document.body.classList.contains('curve-editing'));
-  await page.waitForFunction(()=>
-    document.querySelector('#busy').hidden&&
-    !document.querySelector('#issues').textContent.includes('Открытый контур'),
-    {},{timeout:120000});
-  assert.doesNotMatch(await page.locator('#issues').textContent(),/Открытый контур/,
-    'global recheck proves closure only after exit');
+  assert.equal(await page.locator('#busy').isHidden(),true,
+    'closing manual editor cannot schedule a global Worker');
+  assert.match(await page.locator('#summary').textContent(),/Диагностика после ручного редактирования не выполнялась/);
+  assert.equal(await page.locator('.problem-marker').count(),0,
+    'stale markers must not claim the modified curve still has defects');
+  assert.equal(await page.locator('#issue-count').textContent(),'—');
+  await page.waitForTimeout(400);
+  assert.equal(await page.locator('#busy').isHidden(),true,
+    'no delayed auto scan after 180 ms');
+  assert.match(await page.locator('#summary').textContent(),/не выполнялась/);
 
-  // A real global Undo after exiting restores the original open contour.
+  // Global Undo restores the geometry without another automatic scan.
   await page.keyboard.press('Control+z');
-  await page.waitForFunction(()=>
-    document.querySelector('#busy').hidden&&
+  assert.equal(await page.locator('#busy').isHidden(),true);
+  assert.equal(await page.locator('.problem-marker').count(),0);
+  assert.match(await page.locator('#summary').textContent(),/не выполнялась/);
+
+  // Only the explicit operator command refreshes the defect witnesses.
+  await page.locator('#recheck-defects').click();
+  await page.waitForFunction(()=>document.querySelector('#busy').hidden&&
     document.querySelector('#issues').textContent.includes('Открытый контур'),
     {},{timeout:120000});
   assert.ok(await page.locator('.problem-marker').count()>0);
+  assert.ok(Number(await page.locator('#issue-count').textContent())>0);
+  // Exit without edits must also avoid a new clearance/diagnostic Worker.
+  await page.locator('#curve-edit').click();
+  await page.waitForFunction(()=>document.body.classList.contains('curve-editing'));
+  await page.locator('#node-done').click();
+  await page.waitForTimeout(400);
+  assert.equal(await page.locator('#busy').isHidden(),true);
+  assert.match(await page.locator('#issues').textContent(),/Открытый контур/);
   assert.deepEqual(errors,[]);
-  console.log('PASS manual nodes alpha56: old markers persist during draft, local Undo/Redo without rebuild, global recheck only after Gotovo, global Undo restores');
+  console.log('PASS manual nodes alpha67: commit/Undo without auto diagnostic, stale markers cleared, explicit manual scan restores defects');
 }finally{await browser?.close();server.kill();}

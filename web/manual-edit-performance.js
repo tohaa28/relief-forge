@@ -1,4 +1,4 @@
-import {nativeParts,pointDistance} from './native-bezier.js?v=0.2.0-alpha.66';
+import {nativeParts,pointDistance} from './native-bezier.js?v=0.2.0-alpha.67';
 
 // Bound SVG anchor elements to a small cursor-centred screen neighbourhood.
 // The index is computed once for a path snapshot; mousemove never traverses
