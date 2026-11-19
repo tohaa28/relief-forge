@@ -128,6 +128,7 @@ let doctorTracerAbort=null;
 // Temporary, RAM-only preimport raster. Never store it in doc, history or
 // exported EPS, and never share its transferable buffer with the Worker.
 const doctorMaskCache=createDoctorTracerMaskCache();
+let importMaskAbort=null,importMaskActive=false;
 let manualFocus=null,manualLocalTimer=null,manualLocalGeneration=0;
 
 let localEditors=new Map(),localEditUndo=[],localEditRedo=[],localEditCount=0;
@@ -1845,7 +1846,15 @@ $('toggle-markers').onclick=()=>{
   $('markers').hidden=!markersVisible;render();
 };
 document.querySelectorAll('[data-action]').forEach(e=>e.onclick=()=>{calculate(Number(e.dataset.action));});
-$('cancel').onclick=()=>{doctorTracerAbort?.abort();doctorTracerAbort=null;pendingSettingsApply=false;clearTimeout(manualLocalTimer);++manualLocalGeneration;cancelNativeJobs();++diagnosticGeneration;++readGeneration;++previewGeneration;++afterDiagnosticGeneration;if(previewActive){previewActive=false;lock(false);status('Оптимизация отменена, оригинальные кривые сохранены.');return;}if(readActive){readActive=false;openingFile=false;updateMascot();lock(false);status('Чтение файла отменено.');return;}if(epsImportActive){stopEps({destroy:true});openingFile=false;updateMascot();lock(false);record('vector-import-cancel');status('Импорт отменён. Предыдущий документ сохранён.');return;}worker.terminate();pending=null;ready=false;suppressNextDiagnostic=true;lock(false);record('engine-cancel');status('Расчёт отменён, документ сохранён.');spawnWorker();};
+$('cancel').onclick=()=>{
+  if(importMaskActive){
+    importMaskAbort?.abort();importMaskAbort=null;importMaskActive=false;
+    doctorMaskCache.invalidate();lock(false);
+    record('doctortracer-mask-preparation-cancelled');
+    status('Подготовка 600 dpi отменена. Исходные векторы сохранены.');
+    return;
+  }
+  doctorTracerAbort?.abort();doctorTracerAbort=null;pendingSettingsApply=false;clearTimeout(manualLocalTimer);++manualLocalGeneration;cancelNativeJobs();++diagnosticGeneration;++readGeneration;++previewGeneration;++afterDiagnosticGeneration;if(previewActive){previewActive=false;lock(false);status('Оптимизация отменена, оригинальные кривые сохранены.');return;}if(readActive){readActive=false;openingFile=false;updateMascot();lock(false);status('Чтение файла отменено.');return;}if(epsImportActive){stopEps({destroy:true});openingFile=false;updateMascot();lock(false);record('vector-import-cancel');status('Импорт отменён. Предыдущий документ сохранён.');return;}worker.terminate();pending=null;ready=false;suppressNextDiagnostic=true;lock(false);record('engine-cancel');status('Расчёт отменён, документ сохранён.');spawnWorker();};
 $('undo').onclick=()=>{
   if(busy)return;
   if(curveEditing()&&localEditUndo.length){
@@ -1895,7 +1904,56 @@ $('save').onclick=()=>{
     JSON.stringify({...doc,journal,history:{past,future}},null,2));
 };
 function stopEps({destroy=false}={}){const picker=$('pdf-page-picker');if(picker?.open)picker.close();epsImportActive=false;clearTimeout(epsTimer);epsTimer=null;if(epsWorker){epsWorker.onmessage=null;epsWorker.onerror=null;}if(destroy){epsWorker?.terminate();epsWorker=null;}}
-function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);resetLocalEditors();openingFile=false;lastImportFailure=null;lastImportAttempt={source:name,status:'opened',objects:next.paths.length};forceWireframe=false;syncWireframeControl();if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);clearTimeout(manualLocalTimer);++manualLocalGeneration;manualFocus=null;mode='select';doc=next;selected.clear();changed('import-'+name);importedBefore=beginImportBefore(doc);comparisonSelectionExplicit=false;compareStage='before';fit();scheduleWorkspaceCheck();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; ожидает проверки'});if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);}
+async function prepareImportBlackMask(opened){
+  const token=doctorMaskCache.generation;
+  if(opened.paths.some(p=>p.kind==='image')){
+    record('doctortracer-mask-not-prepared',{reason:'raster-objects',source:opened.sourceFileName});
+    if(ready&&doc===opened)calculate(0);
+    return;
+  }
+  const abort=new AbortController();importMaskAbort=abort;importMaskActive=true;
+  lock(true,{coverCanvas:false});
+  progressStage('Импорт: чёрный силуэт на прозрачном фоне · 600 dpi',87);
+  try{
+    // Let the import UI paint before the synchronous vector->Canvas stage.
+    await yieldForUi();
+    const entry=await doctorMaskCache.prepare(opened,{
+      signal:abort.signal,yieldUi:yieldForUi,
+      onProgress:f=>{
+        if(doc===opened&&token===doctorMaskCache.generation)
+          progressStage('Создание временной маски 600 dpi',87+Math.round(f*11));
+      }
+    });
+    if(!entry||doc!==opened||token!==doctorMaskCache.generation)return;
+    const capped=entry.plan.dpi<PREPARED_RASTER_DPI-1;
+    record('doctortracer-mask-prepared',{
+      source:opened.sourceFileName||null,requestedDpi:PREPARED_RASTER_DPI,
+      effectiveDpi:Number(entry.plan.dpi.toFixed(3)),
+      width:entry.plan.width,height:entry.plan.height,
+      alphaBytes:entry.alpha.byteLength,storage:'temporary-memory',
+      color:'black-transparent',capped
+    });
+    $('doctortracer-status').textContent=
+      'DoctorTracer 0.21.1: чёрный растр '+entry.plan.width+'×'+entry.plan.height+
+      ' подготовлен при '+entry.plan.dpi.toFixed(1)+' dpi (цель 600). '+
+      'Хранится только прозрачность в памяти. Трассировка — после проверки ошибок.';
+  }catch(error){
+    if(!abort.signal.aborted&&doc===opened&&token===doctorMaskCache.generation){
+      record('doctortracer-mask-prepare-error',{
+        source:opened.sourceFileName||null,error:error.message});
+      $('doctortracer-status').textContent=
+        'Растр 600 dpi не подготовлен: '+error.message+
+        '. Вектор будет проверен без изменения.';
+    }
+  }finally{
+    if(importMaskAbort===abort){importMaskAbort=null;importMaskActive=false;}
+    if(doc===opened&&token===doctorMaskCache.generation){
+      lock(false);
+      if(ready&&opened.paths.some(p=>p.kind!=='image'))calculate(0);
+    }
+  }
+}
+function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);doctorMaskCache.invalidate();resetLocalEditors();openingFile=false;lastImportFailure=null;lastImportAttempt={source:name,status:'opened',objects:next.paths.length};forceWireframe=false;syncWireframeControl();if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);clearTimeout(manualLocalTimer);++manualLocalGeneration;manualFocus=null;mode='select';doc=next;selected.clear();changed('import-'+name);importedBefore=beginImportBefore(doc);comparisonSelectionExplicit=false;compareStage='before';fit();scheduleWorkspaceCheck();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров; подготовка 600 dpi перед проверкой'});if(doc.paths.some(p=>p.kind!=='image'))void prepareImportBlackMask(doc);}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;openingFile=true;lastImportFailure=null;lastImportAttempt={source:name,status:'converting',bytes:bytes.byteLength};updateMascot();if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта '+(/\.pdf$/i.test(name)?'PDF':'EPS')+'…';record('vector-import-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
   epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.64',import.meta.url));
