@@ -128,6 +128,7 @@ let manualFocus=null,manualLocalTimer=null,manualLocalGeneration=0;
 
 let localEditors=new Map(),localEditUndo=[],localEditRedo=[],localEditCount=0;
 let localEditorIndexes=new Map(),localPatchElements=new Map();
+let manualGlyphBuildUnit=0,manualZoomFrame=0;
 const localPatchKey=(path,segment)=>path+':'+segment;
 function syncLocalPatches({path=null,segments=null,reset=false}={}){
   const layer=$('manual-patches');
@@ -179,7 +180,10 @@ function resetLocalEditors(){
   localEditUndo=[];localEditRedo=[];localEditCount=0;
   $('manual-patches').replaceChildren();
   $('manual-glyphs').replaceChildren();
-  document.body.classList.remove('local-editor-active');
+  $('manual-local-geometry').replaceChildren();
+  if(manualZoomFrame)cancelAnimationFrame(manualZoomFrame);
+  manualZoomFrame=0;manualGlyphBuildUnit=0;
+  document.body.classList.remove('local-editor-active','manual-local-zoom');
 }
 function localEditorToolbar(){
   const active=curveEditing()&&activeCurveNode;
@@ -196,6 +200,71 @@ function localEditorToolbar(){
     'Локальное редактирование узла '+(active.index+1)+' · изменения фигуры и диагностика после выхода.':
     'Локальный режим: выберите узел. Исходная фигура не изменяется до кнопки «Готово».';
 }
+// On deep zoom, hide the original compound Béziers from painting and show
+// ONLY native segments intersecting the current viewport; no source rewrite.
+function refreshLocalZoomGeometry(){
+  const layer=$('manual-local-geometry'),view=$('canvas').viewBox.baseVal;
+  const sourceNodes=doc.paths.reduce((n,p)=>n+(p.commands?.length||p.points?.length||0),0);
+  const active=curveEditing()&&sourceNodes>1800&&
+    view.width<doc.width*.35&&view.height<doc.height*.35;
+  if(!active){
+    document.body.classList.remove('manual-local-zoom');
+    if(layer.childElementCount)layer.replaceChildren();
+    return;
+  }
+  const path=manualFocus?.path??[...selected].find(i=>doc.paths[i]?.kind!=='image');
+  if(!Number.isInteger(path)||!doc.paths[path]||doc.paths[path].kind==='image'){
+    document.body.classList.remove('manual-local-zoom');return;
+  }
+  const editor=localEditor(path);
+  if(!editor){document.body.classList.remove('manual-local-zoom');return;}
+  const center=[view.x+view.width/2,view.y+view.height/2];
+  const segments=editor.visibleSegmentSVG(center,Math.hypot(view.width,view.height)*.75,{limit:600});
+  if(!segments.length){
+    document.body.classList.remove('manual-local-zoom');
+    if(layer.childElementCount)layer.replaceChildren();
+    return;
+  }
+  let visual=layer.firstElementChild;
+  if(!visual)visual=el('path',{class:'manual-local-stroke','data-path':path},layer);
+  visual.setAttribute('data-path',path);
+  visual.setAttribute('d',segments.map(s=>s.d).join(' '));
+  document.body.classList.add('manual-local-zoom');
+}
+function rescaleLocalEditorGlyphs(unit){
+  const glyphs=$('manual-glyphs');
+  for(const item of glyphs.children){
+    if(!item.hasAttribute('data-mm-x'))continue;
+    const x=Number(item.getAttribute('data-mm-x')),y=Number(item.getAttribute('data-mm-y'));
+    if(item.localName==='rect'){
+      item.setAttribute('x',x-unit*4.2);item.setAttribute('y',y-unit*4.2);
+      item.setAttribute('width',unit*8.4);item.setAttribute('height',unit*8.4);
+    }else if(item.localName==='circle')item.setAttribute('r',unit*4.5);
+    else if(item.localName==='polygon')item.setAttribute('points',
+      [[x,y-unit*5.2],[x+unit*5.2,y],[x,y+unit*5.2],[x-unit*5.2,y]]
+        .map(p=>p.join(',')).join(' '));
+  }
+}
+function scheduleManualZoomRefresh(){
+  if(!curveEditing()||manualZoomFrame)return;
+  manualZoomFrame=requestAnimationFrame(()=>{
+    manualZoomFrame=0;
+    if(!curveEditing())return;
+    const view=$('canvas').viewBox.baseVal,
+      unit=screenUnitsPerPixel(view,$('canvas').clientWidth,$('canvas').clientHeight);
+    if(!manualFocus){
+      const path=[...selected].find(i=>doc.paths[i]?.kind!=='image');
+      if(Number.isInteger(path))manualFocus={path,
+        point:[view.x+view.width/2,view.y+view.height/2]};
+    }
+    if(!manualGlyphBuildUnit||Math.max(unit/manualGlyphBuildUnit,
+      manualGlyphBuildUnit/unit)>1.8)drawLocalEditorOverlay();
+    else {
+      rescaleLocalEditorGlyphs(unit);
+      refreshLocalZoomGeometry();
+    }
+  });
+}
 function drawLocalEditorOverlay(){
   if(!curveEditing()||!localEditors.size)return;
   document.body.classList.add('local-editor-active');
@@ -209,6 +278,7 @@ function drawLocalEditorOverlay(){
   if(!indexed){indexed=buildAnchorIndex(editor.nodeList());localEditorIndexes.set(path,indexed);}
   const view=$('canvas').viewBox.baseVal,
     unit=screenUnitsPerPixel(view,$('canvas').clientWidth,$('canvas').clientHeight);
+  manualGlyphBuildUnit=unit;
   const focus=manualFocus.point;
   const near=nearbyAnchors(indexed,focus,Math.max(unit*135,settingNumber('tolerance')*3),
     {limit:200,includeIndex:activeCurveNode?.path===path?activeCurveNode.index:null});
@@ -219,6 +289,7 @@ function drawLocalEditorOverlay(){
     const selected=activeCurveNode?.path===path&&activeCurveNode.index===n.index,
       kind=editor.getNode(n.index)?.type||n.type;
     const attrs={'data-path':path,'data-curve-node':n.index,
+      'data-mm-x':pos[0],'data-mm-y':pos[1],
       class:'curve-node'+(selected?' chosen':'')};
     if(kind==='smooth')el('circle',{...attrs,cx:pos[0],cy:pos[1],r:unit*4.5},glyphs);
     else if(kind==='symmetric')el('polygon',{...attrs,
@@ -237,12 +308,14 @@ function drawLocalEditorOverlay(){
         el('path',{d:'M'+anchor.join(' ')+'L'+control.join(' '),
           class:'curve-tangent-guide'},glyphs);
         el('circle',{cx:control[0],cy:control[1],r:unit*4.5,
+          'data-mm-x':control[0],'data-mm-y':control[1],
           class:'curve-control-handle','data-path':path,
           'data-curve-node':activeCurveNode.index,'data-curve-handle':side},glyphs);
       }
     }
   }
   localEditorToolbar();
+  refreshLocalZoomGeometry();
 }
 function localEditorModified(path,action,changedSegments=null){
   if(!curveEditing())return;
@@ -401,7 +474,7 @@ function scheduleManualLocalRecheck(){
 }
 function fit(){const pad=Math.max(doc.width,doc.height)*.07;
   $('canvas').setAttribute('viewBox',`${-pad} ${-pad} ${doc.width+pad*2} ${doc.height+pad*2}`);
-  if(curveEditing())drawLocalEditorOverlay();else render();
+  if(curveEditing())scheduleManualZoomRefresh();else render();
 }
 const currentComparison=()=>curvePreview?.comparisonData||appliedComparison;
 function zoom(factor,center){
@@ -409,7 +482,7 @@ function zoom(factor,center){
     view=zoomBox({x:box.x,y:box.y,width:box.width,height:box.height},factor,center);
   if(!view)return;
   $('canvas').setAttribute('viewBox',`${view.x} ${view.y} ${view.width} ${view.height}`);
-  if(curveEditing())drawLocalEditorOverlay();else render();
+  if(curveEditing())scheduleManualZoomRefresh();else render();
 }
 function focusIssue(issue){
   const canvas=$('canvas'),view=canvas.viewBox.baseVal;
@@ -1495,7 +1568,7 @@ $('markers').addEventListener('keydown',e=>{
   if(issue){e.preventDefault();e.stopPropagation();focusIssue(issue);}
 });
 window.addEventListener('resize',()=>{
-  if(curveEditing())drawLocalEditorOverlay();else render();
+  if(curveEditing())scheduleManualZoomRefresh();else render();
 });
 $('canvas').addEventListener('pointerdown',e=>{
   if(busy)return;const pos=at(e);const canvas=$('canvas');
@@ -1560,7 +1633,7 @@ const scheduleDragRender=()=>{if(!dragRenderFrame)dragRenderFrame=requestAnimati
 const flushDragRender=()=>{if(dragRenderFrame){cancelAnimationFrame(dragRenderFrame);dragRenderFrame=0;}};
 function attachLiveCurvePatch(){
   if(!drag?.live||!curveEditing())return;
-  drag.livePath=el('path',{d:'',class:'manual-live-patch'},$('geometry'));
+  drag.livePath=el('path',{d:'',class:'manual-live-patch'},$('manual-patches'));
   drag.visualNode=$('manual-glyphs').querySelector('[data-path="'+drag.path+'"][data-curve-node="'+drag.curveNode+'"]:not([data-curve-handle])')||
     $('geometry').querySelector('[data-path="'+drag.path+'"][data-curve-node="'+drag.curveNode+'"]:not([data-curve-handle])');
   paintLiveCurvePatch();
@@ -1579,7 +1652,7 @@ const scheduleLiveDrag=()=>{
 const flushLiveDrag=()=>{if(liveDragFrame){cancelAnimationFrame(liveDragFrame);liveDragFrame=0;}};
 $('canvas').addEventListener('pointermove',e=>{
   const pos=at(e);$('coords').textContent=`X ${pos[0].toFixed(2)} · Y ${pos[1].toFixed(2)} мм`;
-  if(pan){const b=$('canvas').viewBox.baseVal;const dx=pos[0]-pan.pos[0],dy=pos[1]-pan.pos[1];b.x-=dx;b.y-=dy;return;}
+  if(pan){const b=$('canvas').viewBox.baseVal;const dx=pos[0]-pan.pos[0],dy=pos[1]-pan.pos[1];b.x-=dx;b.y-=dy;if(curveEditing())scheduleManualZoomRefresh();return;}
   if(!drag||busy)return;
   if(drag.live&&(drag.curveHandle||drag.curveNode!==undefined)){
     // No model mutation, SVG reconstruction, Bézier parse or diagnostic
@@ -1601,7 +1674,7 @@ function makeShape(d){const [x,y]=d.start,[a,b]=d.end||d.start;
 }
 $('canvas').addEventListener('pointerup',e=>{
   flushDragRender();flushLiveDrag();
-  if(pan){pan=null;return;}if(!drag)return;
+  if(pan){pan=null;if(curveEditing())scheduleManualZoomRefresh();return;}if(!drag)return;
   if(drag.local){
     const pos=at(e),editor=localEditor(drag.path),
       target=drag.initialTarget.map((v,i)=>v+pos[i]-drag.startPointer[i]);
