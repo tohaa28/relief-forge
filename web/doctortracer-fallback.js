@@ -1,5 +1,5 @@
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.62';
-import {importRichSvg} from './rich-svg.js?v=0.2.0-alpha.62';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.63';
+import {importRichSvg} from './rich-svg.js?v=0.2.0-alpha.63';
 
 // The linked DoctorTracer 0.21.1 WASM gh-pages site owns its Worker and its GPL
 // dependencies. Nothing from that distribution is copied or relicensed here.
@@ -226,13 +226,21 @@ export function traceWithDoctorTracer(raster,{pageUrl=globalThis.location?.href,
         if(data.error){finish(Error('DoctorTracer: '+data.error));return;}
         if(typeof data.svg!=='string'||!data.svg.includes('<path'))
           {finish(Error('DoctorTracer: не получены векторные кривые'));return;}
-        finish(null,{svg:data.svg,paths:data.paths,geometry:data.geometry,backend:data.backend});
+        finish(null,{svg:data.svg,paths:data.paths,geometry:data.geometry,
+          backend:data.backend,inkCount:data.colors,
+          paletteCount:Array.isArray(data.metrics?.palette)?
+            data.metrics.palette.length:null});
       };
       worker.onerror=e=>finish(Error('DoctorTracer Worker: '+(e.message||'ошибка загрузки')));
       signal?.addEventListener('abort',onAbort,{once:true});
       timer=setTimeout(()=>finish(Error('DoctorTracer: превышено время трассировки')),timeoutMs);
+      // DoctorTracer 0.21.1 uses label 255 as transparent/background,
+      // independently from its ink palette. For a black-alpha silhouette,
+      // exactly ONE printable ink is present. Asking for two may make both
+      // cluster centroids black and produce duplicate/expanded geometry.
       worker.postMessage({pixels:pixels.buffer,width:raster.width,height:raster.height,
-        category:'hard',colors:2,detail:2,speckle:0,polygon:false,gpu:false},
+        category:'hard',colors:1,palette:[[0,0,0]],
+        detail:2,speckle:0,polygon:false,gpu:false},
         [pixels.buffer]);
     }catch(error){finish(error);}
   });
@@ -301,7 +309,7 @@ export function scaledDoctorTracerPlan(plan,scale){
 export async function traceDocumentWithNodeBudget(source,plan,{
   firstRaster,scales=[1,.70,.45],signal,rasterize=rasterizeDocument,
   trace=traceWithDoctorTracer,remap=remapDoctorTracerSvg,traceOptions={},
-  onAttempt=()=>{},onRetry=()=>{}
+  onAttempt=()=>{},onTraced=()=>{},onRetry=()=>{}
 }={}){
   if(!Array.isArray(scales)||!scales.length||scales.length>4||
     scales[0]!==1||scales.some((s,i)=>!Number.isFinite(s)||s<=0||
@@ -316,6 +324,11 @@ export async function traceDocumentWithNodeBudget(source,plan,{
     onAttempt({attempt:i+1,total:scales.length,plan:current});
     const traced=await trace(raster,{...traceOptions,signal});
     if(signal?.aborted)throw Error('DoctorTracer: операция отменена');
+    // Keep a compact diagnostic of EACH returned trace, even if the next
+    // RichSVG parse rejects >200k nodes. Never persist the SVG or pixel data.
+    onTraced({attempt:i+1,total:scales.length,plan:current,
+      paths:Number.isInteger(traced.paths)?traced.paths:null,
+      paletteCount:traced.paletteCount,backend:traced.backend});
     try{
       const candidate=remap(source,traced.svg,current);
       return {candidate,traced,tracePlan:current,attempts:i+1};

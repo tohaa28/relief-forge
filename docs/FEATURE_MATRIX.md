@@ -1,3 +1,13 @@
+## 0.2.0-alpha.63: one-ink DoctorTracer after alpha.62 IoU rejection (CANDIDATE 2026-11-19)
+- Source log `relief-forge-session (1).jsonl`: 33 events, version alpha.62, source EPS 8101921_maket_7_121126_163426.eps was NOT uploaded (only metadata log).
+- Black/transparent RGBA input ready 1262x1795, DoctorTracer started 398 issues; node limit >200000 first two attempts; final 567x807 returned geometry but failed high-res mask IoU=.491, areaRatio=1.797. The refusal correctly preserved source.
+- Code inspection: DoctorTracer gh-pages 0.21.1 treats label 255 as background/outside ink palette; fix from hard colors=2 (two ink clusters) to hard colors=1 with explicit palette=[[0,0,0]].
+- Each trace attempt now logs only path count, reported palette count and backend; no SVG or private raster leaked. Tests for forced single palette and retry/alpha invariants.
+- Acceptance remains 200k node cap, IoU>=.95, 0.95..1.05 area ratio, full native+Rust diagnosis, original source and Undo retained.
+- This change is a hypothesis based on code and JSONL, NOT verified on actual EPS; no claim that the original job is cured.
+- PR #95 https://github.com/tohaa28/relief-forge/pull/95 ; initial rollback published alpha.62 main b461a5fd1df0d043e27f721c32c3f3a7c516e7cf. GitHub Pages publication pending until CI and deploy succeed.
+- Detailed investigation and test limitations: docs/history/ALPHA63_MONOCHROME_TRACER_LOG.md, F-063 / M-063.
+
 ## 0.2.0-alpha.62 — опубликована 2026-11-19
 - Изменение: DoctorTracer 0.21.1 получает только чёрный RGB(0,0,0) при исходном alpha 0..255 (прозрачный фон, отверстия и сглаженные края сохраняются). Source EPS/PDF не перекрашен.
 - PR #94 https://github.com/tohaa28/relief-forge/pull/94 merged main: 850bf1f6e284cd439ee6257a8470b5197db7de7d.
