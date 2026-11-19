@@ -58,12 +58,15 @@ export function createDeferredCurveEditor(path){
     path.points.map((p,i)=>[i?'L':'M',...p]).concat(path.closed?[['Z']]:[])).map(cp);
   const initialCommands=commands.map(cp);
   let {parts,byIndex}=indexCommands(commands);
-  let segmentPart=new Map();
+  let segmentPart=new Map(),partByStart=new Map();
   function updatePartIndex(){
     ({parts,byIndex}=indexCommands(commands));
-    segmentPart=new Map();
-    parts.forEach(p=>p.segments.forEach((index,ordinal)=>
-      segmentPart.set(index,{part:p,ordinal})));
+    segmentPart=new Map();partByStart=new Map();
+    parts.forEach(p=>{
+      partByStart.set(p.start,p);
+      p.segments.forEach((index,ordinal)=>
+        segmentPart.set(index,{part:p,ordinal}));
+    });
   }
   updatePartIndex();
   let nodes=curveNodesTyped(path).map(n=>({...n,point:[...n.point]}));
@@ -230,6 +233,17 @@ export function createDeferredCurveEditor(path){
     if(!dirty)return [];
     const paths=[];
     for(const i of indices??touched){
+      const part=partByStart.get(i);
+      if(part?.closed&&part.segments.length){
+        // A newly closed contour needs a real visible closing segment in
+        // draft mode, but the 7,545-curve original stays untouched until exit.
+        const endIndex=part.segments.at(-1),start=anchor(i),end=anchor(endIndex),
+          priorZ=initialCommands[endIndex+1]?.[0]==='Z',
+          changedStart=JSON.stringify(commands[i])!==JSON.stringify(initialCommands[i]),
+          changedEnd=JSON.stringify(commands[endIndex])!==JSON.stringify(initialCommands[endIndex]);
+        if(start&&end&&!same(start,end)&&(!priorZ||changedStart||changedEnd))
+          paths.push({key:'z'+i,d:'M'+end.join(' ')+'L'+start.join(' ')});
+      }
       if(JSON.stringify(commands[i])===JSON.stringify(initialCommands[i]))continue;
       const c=segment(i);
       if(c)paths.push({key:i,d:svgSegment(c.controls)});
@@ -363,7 +377,9 @@ export function createDeferredCurveEditor(path){
     const entry=byIndex.get(index);if(!entry)throw Error('Узел не найден');
     const part=parts[entry.part];if(part.closed)throw Error('Контур уже замкнут');
     const before=snapshotStructure(),at=part.segments.at(-1)+1;
-    commands.splice(at,0,['Z']);changedStructural(before);return true;
+    commands.splice(at,0,['Z']);changedStructural(before);
+    touched.add(part.start);touched.add(part.segments.at(-1));
+    return true;
   }
   function breakAt(index){
     const entry=byIndex.get(index);if(!entry)throw Error('Узел не найден');
