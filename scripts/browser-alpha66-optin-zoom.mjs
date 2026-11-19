@@ -34,12 +34,24 @@ try{
    document.querySelector('#status').textContent.startsWith('ПОСЛЕ:'),
    {},{timeout:120000});
  assert.match(await page.locator('#doctortracer-status').textContent(),/отключён/);
+ // AFTER may legitimately remove thousands of redundant Bézier anchors.
+ // Select original BEFORE to stress the pathological 2300-C source precisely.
+ await page.locator('#compare-before').click();
  await page.locator('#curve-edit').click();
  await page.waitForFunction(()=>document.body.classList.contains('curve-editing'));
+ const scene=await page.evaluate(()=>({
+   commandCount:(document.querySelector('#geometry').innerHTML.match(/C/g)||[]).length,
+   manualGlyphs:document.querySelectorAll('#manual-glyphs .curve-node').length,
+   sourceGlyphs:document.querySelectorAll('#geometry .curve-node').length,
+   classes:document.body.className
+ }));
+ assert.ok(scene.commandCount>1000,
+   'stress test must retain dense original BEFORE, not optimized AFTER: '+JSON.stringify(scene));
  const original=await page.locator('#geometry').innerHTML();
  // Zoom around a real indexed anchor, not an empty center of the page.
  const glyph=page.locator('#manual-glyphs .curve-node').first();
- assert.ok(await glyph.count()>0,'manual index must prime before node selection');
+ assert.ok(await glyph.count()>0,
+   'manual index must prime before node selection: '+JSON.stringify(scene));
  const point=await glyph.boundingBox();
  assert.ok(point,'focus anchor is visible');
  const cx=point.x+point.width/2,cy=point.y+point.height/2;
