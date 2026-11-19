@@ -7,6 +7,8 @@ export const DOCTORTRACER_URL='https://tohaa28.github.io/DoctorTracer/';
 export const DOCTORTRACER_VERSION='0.21.1';
 export const DOCTORTRACER_THRESHOLD=10;
 export const DOCTORTRACER_WORKER_PATH='/DoctorTracer/worker.js';
+export const DOCTORTRACER_WORKER_MAX_SIDE=5000;
+export const DOCTORTRACER_WORKER_MAX_PIXELS=12000000;
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 const finite=n=>Number.isFinite(n)&&Math.abs(n)<=1e9;
 const point=c=>c.slice(-2);
@@ -228,6 +230,48 @@ export function compareSegmentedAlpha(sourceBits,segmentRgba){
     sourcePixels:source,segmentedPixels:result};
 }
 
+// Generate the full 600dpi canvas at IMPORT time, without allocating or
+// caching its 4-byte-per-pixel RGBA. Read strips and retain ALPHA only.
+// Black is the only ink and transparency is not composited on white.
+export async function rasterizeDocumentAlpha(document,plan,{
+  canvasFactory=()=>globalThis.document.createElement('canvas'),signal,
+  yieldUi=()=>Promise.resolve()
+}={}){
+  if(signal?.aborted)throw Error('DoctorTracer: операция отменена');
+  const canvas=canvasFactory();
+  canvas.width=plan.width;canvas.height=plan.height;
+  const context=canvas.getContext('2d',{alpha:true,willReadFrequently:true});
+  if(!context)throw Error('DoctorTracer: Canvas 2D недоступен');
+  if(context.getContextAttributes?.()?.alpha===false)
+    throw Error('DoctorTracer: Canvas не поддерживает прозрачный фон');
+  try{
+    paintDocumentSilhouette(context,document,plan,{signal});
+    const alpha=new Uint8Array(plan.width*plan.height);
+    // Bound temporary getImageData allocation to <=1 MB RGBA per strip.
+    const rows=Math.max(1,Math.floor(262144/plan.width));
+    let opaque=0;
+    for(let y=0;y<plan.height;y+=rows){
+      if(signal?.aborted)throw Error('DoctorTracer: операция отменена');
+      const h=Math.min(rows,plan.height-y);
+      const rgba=context.getImageData(0,y,plan.width,h).data;
+      for(let p=0;p<plan.width*h;p++){
+        const a=rgba[4*p+3];
+        alpha[y*plan.width+p]=a;
+        if(a>=128)opaque++;
+      }
+      if(y+h<plan.height)await yieldUi();
+    }
+    if(!opaque)
+      throw Error('DoctorTracer: растр не содержит непрозрачных векторных элементов');
+    return {alpha,width:plan.width,height:plan.height,
+      mask:'black-transparent-rgba8',backend:'canvas2d-direct-alpha',
+      opaque,bytes:alpha.byteLength};
+  }finally{
+    // Release GPU/Canvas memory after retaining the 1-byte/pixel cache.
+    canvas.width=0;canvas.height=0;
+  }
+}
+
 export function doctorTracerWorkerUrl(pageUrl){
   const page=new URL(pageUrl);
   if(page.protocol!=='https:'||page.hostname!=='tohaa28.github.io')
@@ -239,8 +283,10 @@ export function doctorTracerWorkerUrl(pageUrl){
 export function validateDoctorTracerRgba(raster){
   const {width,height,pixels}=raster||{};
   if(!Number.isSafeInteger(width)||!Number.isSafeInteger(height)||
-    width<1||height<1||width>2400||height>2400||
-    width*height>8000000||!(pixels instanceof Uint8Array)||
+    width<1||height<1||
+    width>DOCTORTRACER_WORKER_MAX_SIDE||height>DOCTORTRACER_WORKER_MAX_SIDE||
+    width*height>DOCTORTRACER_WORKER_MAX_PIXELS||
+    !(pixels instanceof Uint8Array)||
     pixels.byteLength!==width*height*4)
     throw Error('DoctorTracer: неверный формат RGBA (ожидается Uint8Array width×height×4)');
   let opaque=0,transparent=0;
