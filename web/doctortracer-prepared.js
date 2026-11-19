@@ -1,12 +1,13 @@
 // In-memory black silhouette prepared BEFORE vector diagnostics / repair.
 // It is never stored in history, downloads, localStorage or EPS. Only the
 // 8-bit alpha channel is retained; all reconstructed RGB values are zero.
-import {rasterPlan,rasterizeDocumentAlpha,validateDoctorTracerRgba} from './doctortracer-fallback.js?v=0.2.0-alpha.65';
+import {rasterPlan,rasterizeDocumentAlpha,validateDoctorTracerRgba,
+  DOCTORTRACER_WORKER_MAX_SIDE,DOCTORTRACER_WORKER_MAX_PIXELS} from './doctortracer-fallback.js?v=0.2.0-alpha.65';
 export const PREPARED_RASTER_DPI=600;
 export const PREPARED_RASTER_MAX_SIDE=9000;
 export const PREPARED_RASTER_MAX_PIXELS=36000000;
-export const WORKER_RASTER_MAX_SIDE=5000;
-export const WORKER_RASTER_MAX_PIXELS=12000000;
+export const WORKER_RASTER_MAX_SIDE=DOCTORTRACER_WORKER_MAX_SIDE;
+export const WORKER_RASTER_MAX_PIXELS=DOCTORTRACER_WORKER_MAX_PIXELS;
 
 export function preparedRasterPlan(document){
   return rasterPlan(document,{dpi:PREPARED_RASTER_DPI,
