@@ -20,3 +20,12 @@ tests/alpha67-manual-no-auto-diagnosis.test.mjs: статические огра
 - tests/large-file-support.test.mjs жёстко ожидал старую сигнатуру runProgressiveDiagnostics(indices,tolerance); обновлён шаблон под необязательный {diagnosticsOnly=false}, сохраняя старые вызовы.
 - tests/preview-history.test.mjs исполняет Undo/Redo в VM без нового manualReviewPending: ReferenceError. Добавлен false в изолированный контекст; геометрия и история по-прежнему проверяются, добавлен assert skipDiagnostics=false для обычного Undo.
 - Факты неудачного CI сохранены. После изменения повторить полный pipeline, в особенности реальное браузерное испытание завершения ручного редактора.
+
+## alpha.67 — ПОДТВЕРЖДЕНА СБОРКА И БРАУЗЕРНАЯ ПРОВЕРКА (2026-11-19), публикация main ожидается
+- PR #99: https://github.com/tohaa28/relief-forge/pull/99; проверенная голова ветки 0ef532a13cd99c5f5e9ae77d8497f4b981023aff.
+- GitHub Actions CI https://github.com/tohaa28/relief-forge/actions/runs/44602918279 SUCCESS: 377/377 JS, 17/17 Rust; Cargo wasm32 --release, реальный engine.wasm ABI, Playwright EPS/AFTER/Apply/Undo, редактор 2300 C, 40 pointermove + 7 mouseup и высокократный zoom.
+- Новый браузерный сценарий PASS: после «Готово» не запускается диагностика, 400 мс без busy, старые недостоверные дефекты сняты, Undo без повторного Worker, «Проверить дефекты» явно находит восстановленный разрыв, пустой выход без фоновой проверки.
+- На CI графическая проверка high zoom на синтетическом 2300-C контуре: 20 wheel событий, до 600 локальных сегментов, максимальное время одной операции 60 мс в этом прогоне. Это НЕ замер на gerb2.pdf.
+- Промежуточный CI 44602496526 FAILED: 374/377 JS (старые ожидания числа кнопок, сигнатуры diagnostic API и VM-контекста Undo). Исправлено без отключения тестов и записано в F-067.
+- Этап: подтверждённый PR, НЕ опубликован на GitHub Pages до зелёного workflow на main; исходная опубликованная alpha.66 и откат 2d41b4fce1436b51b392157b991b97356d0a0cec сохранены.
+
