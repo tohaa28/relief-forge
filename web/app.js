@@ -912,12 +912,12 @@ async function buildUnifiedPreview(){
         '\nПри этих допусках форма не изменена.');
     $('optimization-result').textContent=msg;
     const initial=importedComparison(importedBefore,after);
-    const pv={source:clone(doc),doctorMaskToken:doctorMaskCache.generation,
-      result:after,stats:st,hasGeometryChange:different,
+    const pv={source:clone(doc),result:after,stats:st,hasGeometryChange:different,
       beforeDiagnosticComplete:initial?.beforeDiagnosticComplete??diagnosticComplete,
       afterDiagnosed:false,comparisonData:initial||{
         beforeDoc:clone(doc),afterDoc:after,beforeIssues:clone(issues),afterIssues:[]
       }};
+    pv.doctorMaskToken=typeof doctorMaskCache==='undefined'?null:doctorMaskCache.generation;
     curvePreview=pv;
     if(!comparisonSelectionExplicit)compareStage='after'; // default result is ПОСЛЕ
     record('autoheal-curve-preview',{scope,stats:st,changed:different});
@@ -1192,12 +1192,12 @@ async function buildLargeUnifiedPreview(indices){
       p.commands?.filter(c=>['M','L','C','Q'].includes(c[0])).length??p.points.length),0);
     stats.actualNodesBefore=countReal(doc);stats.actualNodesAfter=countReal(after);
     const different=JSON.stringify(doc.paths.map(worldData))!==JSON.stringify(after.paths.map(worldData));
-    const pv={source,doctorMaskToken:doctorMaskCache.generation,
-      result:after,stats,hasGeometryChange:different,beforeDiagnosticComplete:false,
+    const pv={source,result:after,stats,hasGeometryChange:different,beforeDiagnosticComplete:false,
       afterDiagnosed:false,afterDiagnosticComplete:false,afterScope:'unknown',
       comparisonData:importedComparison(importedBefore,after)||{
         beforeDoc:clone(source),afterDoc:after,beforeIssues:clone(issues),afterIssues:[]
       }};
+    pv.doctorMaskToken=typeof doctorMaskCache==='undefined'?null:doctorMaskCache.generation;
     pv.beforeDiagnosticComplete=importedBefore?.complete??diagnosticComplete;
     curvePreview=pv;if(!comparisonSelectionExplicit)compareStage='after';
     $('optimization-result').textContent='ИТОГОВЫЕ реальные узлы: '+stats.actualNodesBefore+' → '+stats.actualNodesAfter+'.'+
