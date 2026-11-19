@@ -1265,16 +1265,35 @@ async function retryUnfixableWithDoctorTracer(preview,report,callRust,generation
     '. Растрирование → повторная трассировка…';
   record('doctortracer-fallback-start',{remaining:originalCount,source:source.sourceFileName||null});
   try{
-    progressStage('DoctorTracer: растрирование импортированного вектора',10);
-    const plan=rasterPlan(source);
-    const raster=await rasterizeDocument(source,plan,{signal:abort.signal});
-    record('doctortracer-rgba-ready',{backend:raster.backend,
-      mask:raster.mask,width:raster.width,height:raster.height,
-      bytes:raster.pixels.byteLength,source:source.sourceFileName});
+    progressStage('DoctorTracer: получение сохранённого растра 600 dpi',10);
+    // The mask is already computed when the file was OPENED, before the
+    // Rust diagnostics or autohealing. Do not repaint source geometry here.
+    let prepared=doctorMaskCache.get(preview.doctorMaskToken);
+    const cacheHit=Boolean(prepared);
+    if(!prepared){
+      // A manual geometry change invalidates the original import cache.
+      // Regenerate instead of silently tracing stale content.
+      record('doctortracer-mask-cache-miss',{source:source.sourceFileName||null,
+        reason:'modified-or-unavailable'});
+      const freshPlan=preparedRasterPlan(source);
+      const fresh=await rasterizeDocumentAlpha(source,freshPlan,{
+        signal:abort.signal,yieldUi:yieldForUi});
+      prepared={plan:freshPlan,alpha:fresh.alpha};
+    }
     if(cancelled())return report;
-    // Worker transfers its RGBA ArrayBuffer; retain a separate pixel mask
-    // for independent silhouette fidelity verification.
-    const originalMask={width:raster.width,height:raster.height,pixels:new Uint8Array(raster.pixels)};
+    // Keep the high-resolution alpha in temporary RAM for a strict 600dpi
+    // result comparison. Only the downsampled/size-bounded black RGBA copy
+    // is transferred to DoctorTracer; the cached buffer is never detached.
+    const plan=boundedWorkerRasterPlan(prepared.plan);
+    const originalMask=workerRasterFromPreparedMask(prepared,plan);
+    const raster={...originalMask,pixels:new Uint8Array(originalMask.pixels)};
+    record('doctortracer-rgba-ready',{backend:raster.backend,mask:raster.mask,
+      width:raster.width,height:raster.height,bytes:raster.pixels.byteLength,
+      cacheHit,preparedWidth:prepared.plan.width,
+      preparedHeight:prepared.plan.height,
+      preparedDpi:Number(prepared.plan.dpi.toFixed(3)),
+      workerDpi:Number(plan.dpi.toFixed(3)),
+      source:source.sourceFileName||null});
     progressStage('DoctorTracer: трассировка Rust WASM',30);
     const {candidate,traced,tracePlan,attempts}=await traceDocumentWithNodeBudget(source,plan,{
       // Stable physical silhouette: node-budget retries downsample this
@@ -1302,8 +1321,15 @@ async function retryUnfixableWithDoctorTracer(preview,report,callRust,generation
     });
     if(cancelled())return report;
     progressStage('DoctorTracer: сверка растрового силуэта',72);
-    const candidateRaster=await rasterizeDocument(candidate,plan,{signal:abort.signal});
-    const similarity=maskSimilarity(originalMask,candidateRaster);
+    // Validate at the PREPARED resolution (600dpi where within resource
+    // bounds), never merely against a reduced Worker input.
+    const candidateRaster=await rasterizeDocumentAlpha(candidate,prepared.plan,{
+      signal:abort.signal,yieldUi:yieldForUi,
+      onProgress:f=>progressStage('DoctorTracer: сверка 600 dpi',72+Math.round(f*6))
+    });
+    const similarity=maskSimilarity({
+      width:prepared.plan.width,height:prepared.plan.height,alpha:prepared.alpha
+    },candidateRaster);
     if(similarity.iou<.95||similarity.areaRatio<.95||similarity.areaRatio>1.05)
       throw Error('новая геометрия заметно отличается от исходного растра (IoU '+
         similarity.iou.toFixed(3)+', площадь '+similarity.areaRatio.toFixed(3)+')');
