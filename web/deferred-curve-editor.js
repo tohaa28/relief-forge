@@ -113,7 +113,12 @@ export function createDeferredCurveEditor(path){
   function capture(ids){
     const entries=new Map(ids.filter(i=>i!==null&&i!==undefined&&commands[i]).map(i=>[i,cp(commands[i])]));
     const positions=new Map();
-    for(const node of nodes)if(entries.has(node.index))positions.set(node.index,[...node.point]);
+    // O(k) where k is 1..3 changed commands. Do NOT walk every Bézier
+    // anchor in the 7,545-segment compound path at every completed gesture.
+    for(const i of entries.keys()){
+      const node=nodeMap.get(i);
+      if(node)positions.set(i,[...node.point]);
+    }
     return {entries,positions,kinds:{...kinds},dirty,touched:[...ids]};
   }
   function perform(ids,operation){
@@ -208,9 +213,10 @@ export function createDeferredCurveEditor(path){
       kinds[index]=kind;node.type=kind;
     });
   }
-  function affectedSVG(){
+  function affectedSVG(indices=null){
+    if(!dirty)return [];
     const paths=[];
-    for(const i of touched){
+    for(const i of indices??touched){
       const c=segment(i);
       if(c)paths.push({key:i,d:svgSegment(c.controls)});
     }
