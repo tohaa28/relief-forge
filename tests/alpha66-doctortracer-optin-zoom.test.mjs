@@ -41,3 +41,8 @@ test('viewport panning rebuild threshold compares actual previous viewport, not 
 test('enabling DoctorTracer applies to existing AFTER preview on Apply without reimport',()=>{
  assert.match(app,/modified\.includes\('doctortracer-enabled'\)&&settingChecked\('doctortracer-enabled'\)&&[\s\S]*?curvePreview\?\.afterDiagnosed\)void checkPreviewAfter\(curvePreview\)/);
 });
+
+test('manual editor builds a native segment index and local geometry before any node click',()=>{
+ assert.match(app,/if\(Number\.isInteger\(primary\)&&localEditor\(primary\)\)manualFocus=/);
+ assert.match(app,/render\(\);\n  if\(manualFocus\)drawLocalEditorOverlay\(\);/);
+});

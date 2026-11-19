@@ -37,7 +37,11 @@ try{
  await page.locator('#curve-edit').click();
  await page.waitForFunction(()=>document.body.classList.contains('curve-editing'));
  const original=await page.locator('#geometry').innerHTML();
- const point=await page.locator('#canvas').boundingBox();
+ // Zoom around a real indexed anchor, not an empty center of the page.
+ const glyph=page.locator('#manual-glyphs .curve-node').first();
+ assert.ok(await glyph.count()>0,'manual index must prime before node selection');
+ const point=await glyph.boundingBox();
+ assert.ok(point,'focus anchor is visible');
  const cx=point.x+point.width/2,cy=point.y+point.height/2;
  await page.mouse.move(cx,cy);
  const wheelDurations=[];

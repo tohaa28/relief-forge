@@ -1644,7 +1644,14 @@ function startCurveEditor(){
   markersVisible=true;
   selected=new Set([...selected].filter(i=>doc.paths[i]&&doc.paths[i].kind!=='image'));
   if(!selected.size){const i=doc.paths.findIndex(p=>p.kind!=='image');if(i>=0)selected=new Set([i]);}
+  // Prime the native segment index and local SVG layer at editor entry.
+  // Otherwise deep zoom before the first node click would repaint the full
+  // 2300–7545-C source compound, because localEditors would still be empty.
+  const primary=[...selected][0],view=$('canvas').viewBox.baseVal;
+  if(Number.isInteger(primary)&&localEditor(primary))manualFocus={path:primary,
+    point:[view.x+view.width/2,view.y+view.height/2]};
   render();
+  if(manualFocus)drawLocalEditorOverlay();
   // A single full scan is scheduled on exit. The old rings stay visible as
   // witnesses while the operator edits the local command buffer.
   status('Режим локальной правки: полная геометрия и проверка обновятся только после «Готово».');
