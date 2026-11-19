@@ -29,7 +29,7 @@ test('user-initiated defect scan only diagnoses, does not start automatic optimi
 });
 
 test('unchanged exit pauses clearance Worker without mislabeling existing valid defect witnesses',()=>{
- assert.match(app,/manualClearancePaused=true;\n  clearTimeout\(settingsTimeout\)/);
+ assert.match(app,/suppressNextDiagnostic=true;manualClearancePaused=true;\n  clearTimeout\(settingsTimeout\)/);
  assert.match(app,/\}else render\(\);\n  status\(updated\.size/);
  assert.match(app,/manualReviewPending=skipDiagnostics;\n  manualClearancePaused=skipDiagnostics;/);
  assert.match(app,/manualReviewPending=false;manualClearancePaused=false;/);

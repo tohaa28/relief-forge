@@ -434,7 +434,7 @@ function exitDeferredCurveEditor(){
     return false;
   }
   const operations=localEditCount;
-  manualClearancePaused=true;
+  suppressNextDiagnostic=true;manualClearancePaused=true;
   clearTimeout(settingsTimeout);
   if(updated.size)checkpoint();
   for(const [path,vector] of updated)doc.paths[path]=vector;
