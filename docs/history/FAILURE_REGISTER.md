@@ -1,3 +1,11 @@
+
+## CI #44602496526 — 374/377 JavaScript, три совместимости старых тестов
+- GitHub Actions https://github.com/tohaa28/relief-forge/actions/runs/44602496526 остановился на npm test (374 pass, 3 fail), до Rust/WASM/browser этапов.
+- tests/compact-layout.test.mjs жёстко ожидал три кнопки. Разрешена отдельная кнопка «Проверить дефекты», старые автоматические действия не вернулись.
+- tests/large-file-support.test.mjs жёстко ожидал старую сигнатуру runProgressiveDiagnostics(indices,tolerance); обновлён шаблон под необязательный {diagnosticsOnly=false}, сохраняя старые вызовы.
+- tests/preview-history.test.mjs исполняет Undo/Redo в VM без нового manualReviewPending: ReferenceError. Добавлен false в изолированный контекст; геометрия и история по-прежнему проверяются, добавлен assert skipDiagnostics=false для обычного Undo.
+- Факты неудачного CI сохранены. После изменения повторить полный pipeline, в особенности реальное браузерное испытание завершения ручного редактора.
+
 ## F-067. Повторная диагностика после ручного редактора нарушала скорость и контроль пользователя (2026-11-19)
 - В alpha.66 exitDeferredCurveEditor с правками вызывал changed('curve-session-commit') → requestRecalculation() → 180 мс → calculate(0) → полная Rust/native диагностика и автоматическая оптимизация. Без изменений повторная проверка тоже запускалась. Сброс clearanceKey заставлял render запускать clearance-worker даже при простом закрытии.
 - Старые дефекты после изменения геометрии нельзя считать актуальными. Но очищать их и показывать ноль также ложно; нужен статус «не проверено».

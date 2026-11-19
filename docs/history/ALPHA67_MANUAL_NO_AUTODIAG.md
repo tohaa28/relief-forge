@@ -13,3 +13,10 @@ tests/alpha67-manual-no-auto-diagnosis.test.mjs: статические огра
 
 ## Статус
 КАНДИДАТ. Не публиковать до зелёного CI. Полная история alpha66 сохранена. При неудаче откат на 2d41b4fce1436b51b392157b991b97356d0a0cec, не менять исходный PDF/EPS и не снижать требования tests/history-integrity.test.mjs.
+
+## CI #44602496526 — 374/377 JavaScript, три совместимости старых тестов
+- GitHub Actions https://github.com/tohaa28/relief-forge/actions/runs/44602496526 остановился на npm test (374 pass, 3 fail), до Rust/WASM/browser этапов.
+- tests/compact-layout.test.mjs жёстко ожидал три кнопки. Разрешена отдельная кнопка «Проверить дефекты», старые автоматические действия не вернулись.
+- tests/large-file-support.test.mjs жёстко ожидал старую сигнатуру runProgressiveDiagnostics(indices,tolerance); обновлён шаблон под необязательный {diagnosticsOnly=false}, сохраняя старые вызовы.
+- tests/preview-history.test.mjs исполняет Undo/Redo в VM без нового manualReviewPending: ReferenceError. Добавлен false в изолированный контекст; геометрия и история по-прежнему проверяются, добавлен assert skipDiagnostics=false для обычного Undo.
+- Факты неудачного CI сохранены. После изменения повторить полный pipeline, в особенности реальное браузерное испытание завершения ручного редактора.

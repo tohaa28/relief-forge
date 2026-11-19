@@ -11,9 +11,9 @@ test('Undo and Redo operate on committed documents while an automatic preview ex
   const buttons={undo:{},redo:{}};
   const context={doc:structuredClone(committed),past:[structuredClone(original)],future:[],
     curvePreview:preview,busy:false,curveEditing:()=>false,selected:new Set([0]),clone:structuredClone,
-    localEditUndo:[],localEditRedo:[],
+    localEditUndo:[],localEditRedo:[],manualReviewPending:false,
     $:id=>buttons[id]};
-  context.changed=()=>{context.curvePreview=null;};
+  context.changed=(action,opts)=>{context.curvePreview=null;context.lastChange={action,skipDiagnostics:opts?.skipDiagnostics};};
   vm.createContext(context);
   const availability=app.split(/\r?\n/).find(line=>
     line.includes("$('undo').disabled=")&&line.includes("$('redo').disabled="));
@@ -31,6 +31,7 @@ test('Undo and Redo operate on committed documents while an automatic preview ex
   assert.deepEqual(context.doc,original);
   assert.deepEqual(context.future,[committed],'unapplied preview never enters history');
   assert.equal(context.curvePreview,null);
+  assert.deepEqual(context.lastChange,{action:'undo',skipDiagnostics:false});
   context.curvePreview=preview; // automatic recalculation after Undo
   vm.runInContext(availability,context);
   assert.equal(buttons.redo.disabled,false,'recalculation must not prevent redo');
@@ -39,4 +40,5 @@ test('Undo and Redo operate on committed documents while an automatic preview ex
   assert.deepEqual(context.doc,committed);
   assert.deepEqual(context.past,[original]);
   assert.equal(context.curvePreview,null);
+  assert.deepEqual(context.lastChange,{action:'redo',skipDiagnostics:false});
 });
