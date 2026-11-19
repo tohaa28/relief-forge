@@ -124,7 +124,34 @@ let diagnosticComplete=true,markersVisible=true,pointsVisible=true,appliedCompar
 let manualFocus=null,manualLocalTimer=null,manualLocalGeneration=0;
 
 let localEditors=new Map(),localEditUndo=[],localEditRedo=[],localEditCount=0;
-let localEditorIndexes=new Map();
+let localEditorIndexes=new Map(),localPatchElements=new Map();
+const localPatchKey=(path,segment)=>path+':'+segment;
+function syncLocalPatches({path=null,segments=null,reset=false}={}){
+  const layer=$('manual-patches');
+  if(reset){
+    layer.replaceChildren();localPatchElements.clear();
+    for(const [p,editor] of localEditors)
+      for(const piece of editor.affectedSVG()){
+        const elNode=el('path',{class:'manual-staged-segment',d:piece.d,
+          'data-path':p,'data-local-segment':piece.key},layer);
+        localPatchElements.set(localPatchKey(p,piece.key),elNode);
+      }
+    return;
+  }
+  if(path===null)return;
+  const editor=localEditors.get(path);
+  if(!editor)return;
+  for(const piece of editor.affectedSVG(segments)){
+    const key=localPatchKey(path,piece.key);
+    let node=localPatchElements.get(key);
+    if(node)node.setAttribute('d',piece.d);
+    else{
+      node=el('path',{class:'manual-staged-segment',d:piece.d,
+        'data-path':path,'data-local-segment':piece.key},layer);
+      localPatchElements.set(key,node);
+    }
+  }
+}
 function localEditor(path){
   if(!doc.paths[path]||doc.paths[path].kind==='image')return null;
   if(!localEditors.has(path)){
@@ -135,7 +162,7 @@ function localEditor(path){
   return localEditors.get(path);
 }
 function resetLocalEditors(){
-  localEditors.clear();localEditorIndexes.clear();
+  localEditors.clear();localEditorIndexes.clear();localPatchElements.clear();
   localEditUndo=[];localEditRedo=[];localEditCount=0;
   $('manual-patches').replaceChildren();
   $('manual-glyphs').replaceChildren();
@@ -159,12 +186,8 @@ function localEditorToolbar(){
 function drawLocalEditorOverlay(){
   if(!curveEditing()||!localEditors.size)return;
   document.body.classList.add('local-editor-active');
-  const layer=$('manual-patches');layer.replaceChildren();
-  for(const [path,editor] of localEditors){
-    for(const piece of editor.affectedSVG())
-      el('path',{class:'manual-staged-segment',d:piece.d,'data-path':path,
-        'data-local-segment':piece.key},layer);
-  }
+  // The staged segments stay mounted across clicks, panning and mouseup.
+  // Only the <=200 nearby glyphs are replaced, never all accumulated patches.
   const glyphs=$('manual-glyphs');glyphs.replaceChildren();
   if(!manualFocus)return;
   const path=manualFocus.path,editor=localEditor(path);
@@ -208,7 +231,7 @@ function drawLocalEditorOverlay(){
   }
   localEditorToolbar();
 }
-function localEditorModified(path,action){
+function localEditorModified(path,action,changedSegments=null){
   if(!curveEditing())return;
   localEditUndo.push(path);localEditRedo=[];localEditCount++;
   manualDiagnosticsPending=true;diagnosticComplete=false;
@@ -216,7 +239,10 @@ function localEditorModified(path,action){
     geometryCommitted:false,fullDiagnosticDeferred:true});
   // Keep the original spatial index during repeated point moves; rebuilding
   // thousands of anchors here was the last O(N) cost on every mouseup.
-  // A structural insert/delete requests a one-time index refresh separately.
+  // A move or handle drag touches only 1..3 native segments. Structural
+  // changes can renumber commands, so rebuild their overlay just once.
+  if(changedSegments)syncLocalPatches({path,segments:changedSegments});
+  else syncLocalPatches({reset:true});
   drawLocalEditorOverlay();
   status('Локальная правка сохранена в редакторе ('+localEditCount+
     '). Общий пересчёт и проверка только после «Готово».');
@@ -1288,7 +1314,9 @@ function runLocalNodeEdit(path,action,details={}){
     // 7,545 SVG segments or the imported document here.
     if(['add','remove','close','break','reverse'].includes(action))
       localEditorIndexes.set(path,buildAnchorIndex(editor.nodeList()));
-    localEditorModified(path,action);
+    localEditorModified(path,action,
+      ['add','remove','close','break','reverse'].includes(action)?
+        null:Array.isArray(result)?result:[]);
     return true;
   }catch(error){status(error.message);return false;}
 }
@@ -1473,7 +1501,7 @@ $('canvas').addEventListener('pointerup',e=>{
         if(changed.length){
           manualFocus={path:drag.path,point:drag.curveHandle?
             [...(editor.nodePosition(drag.curveNode)||pos)]:[...target]};
-          localEditorModified(drag.path,drag.curveHandle?'handle':'move');
+          localEditorModified(drag.path,drag.curveHandle?'handle':'move',changed);
         }else drawLocalEditorOverlay();
       }catch(error){status(error.message);drawLocalEditorOverlay();}
     }else drawLocalEditorOverlay();
@@ -1544,7 +1572,7 @@ $('undo').onclick=()=>{
       localEditRedo.push(path);localEditCount=Math.max(0,localEditCount-1);
       localEditorIndexes.set(path,buildAnchorIndex(editor.nodeList()));
       manualFocus={path,point:manualFocus?.point||[0,0]};activeCurveNode=null;
-      drawLocalEditorOverlay();
+      syncLocalPatches({reset:true});drawLocalEditorOverlay();
       status('Локальная отмена. Общий документ пока не менялся.');
     }
     return;
@@ -1561,7 +1589,8 @@ $('redo').onclick=()=>{
       localEditUndo.push(path);localEditCount++;
       localEditorIndexes.set(path,buildAnchorIndex(editor.nodeList()));
       manualFocus={path,point:manualFocus?.point||[0,0]};activeCurveNode=null;
-      drawLocalEditorOverlay();status('Локальный повтор; изменения ещё не записаны в фигуру.');
+      syncLocalPatches({reset:true});drawLocalEditorOverlay();
+      status('Локальный повтор; изменения ещё не записаны в фигуру.');
     }
     return;
   }
