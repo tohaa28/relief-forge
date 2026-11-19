@@ -1,3 +1,13 @@
+### F-058.1. Ошибка текстового сравнения двойного пробела между подконтрами в CI
+- CI [44478801368](https://github.com/tohaa28/relief-forge/actions/runs/44478801368) FAILED единственный `tests/doctortracer-fallback.test.mjs` (335 PASS / 1 FAIL). SVG фактически корректен: `Z  M5 5` вместо ожидаемого `Z M5 5`. После `fragment.trim()` JSON path и real EVENODD остаются точными; CI 44478991540 SUCCESS (336 JS +17 Rust+WASM).
+- Не откатывать поддержку hole grouping из-за косметического пробела. Следующее: проверка реального DoctorTracer Worker в браузере, не проверялась CI.
+
+## F-058. Реконструкция при множестве неисправленных ошибок (кандидат)
+- **Требование:** >10 дефектов в результате обычного лечения — DoctorTracer через локальный растр и обратную векторизацию. Не классифицировать неполное сканирование как ноль ошибок.
+- **Риски/отклонённые методы:** прямой безусловный заменяющий retrace может удалить мелкие детали и изменять открытые линии на замкнутые полосковые контуры. Копирование GPL DoctorTracer runtime в MIT проект не применяется. Не вызывать DoctorTracer при одном выделенном объекте, неполной диагностике и отсутствии Worker.
+- **Принято:** origin-isolated external same-site Worker, fail closed, IoU>=0.95, area ratio 0.95..1.05, strict decrease in complete post-diagnostic issue count, preserve original for Undo. При ошибке показывать блокер, оставлять исходный AFTER. Изображение не отправляется на сервер.
+- **Доказательства:** протокол и unit fixtures `tests/doctortracer-fallback.test.mjs`, пока CI не подтверждён. [Отдельная документация](ALPHA58_DOCTORTRACER_FALLBACK.md). Rollback alpha.57 `9449e4d`.
+
 ### F-057 CI: проверенные неудачные циклы и точное исправление
 - Первые сборки `44467633646` и `44467807182` (FAIL): release cache-key test нашёл 32 JS modules c `?v=0.2.0-alpha.56` после смены package на alpha.57; history integrity до фиксации docs не нашёл alpha.57 в NEXT_CHAT; `real-after-node-refit.test.mjs` сопоставлял устаревшую исходную строку, хотя `after` теперь берётся из `untangled.document`.
 - Исправления: синхронизация всех import URL; отдельная регрессия на новый `after`; обновление release docs. Закрыто CI `44468034227`: JS 325 PASS, Rust 17 PASS, WASM PASS.
