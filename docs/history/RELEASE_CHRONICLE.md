@@ -1,3 +1,9 @@
+## 0.2.0-alpha.58 CANDIDATE — DoctorTracer fallback (2026-11-19)
+- Порог строго >10 после завершённой диагностики ПОСЛЕ. Запуск внешнего same-origin DoctorTracer Web 0.16.0 Rust WASM Worker, но не копирование GPL-кода в Relief Forge.
+- Импортированный вектор → растр локально в Canvas (300 DPI, <=2400px, ROI в мм) → новая векторная трассировка → обратное преобразование в мм. Принимать кандидат только после полной повторной диагностики с уменьшением дефектов и IoU >=0.95 при стабильной площади.
+- Исходник и Undo, ДО/ПОСЛЕ и EPS защищены; противопоказания: частичная проверка, отдельное выделение, raster, недостаточное совпадение, недоступный DoctorTracer, открытые осевые линии (трассировка превращает штрих в контур).
+- База для отката alpha.57 `9449e4d409ba8ec339d8fb066100d30e0ca18283`. Ветка `feature/alpha58-doctortracer-fallback`. Source/tests written; **CI/browser/deployment not verified**. [Подробный журнал](history/ALPHA58_DOCTORTRACER_FALLBACK.md).
+
 ## 0.2.0-alpha.57: ПРОВЕРЕНА СБОРКА MAIN И УСПЕШНЫЙ DEPLOY (2026-11-19)
 - **Исходники:** PR #88 объединён в `main` коммитом `9d211f05f22ec4bc696c5dc21f7c3a4f750d445f`, последующий docs checkpoint `ba39ca4286a364e06202f78445577cb21e0eb2f9`. Основной функциональный PR CI `44468034227` — SUCCESS: 325/325 JS, 17/17 Rust, свежий релизный WASM. 
 - **Опубликовано GitHub Pages:** основной workflow [44468646086](https://github.com/tohaa28/relief-forge/actions/runs/44468646086) на head `ba39ca4286a364e06202f78445577cb21e0eb2f9` завершён **SUCCESS / build SUCCESS / deploy SUCCESS**. Адрес приложения: https://tohaa28.github.io/relief-forge/?v=alpha57. **Независимый внешний web-open не смог получить страницу**, поэтому browser-smoke из внешней сети и фактическое пользовательское открытие остаются не подтверждены; не приравнивать успешный Actions deploy к browser acceptance.

@@ -851,3 +851,10 @@ Next: if user still sees discrepancy, obtain same file/marked location and ArtCA
 - **Неудачные циклы:** GitHub Actions 44467633646, 44467807182 (версия URL-модулей, история, устаревшая проверка after assignment) документированы в F-057. Исправление подтвердили 325 JS / 17 Rust / WASM.
 - **Восстановление и следующий шаг:** baseline rollback alpha.56 `252e57e39d9ec499750db384447332744062028f`; частный `gerb2.pdf` не выгружался в GitHub. Следующая приёмка — проверить настоящие совпадающие несоседние узлы и визуальное качество на пользовательском файле в браузере, включая экспорт EPS и возврат по Undo.
 
+## 0.2.0-alpha.58 CANDIDATE — DoctorTracer fallback (2026-11-19)
+- Порог строго >10 после завершённой диагностики ПОСЛЕ. Запуск внешнего same-origin DoctorTracer Web 0.16.0 Rust WASM Worker, но не копирование GPL-кода в Relief Forge.
+- Импортированный вектор → растр локально в Canvas (300 DPI, <=2400px, ROI в мм) → новая векторная трассировка → обратное преобразование в мм. Принимать кандидат только после полной повторной диагностики с уменьшением дефектов и IoU >=0.95 при стабильной площади.
+- Исходник и Undo, ДО/ПОСЛЕ и EPS защищены; противопоказания: частичная проверка, отдельное выделение, raster, недостаточное совпадение, недоступный DoctorTracer, открытые осевые линии (трассировка превращает штрих в контур).
+- База для отката alpha.57 `9449e4d409ba8ec339d8fb066100d30e0ca18283`. Ветка `feature/alpha58-doctortracer-fallback`. Source/tests written; **CI/browser/deployment not verified**. [Подробный журнал](history/ALPHA58_DOCTORTRACER_FALLBACK.md).
+
+- Инспекция независимого DoctorTracer release tag v0.16.0-wasm-preview: подтверждён контракт Worker для RGBA→SVG. Отдельный проект не модифицирован. Source and deterministic tests written, CI needs independent verification. Замена проверяется на IoU и повторной диагностике.
