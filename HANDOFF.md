@@ -1,3 +1,5 @@
+## 0.2.0-alpha.60 — Canvas RGBA + оптимизация ручного редактора (PR #92)
+
 # 0.2.0-alpha.56 VERIFIED SOURCE RELEASE — 2026-11-19
 
 Functional PR https://github.com/tohaa28/relief-forge/pull/86 **merged to main** at `1e9ff2b617c7b1df57f3d4bf96ac870eba12a80d`. Full real-WASM + browser CI https://github.com/tohaa28/relief-forge/actions/runs/44464521648 **SUCCESS**: **318/318 JavaScript tests, 17/17 Rust tests**, EPS/PDF/Union/CNC/import/export/Undo, current startup recovery. Browser stress: synthetic **2300 cubic segments**; **40 mousemoves and seven completed mouseups with 0 rebuilds of the underlying #geometry**, local Ctrl+Z/Ctrl+Y and **one final commit on «Готово»**. User's gerb2.pdf was earlier inspected as one compound object with 7545 cubic segments; **direct browser acceptance on that exact private PDF has not been performed**. GitHub Pages live deployment was not independently verifiable; source/main and PR CI are verified, not public-site freshness.

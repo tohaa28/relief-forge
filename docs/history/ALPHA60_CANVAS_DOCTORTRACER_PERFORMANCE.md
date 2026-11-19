@@ -42,3 +42,6 @@
 
 ## Вторая неудачная попытка CI — и её устранение
 [Actions #44512543000](https://github.com/tohaa28/relief-forge/actions/runs/44512543000): снова **341/343 JS**, т.к. Node strictEqual отличает -0 от +0 даже для одиночного числа в моке. Реальная Canvas матрица геометрически корректна. Исправлено сравнением абсолютной погрешности Math.abs(value)<1e-12. Отдельная причина: release-integrity требует точного префикса **0.2.0-alpha.60** (а не краткого «alpha.60») одновременно в `docs/NEXT_CHAT_START.md` и `docs/history/RELEASE_CHRONICLE.md`; добавлены строки exact-version. Эти два сбоя не являлись ошибками нового алгоритма.
+
+## Третья CI-проверка
+[44512930495](https://github.com/tohaa28/relief-forge/actions/runs/44512930495): **342/343 JS PASS**, единственное требование `tests/history-integrity.test.mjs`: полная строка версии `0.2.0-alpha.60` должна присутствовать ещё и в `HANDOFF.md`. Сам Canvas test + 1975 objects, native Worker contract и редакторные тесты PASS. Требуемый заголовок добавлен в текущем коммите. Не удалять историю прошлых неудач.
