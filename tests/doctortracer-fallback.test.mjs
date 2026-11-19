@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {DOMParser} from '@xmldom/xmldom';
 import {needsDoctorTracer,rasterPlan,vectorRasterSvg,doctorTracerWorkerUrl,
   traceWithDoctorTracer,remapDoctorTracerSvg,maskSimilarity,acceptRetracing,
-  rasterizeDocument} from '../web/doctortracer-fallback.js';
+  rasterizeDocument,makeRasterPaths} from '../web/doctortracer-fallback.js';
 const p=(coordinates,closed=true)=>({
   kind:'vector',artwork:'<path fill="none" stroke="#123"/>',offset:[0,0],
   commands:coordinates.map((pt,i)=>[i?'L':'M',...pt]).concat(closed?[['Z']]:[]),
@@ -132,19 +132,82 @@ test('fidelity and diagnosis must both improve before a replacement is allowed',
   assert.equal(acceptRetracing(11,complete(0),{iou:1,areaRatio:1.2}),false);
   assert.equal(maskSimilarity(a,{...b,pixels:new Uint8Array(8)}).iou,0);
 });
-test('rasterizer can run with injected bitmap and Canvas 2D, no network or file mutation',async()=>{
-  const input=doc(),plan=rasterPlan(input),src=structuredClone(input);
-  let created=false,closed=false;
+test('native Canvas2D rasterizer accepts complex vector paths without SVG image decoder',async()=>{
+  const input=doc(),plan=rasterPlan(input),src=structuredClone(input),ops=[];
+  class NativePath{
+    constructor(){this.ops=[];}
+    moveTo(...a){this.ops.push(['M',...a]);}
+    lineTo(...a){this.ops.push(['L',...a]);}
+    quadraticCurveTo(...a){this.ops.push(['Q',...a]);}
+    bezierCurveTo(...a){this.ops.push(['C',...a]);}
+    closePath(){this.ops.push(['Z']);}
+  }
+  const pixel=new Uint8ClampedArray(plan.width*plan.height*4);
+  pixel[3]=255; // simulate opaque ink
   const output=await rasterizeDocument(input,plan,{
-    bitmap:async blob=>{created=blob.type==='image/svg+xml';return {close(){closed=true;}};},
+    pathFactory:NativePath,
+    yieldUi:async()=>{},
     canvasFactory:()=>({getContext:()=>({
-      clearRect(){},drawImage(){},getImageData:()=>({data:new Uint8ClampedArray(plan.width*plan.height*4)})
+      clearRect(...a){ops.push(['clear',...a]);},
+      setTransform(...a){ops.push(['matrix',...a]);},
+      fill(path,rule){ops.push(['fill',path.ops,rule]);},
+      stroke(path){ops.push(['stroke',path.ops]);},
+      getImageData:()=>({data:pixel})
     })})
   });
-  assert.equal(created,true);assert.equal(closed,true);
+  assert.equal(output.backend,'Canvas 2D native M/L/Q/C');
+  assert.equal(output.closed,1);assert.equal(output.open,0);
+  assert.deepEqual(ops.filter(o=>o[0]==='fill').map(o=>o[2]),['evenodd']);
+  assert.ok(ops.filter(o=>o[0]==='fill')[0][1].some(v=>v[0]==='Z'));
   assert.equal(output.pixels.length,plan.width*plan.height*4);
+  assert.equal(output.pixels[3],255);
   assert.deepEqual(input,src);
 });
+test('native raster preserves holes, open strokes, Q and C control-point semantics',async()=>{
+  class CPath{
+    constructor(){this.ops=[];}
+    moveTo(...p){this.ops.push(['M',...p]);}
+    lineTo(...p){this.ops.push(['L',...p]);}
+    quadraticCurveTo(...p){this.ops.push(['Q',...p]);}
+    bezierCurveTo(...p){this.ops.push(['C',...p]);}
+    closePath(){this.ops.push(['Z']);}
+  }
+  const compounds=[
+    ['M',0,0],['L',10,0],['L',10,10],['L',0,10],['Z'],
+    ['M',2,2],['L',2,8],['L',8,8],['L',8,2],['Z'],
+    ['M',15,1],['Q',19,5,16,9],['C',17,10,18,11,19,12]
+  ];
+  const built=makeRasterPaths(compounds,CPath);
+  assert.equal(built.closedParts,2);
+  assert.equal(built.openParts,1);
+  assert.equal(built.closed.ops.filter(v=>v[0]==='Z').length,2);
+  assert.ok(built.open.ops.some(v=>v[0]==='Q'));
+  assert.ok(built.open.ops.some(v=>v[0]==='C'));
+});
+test('1975-path complex EPS is batched without image-decoder invocation',async()=>{
+  const input=doc(Array.from({length:1975},(_,i)=>p([
+    [i%90,Math.floor(i/90)],[i%90+.4,Math.floor(i/90)],
+    [i%90+.4,Math.floor(i/90)+.4],[i%90,Math.floor(i/90)+.4]
+  ])));
+  const plan=rasterPlan(input,{maxSide:320}),events=[];
+  class RecordedPath{
+    moveTo(){}lineTo(){}quadraticCurveTo(){}bezierCurveTo(){}closePath(){}
+  }
+  const pixels=new Uint8ClampedArray(plan.width*plan.height*4);pixels[3]=255;
+  const out=await rasterizeDocument(input,plan,{
+    pathFactory:RecordedPath,
+    yieldUi:async()=>{},
+    onProgress:e=>events.push(e.processed),
+    canvasFactory:()=>({getContext:()=>({
+      clearRect(){},setTransform(){},fill(){},stroke(){},getImageData:()=>({data:pixels})
+    })})
+  });
+  assert.equal(out.closed,1975);
+  assert.equal(events.at(-1),1975);
+  assert.ok(events.length>=40&&events.length<=45);
+  assert.equal(out.width,plan.width);
+});
+
 test('AFTER integration takes source, rechecks candidate and keeps undo; does not rerun on every edit',()=>{
   const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
   const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
