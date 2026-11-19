@@ -1648,7 +1648,9 @@ function startCurveEditor(){
   // Otherwise deep zoom before the first node click would repaint the full
   // 2300–7545-C source compound, because localEditors would still be empty.
   const primary=[...selected][0],view=$('canvas').viewBox.baseVal;
-  if(Number.isInteger(primary)&&localEditor(primary))manualFocus={path:primary,
+  // Light documents retain their old visible native #geometry node glyphs.
+  // Prime a detached index only if the document is actually costly to paint.
+  if(heavyManualScene(doc.paths)&&Number.isInteger(primary)&&localEditor(primary))manualFocus={path:primary,
     point:[view.x+view.width/2,view.y+view.height/2]};
   render();
   if(manualFocus)drawLocalEditorOverlay();

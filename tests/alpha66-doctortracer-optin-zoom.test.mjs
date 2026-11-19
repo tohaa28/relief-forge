@@ -43,6 +43,6 @@ test('enabling DoctorTracer applies to existing AFTER preview on Apply without r
 });
 
 test('manual editor builds a native segment index and local geometry before any node click',()=>{
- assert.match(app,/if\(Number\.isInteger\(primary\)&&localEditor\(primary\)\)manualFocus=/);
+ assert.match(app,/if\(heavyManualScene\(doc\.paths\)&&Number\.isInteger\(primary\)&&localEditor\(primary\)\)manualFocus=/);
  assert.match(app,/render\(\);\n  if\(manualFocus\)drawLocalEditorOverlay\(\);/);
 });
