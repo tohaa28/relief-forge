@@ -32,3 +32,12 @@ test('manual cursor mapping accounts for xMidYMid letterboxing and zoom without 
  assert.match(app,/screenToDocumentPoint\(e\.clientX,e\.clientY,manualScreenRect,canvas\.viewBox\.baseVal\)/);
  assert.match(app,/window\.addEventListener\('scroll',\(\)=>\{manualScreenRect=null;\},true\)/);
 });
+
+test('viewport panning rebuild threshold compares actual previous viewport, not off-center focused anchor',()=>{
+ assert.match(app,/manualViewportCenter&&Math\.hypot\(center\[0\]-manualViewportCenter\[0\]/);
+ assert.match(app,/manualViewportCenter=center/);
+ assert.doesNotMatch(app,/const moved=manualGlyphCenter&&/);
+});
+test('enabling DoctorTracer applies to existing AFTER preview on Apply without reimport',()=>{
+ assert.match(app,/modified\.includes\('doctortracer-enabled'\)&&settingChecked\('doctortracer-enabled'\)&&[\s\S]*?curvePreview\?\.afterDiagnosed\)void checkPreviewAfter\(curvePreview\)/);
+});

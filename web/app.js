@@ -137,7 +137,8 @@ let manualFocus=null,manualLocalTimer=null,manualLocalGeneration=0;
 let localEditors=new Map(),localEditUndo=[],localEditRedo=[],localEditCount=0;
 let localEditorIndexes=new Map(),localPatchElements=new Map();
 let manualGlyphBuildUnit=0,manualZoomFrame=0,manualZoomRegion=null,manualZoomDirty=true;
-let manualPathBounds=null,manualSceneHeavy=null,manualGlyphCenter=null,manualScreenRect=null;
+let manualPathBounds=null,manualSceneHeavy=null,manualGlyphCenter=null,
+  manualViewportCenter=null,manualScreenRect=null;
 const localPatchKey=(path,segment)=>path+':'+segment;
 function syncLocalPatches({path=null,segments=null,reset=false}={}){
   const layer=$('manual-patches');
@@ -193,7 +194,7 @@ function resetLocalEditors(){
   if(manualZoomFrame)cancelAnimationFrame(manualZoomFrame);
   manualZoomFrame=0;manualGlyphBuildUnit=0;manualZoomRegion=null;
   manualZoomDirty=true;manualPathBounds=null;manualSceneHeavy=null;
-  manualGlyphCenter=null;manualScreenRect=null;
+  manualGlyphCenter=null;manualViewportCenter=null;manualScreenRect=null;
   document.body.classList.remove('local-editor-active','manual-local-zoom');
 }
 function localEditorToolbar(){
@@ -323,8 +324,8 @@ function scheduleManualZoomRefresh(){
     }
     const center=[view.x+view.width/2,view.y+view.height/2];
     const glyphRadius=Math.max(unit*90,settingNumber('tolerance')*2);
-    const moved=manualGlyphCenter&&Math.hypot(center[0]-manualGlyphCenter[0],
-      center[1]-manualGlyphCenter[1])>glyphRadius;
+    const moved=manualViewportCenter&&Math.hypot(center[0]-manualViewportCenter[0],
+      center[1]-manualViewportCenter[1])>glyphRadius;
     // Rebuild nearby anchors when panning outside the glyph neighbourhood.
     // Glyph icons are re-created only after a significant zoom change;
     // the native Bézier layer is recycled across many wheel frames.
@@ -355,7 +356,7 @@ function drawLocalEditorOverlay(){
   const center=[view.x+view.width/2,view.y+view.height/2];
   const glyphCenter=Math.abs(focus[0]-center[0])<=view.width*.65&&
     Math.abs(focus[1]-center[1])<=view.height*.65?focus:center;
-  manualGlyphCenter=glyphCenter;
+  manualGlyphCenter=glyphCenter;manualViewportCenter=center;
   const near=nearbyAnchors(indexed,glyphCenter,Math.max(unit*135,settingNumber('tolerance')*3),
     {limit:200,includeIndex:activeCurveNode?.path===path?activeCurveNode.index:null});
   const seen=new Set();
@@ -1017,6 +1018,10 @@ async function applySettingsAndChanges(){
       $('settings-pending').textContent='Параметры применены без изменения геометрии.';
       record('non-geometric-settings-apply',{modified,doctorTracerEnabled:settingChecked('doctortracer-enabled')});
       render();status('Настройки применены. Документ и результат ПОСЛЕ не изменены.');
+      // If a user opts in after import, evaluate the existing AFTER preview
+      // on explicit Apply; no need to reopen EPS or rerun the whole optimizer.
+      if(modified.includes('doctortracer-enabled')&&settingChecked('doctortracer-enabled')&&
+         curvePreview?.afterDiagnosed)void checkPreviewAfter(curvePreview);
       return;
     }
     if(curveEditing()){
