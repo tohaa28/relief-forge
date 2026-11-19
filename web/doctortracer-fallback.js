@@ -157,10 +157,28 @@ export function doctorTracerWorkerUrl(pageUrl){
   worker.searchParams.set('v',DOCTORTRACER_VERSION); // avoid stale 0.16.0 Worker cache
   return worker.href;
 }
+export function validateDoctorTracerRgba(raster){
+  const {width,height,pixels}=raster||{};
+  if(!Number.isSafeInteger(width)||!Number.isSafeInteger(height)||
+    width<1||height<1||width>2400||height>2400||
+    width*height>8000000||!(pixels instanceof Uint8Array)||
+    pixels.byteLength!==width*height*4)
+    throw Error('DoctorTracer: неверный формат RGBA (ожидается Uint8Array width×height×4)');
+  let opaque=0,transparent=0;
+  for(let i=3;i<pixels.length;i+=4){
+    if(pixels[i]>=128)opaque++;
+    else transparent++;
+  }
+  if(!opaque)throw Error('DoctorTracer: растр не содержит непрозрачных векторных элементов');
+  return {width,height,bytes:pixels.byteLength,opaque,transparent,format:'RGBA8'};
+}
 export function traceWithDoctorTracer(raster,{pageUrl=globalThis.location?.href,
   workerFactory=(url,options)=>new Worker(url,options),signal,timeoutMs=120000,progress=()=>{}}={}){
   const url=doctorTracerWorkerUrl(pageUrl);
   if(signal?.aborted)return Promise.reject(Error('DoctorTracer: операция отменена'));
+  // Validate that the RGBA buffer matches the actual 0.21.1 Worker contract
+  // before transferring ownership; malformed data must not reach Rust WASM.
+  validateDoctorTracerRgba(raster);
   return new Promise((resolve,reject)=>{
     let worker,settled=false,timer;
     const cleanup=()=>{
