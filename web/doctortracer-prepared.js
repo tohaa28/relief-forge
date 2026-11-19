@@ -71,10 +71,10 @@ export function createDoctorTracerMaskCache({rasterize=rasterizeDocumentAlpha}={
     get generation(){return generation;},
     invalidate(){generation++;entry=null;return generation;},
     get(token){return entry?.generation===token?entry:null;},
-    async prepare(source,{signal,yieldUi}={}){
+    async prepare(source,{signal,yieldUi,onProgress}={}){
       const ticket=generation;
       const plan=preparedRasterPlan(source);
-      const raster=await rasterize(source,plan,{signal,yieldUi});
+      const raster=await rasterize(source,plan,{signal,yieldUi,onProgress});
       if(signal?.aborted||ticket!==generation)return null;
       if(!(raster?.alpha instanceof Uint8Array)||
         raster.alpha.byteLength!==plan.width*plan.height||
