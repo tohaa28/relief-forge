@@ -1099,15 +1099,24 @@ async function retryUnfixableWithDoctorTracer(preview,report,callRust,generation
   const source=preview.source;
   const vectors=source.paths.filter(p=>p.kind!=='image').length;
   const scopeComplete=preview.stats.scope?.length===vectors;
-  if(!needsDoctorTracer(report,{scopeComplete,alreadyAttempted:preview.doctorTracerAttempted}))
+  const label=$('doctortracer-status');
+  if(!needsDoctorTracer(report,{scopeComplete,alreadyAttempted:preview.doctorTracerAttempted})){
+    if(!preview.doctorTracerAttempted)label.textContent=
+      report.issues.length>10&&!scopeComplete?
+        'DoctorTracer 0.21.1: обнаружено '+report.issues.length+
+        ' ошибок, но выбран не весь документ. Для полной реконструкции снимите ограничение выделения.':
+        'DoctorTracer 0.21.1: '+report.issues.length+
+        ' оставшихся ошибок. Переход на трассировку при 11 и более.';
     return report;
+  }
   preview.doctorTracerAttempted=true;
   const originalCount=report.issues.length;
   const cancelled=()=>generation!==afterDiagnosticGeneration||preview!==curvePreview;
   const abort=new AbortController();
   doctorTracerAbort=abort;
-  const label=$('doctortracer-status');
-  label.textContent='DoctorTracer: '+originalCount+' ошибок не устранено; строим новый вектор из растра…';
+  label.textContent='DoctorTracer 0.21.1 WASM запущен: '+originalCount+
+    ' подтверждённых остаточных ошибок'+(report.complete?'':' (проверка частичная)')+
+    '. Растрирование → повторная трассировка…';
   record('doctortracer-fallback-start',{remaining:originalCount,source:source.sourceFileName||null});
   try{
     progressStage('DoctorTracer: растрирование импортированного вектора',10);
@@ -1119,7 +1128,7 @@ async function retryUnfixableWithDoctorTracer(preview,report,callRust,generation
     const originalMask={width:raster.width,height:raster.height,pixels:new Uint8Array(raster.pixels)};
     progressStage('DoctorTracer: трассировка Rust WASM',30);
     const traced=await traceWithDoctorTracer(raster,{
-      signal:abort.signal,
+      signal:abort.signal,timeoutMs:240000,
       progress:(pct,stage)=>progressStage('DoctorTracer: '+(stage||'трассировка'),
         Math.min(70,30+Math.round(pct*.4)),Math.round(pct)+'%')});
     if(cancelled())return report;
@@ -1156,7 +1165,7 @@ async function retryUnfixableWithDoctorTracer(preview,report,callRust,generation
       ' оставшихся ошибок получено '+checked.issues.length+
       '; вектор пересоздан из растра ('+plan.width+'×'+plan.height+
       ' px, IoU '+similarity.iou.toFixed(4)+'). Исходные кривые сохранены в ДО / Undo.';
-    label.textContent='DoctorTracer: новый вектор принят · ошибок '+originalCount+
+    label.textContent='DoctorTracer 0.21.1: новый вектор принят · ошибок '+originalCount+
       ' → '+checked.issues.length+' · совпадение силуэта '+(100*similarity.iou).toFixed(2)+'%.';
     record('doctortracer-fallback-accepted',preview.stats.doctorTracer);
     return checked;
@@ -1164,7 +1173,7 @@ async function retryUnfixableWithDoctorTracer(preview,report,callRust,generation
     if(!cancelled()){
       preview.stats.doctorTracer={triggered:true,accepted:false,before:originalCount,
         reason:String(error.message)};
-      label.textContent='DoctorTracer: исходный вектор сохранён · '+error.message;
+      label.textContent='DoctorTracer 0.21.1: попытка выполнена, но новая структура отклонена. Исходный вектор сохранён · '+error.message;
       record('doctortracer-fallback-rejected',preview.stats.doctorTracer);
     }
     return report;
