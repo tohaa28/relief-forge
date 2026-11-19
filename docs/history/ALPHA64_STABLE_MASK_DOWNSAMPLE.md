@@ -37,3 +37,9 @@ Date: 2026-11-19. Prior published baseline `2b13e06b54331d20311308d36f1520363941
 ## Rollback and next chat
 Prior healthy published alpha63 main `2b13e06b54331d20311308d36f152036394128a7`. Working branch `feature/alpha64-stable-mask-downsampling-segmentation-audit`, pending CI/PR/Pages as of candidate writing. Update NEXT_CHAT_START, HISTORY, FAILURE_REGISTER (F-064), METHODS_AND_DECISIONS (M-064), RELEASE_CHRONICLE, FEATURE_MATRIX, DEVELOPMENT_LOG, HANDOFF, logs/actions.jsonl. No private EPS file has been uploaded; only log evidence is available.
 
+
+## CI attempt #1, failure and correction (2026-11-19)
+- Run https://github.com/tohaa28/relief-forge/actions/runs/44557050466 on candidate `6e35c97bf846e40521b744d2cbddaec5b7366577`: `npm test` 356 PASS / 1 FAIL (357 total). Rust/WASM/browser stages not reached because JS stage failed.
+- The only failure: new `alpha64: worker segmentation alpha audit` test used `assert.throws(...,/длину/)`; production validation intentionally reports `DoctorTracer: неверная длина сегментированной маски`. JS regex checks exact word form, so the test expected the wrong grammatical case. Algorithm produced the intended validation error.
+- Fixed test to `/неверная длина/` in commit `d2c65c88224d38d4fe0049a25985d32252d2cef2`. The failed run is preserved, not hidden or called green; rerun final full CI required before merging.
+

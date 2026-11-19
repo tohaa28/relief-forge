@@ -1,3 +1,7 @@
+### F-064 CI regression: test wording, not algorithm
+- First alpha64 workflow 44557050466 FAILED: 356/357 JS, one `assert.throws` expected `/длину/` whereas raised string was `неверная длина сегментированной маски`.
+- Corrected test to `/неверная длина/` at d2c65c88224d38d4fe0049a25985d32252d2cef2. Must observe a new passing run before publishing.
+
 ## F-064. Alpha.63 single-black-ink не изменил IoU; при ретрае повторное 1px stroke раздувает физическую маску (2026-11-19)
 - Alpha.63 JSONL, 38 событий, source EPS `8101921_maket_7_121126_163426.eps` не приложен. Результат: `paletteCount:1`, `paths:1` при 3 трассировках; 2 превышения RichSVG 200000; последняя попытка 567×807 отклонена по IoU .491, areaRatio 1.797. Отказ сохраняет исходный вектор и Undo.
 - Однокрасочная гипотеза F-063 не устранена как возможный вторичный дефект, но НЕ решает фактический IoU на этом документе. Не повторять попытку только с числом красок.
