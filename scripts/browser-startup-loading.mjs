@@ -67,17 +67,42 @@ try{
  assert.ok(notices.length>=2);assert.ok(notices.some(n=>n.download.loaded>20000000));
  assert.ok(notices.every(n=>n.download.total===0||n.download.loaded<=n.download.total));
  await open('warm-painted.eps');assert.equal(gsRequests,1);assert.equal(muRequests,1,'warm Worker must reuse both binaries');
- const failed=await context.newPage();await failed.goto(base);await failed.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
+ // The 503 regression must run in a cold, independent network context.
+ // A warm Ghostscript WASM response from the earlier successful import can
+ // otherwise satisfy this request from browser cache, yielding a false timeout.
+ const failureContext=await browser.newContext({serviceWorkers:'block'});
+ const failed=await failureContext.newPage();await failed.goto(base);
+ await failed.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
  await failed.locator('#file').setInputFiles({name:'preserved.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
  await failed.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));await failed.waitForFunction(()=>document.querySelector('#busy').hidden);
  await failed.locator('#apply-changes').click();
  const project=async()=>{const event=failed.waitForEvent('download');await failed.keyboard.press('Control+Shift+s');return JSON.parse(readFileSync(await (await event).path(),'utf8'));};
  const before=await project();
- await context.route('**/gs-core.wasm',r=>r.fulfill({status:503,body:'Unavailable'}));
+ let unavailableAssetRequests=0;
+ await failureContext.route('**/gs-core.wasm*',r=>{
+   unavailableAssetRequests++;
+   return r.fulfill({status:503,body:'Unavailable'});
+ });
  await failed.locator('#file').setInputFiles({name:'unavailable-engine.eps',mimeType:'application/postscript',buffer:eps});
- await failed.waitForFunction(()=>document.querySelector('#import-report').textContent.includes('503'));await failed.waitForFunction(()=>document.querySelector('#busy').hidden);
+ try{
+   await failed.waitForFunction(()=>
+     document.querySelector('#import-report').textContent.includes('503'),
+     {},{timeout:90000});
+ }catch(error){
+   console.error('cold failure-test diagnostic',
+     await failed.evaluate(()=>({
+       status:document.querySelector('#status')?.textContent,
+       busy:!document.querySelector('#busy')?.hidden,
+       report:document.querySelector('#import-report')?.textContent?.slice(0,900),
+       engine:document.querySelector('#engine')?.textContent
+     })),{unavailableAssetRequests});
+   throw error;
+ }
+ await failed.waitForFunction(()=>document.querySelector('#busy').hidden);
+ assert.ok(unavailableAssetRequests>0,'the cold failure page must really request blocked Ghostscript WASM');
  assert.deepEqual((await project()).paths,before.paths,'asset HTTP failure must preserve the previous document');
  assert.equal(await failed.locator('#open').isEnabled(),true);
+ await failureContext.close();
  assert.deepEqual(errors,[]);
  console.log('PASS startup: current-version loading/error report, late-ready recovery, UI ready with blocked native bundle, Cancel/source preserved, retry optimization; EPS parallel real-byte downloads, single MuPDF WASM fetch, warm reuse and HTTP failure preserves prior vectors');
 }finally{await browser?.close();server.kill();}
