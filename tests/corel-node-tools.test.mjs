@@ -101,7 +101,9 @@ test('UI provides active toolbar, handle drags, shortcuts, and Corel-style right
     assert.ok(html.includes('id="'+id+'"'),id);
   assert.match(app,/moveCurveHandle\(drag.before.paths\[drag.path\]/);
   assert.match(app,/contextmenu/);
-  assert.match(app,/changeCurveNode\(path,name,op,true\)/);
+  assert.match(app,/runLocalNodeEdit\(activeCurveNode.path,name,/);
+  assert.match(app,/exitDeferredCurveEditor\(\)/);
+  assert.match(app,/createDeferredCurveEditor\(doc.paths\[path\]\)/);
   assert.match(css,/curve-tangent-guide/);
   assert.match(css,/curve-control-handle/);
 });

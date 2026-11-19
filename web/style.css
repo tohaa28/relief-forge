@@ -575,3 +575,18 @@ aside.right #issues-panel #issues{max-height:26dvh;overflow:auto}
  filter:drop-shadow(0 0 1.5px #ffffff)}
 #geometry .manual-live-patch[hidden]{display:none}
 .curve-editing #geometry .curve-node{cursor:crosshair}
+
+
+/* alpha56: editing is a detached command-buffer transaction. Never rebuild
+   the imported 7k+ compound figure until the user leaves manual mode. */
+.local-editor-active #geometry .curve-node,
+.local-editor-active #geometry .curve-tangent-guide,
+.local-editor-active #geometry .curve-control-handle{display:none!important}
+#manual-patches .manual-staged-segment{
+ fill:none!important;stroke:#00a989!important;stroke-width:2.6px;
+ vector-effect:non-scaling-stroke;stroke-linecap:round;
+ stroke-linejoin:round;pointer-events:stroke
+}
+#manual-glyphs .curve-node{cursor:move}
+#manual-glyphs .curve-control-handle{cursor:crosshair}
+#manual-glyphs .curve-tangent-guide{pointer-events:none}

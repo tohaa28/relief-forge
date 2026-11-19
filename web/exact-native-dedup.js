@@ -1,5 +1,5 @@
-import {nativeParts} from './native-bezier.js?v=0.2.0-alpha.55';
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.55';
+import {nativeParts} from './native-bezier.js?v=0.2.0-alpha.56';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.56';
 
 // An opaque later copy fully covers the earlier identical solid fill. Remove
 // only strict native-geometry + paint matches; never flatten a Bezier or alter

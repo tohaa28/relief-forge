@@ -11,11 +11,19 @@ test('Undo and Redo operate on committed documents while an automatic preview ex
   const buttons={undo:{},redo:{}};
   const context={doc:structuredClone(committed),past:[structuredClone(original)],future:[],
     curvePreview:preview,busy:false,curveEditing:()=>false,selected:new Set([0]),clone:structuredClone,
+    localEditUndo:[],localEditRedo:[],
     $:id=>buttons[id]};
   context.changed=()=>{context.curvePreview=null;};
   vm.createContext(context);
-  const availability=app.split(/\r?\n/).find(line=>line.includes("$('undo').disabled="));
-  const handler=id=>app.split(/\r?\n/).find(line=>line.startsWith(`$('${id}').onclick=`));
+  const availability=app.split(/\r?\n/).find(line=>
+    line.includes("$('undo').disabled=")&&line.includes("$('redo').disabled="));
+  const handler=id=>{
+    const begin=app.indexOf(`$('${id}').onclick=()=>{`);
+    assert.ok(begin>=0);
+    const match=app.slice(begin).match(/^\$\('[^']+'\)\.onclick=\(\)=>\{[\s\S]*?\n\};/);
+    assert.ok(match,id+' must have a complete handler');
+    return match[0];
+  };
   vm.runInContext(availability,context);
   assert.equal(buttons.undo.disabled,false,'preview must not prevent undo');
   vm.runInContext(handler('undo'),context);

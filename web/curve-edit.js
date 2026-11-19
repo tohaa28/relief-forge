@@ -1,4 +1,4 @@
-import svgpath from './vendor/svgpath.mjs?v=0.2.0-alpha.55';
+import svgpath from './vendor/svgpath.mjs?v=0.2.0-alpha.56';
 
 const end=c=>c.slice(-2),same=(a,b)=>a[0]===b[0]&&a[1]===b[1];
 const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
@@ -345,4 +345,13 @@ export function breakCurveAtNode(path,index,options){
     }
   }
   return saveEditedCurve(path,commands,options);
+}
+
+// Finalize a deferred manual-edit session ONCE, after leaving node mode.
+// Reuse the existing full SVG transform/paint-preserving writer, never
+// serialize the customer's compound artwork in pointermove or pointerup.
+export function finishDeferredCurveCommands(path,commands,nodeKinds,options){
+  const output=saveEditedCurve(path,commands,options);
+  output.nodeKinds={...nodeKinds};
+  return output;
 }
