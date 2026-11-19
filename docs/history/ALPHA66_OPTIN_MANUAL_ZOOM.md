@@ -27,3 +27,9 @@
 
 ## Третий CI-инцидент: стресс-тест открывал ПОСЛЕ вместо ДО
 - CI [44595564948](https://github.com/tohaa28/relief-forge/actions/runs/44595564948) FAILED в новом `scripts/browser-alpha66-optin-zoom.mjs:42`: не было начальных detached glyphs. Одно возможное объяснение: в тесте после автоматической оптимизации оставалась упрощённая геометрия; новый heavy gate правильно **не** создаёт detached редактор для маленького результата. Поэтому тест с 2300 входными C должен **явно переключиться на ДО** перед нажатием «Редактирование кривой», проверить >1000 исходных C и сообщить diagnostic snapshot, если сценарий остаётся неполным. Не трактовать падение как доказательство тормозов без измерения. Запись оставлена, коррекция в новой коммите.
+
+## Фактическое завершение функционального релиза alpha.66 (2026-11-19)
+- Пройден четвертый CI: https://github.com/tohaa28/relief-forge/actions/runs/44596028418 — 373/373 JS, 17/17 Rust, WASM и все Playwright проверки.
+- Браузерный лог: PASS browser alpha66 single-path high zoom: 2300 cubic segments, 20 wheel events, 600 locally painted, source untouched, max zoom 40ms.
+- PR #98 объединён с main: 2d41b4fce1436b51b392157b991b97356d0a0cec. Main Pages CI https://github.com/tohaa28/relief-forge/actions/runs/44596504295 — SUCCESS: build + deploy. https://tohaa28.github.io/relief-forge/?v=alpha66
+- Настоящие proprietary EPS/PDF не были загружены; 40ms — синтетическое измерение. Условия пользовательской приёмки по gerb2.pdf остаются открытыми.
