@@ -46,4 +46,6 @@ test('zoom path updates are frame coalesced; global vector DOM is hidden ONLY in
  assert.match(app,/drag\.livePath=el\('path',\{d:'',class:'manual-live-patch'\},\$\('manual-patches'\)\)/);
  assert.match(css,/\.manual-local-zoom #geometry\{display:none!important\}/);
  assert.match(html,/id="manual-local-geometry"/);
+ assert.match(app,/manual-local-hit/);
+ assert.match(css,/#manual-local-geometry \.manual-local-hit\{/);
 });

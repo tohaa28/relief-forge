@@ -225,10 +225,15 @@ function refreshLocalZoomGeometry(){
     if(layer.childElementCount)layer.replaceChildren();
     return;
   }
-  let visual=layer.firstElementChild;
+  let hit=layer.querySelector('.manual-local-hit');
+  if(!hit)hit=el('path',{class:'manual-local-hit','data-path':path},layer);
+  let visual=layer.querySelector('.manual-local-stroke');
   if(!visual)visual=el('path',{class:'manual-local-stroke','data-path':path},layer);
+  const d=segments.map(s=>s.d).join(' ');
+  hit.setAttribute('data-path',path);
   visual.setAttribute('data-path',path);
-  visual.setAttribute('d',segments.map(s=>s.d).join(' '));
+  hit.setAttribute('d',d);
+  visual.setAttribute('d',d);
   document.body.classList.add('manual-local-zoom');
 }
 function rescaleLocalEditorGlyphs(unit){
