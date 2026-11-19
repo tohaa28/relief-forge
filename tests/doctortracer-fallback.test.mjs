@@ -5,7 +5,8 @@ import {DOMParser} from '@xmldom/xmldom';
 import {needsDoctorTracer,rasterPlan,vectorRasterSvg,doctorTracerWorkerUrl,
   traceWithDoctorTracer,remapDoctorTracerSvg,maskSimilarity,acceptRetracing,
   rasterizeDocument,paintDocumentSilhouette,validateDoctorTracerRgba,
-  scaledDoctorTracerPlan,isDoctorTracerNodeBudgetError,traceDocumentWithNodeBudget} from '../web/doctortracer-fallback.js';
+  scaledDoctorTracerPlan,isDoctorTracerNodeBudgetError,traceDocumentWithNodeBudget,
+  blackTransparentRgba8} from '../web/doctortracer-fallback.js';
 const p=(coordinates,closed=true)=>({
   kind:'vector',artwork:'<path fill="none" stroke="#123"/>',offset:[0,0],
   commands:coordinates.map((pt,i)=>[i?'L':'M',...pt]).concat(closed?[['Z']]:[]),
@@ -261,4 +262,68 @@ test('cancellation stops follow-up retries; invalid scale series cannot increase
  assert.equal(isDoctorTracerNodeBudgetError(Error('SVG: parse failed')),false);
  assert.throws(()=>scaledDoctorTracerPlan(plan,1),/масштаб/);
  await assert.rejects(traceDocumentWithNodeBudget(source,plan,{scales:[1,1]}),/некорректный план/);
+});
+
+
+test('alpha62: black RGBA mask resets all RGB channels but preserves every antialiased alpha',()=>{
+ const alphas=[0,1,63,127,128,254,255];
+ const rgba=Uint8Array.from(alphas.flatMap((a,i)=>[255-i,10+i,160-i,a]));
+ const result=blackTransparentRgba8(rgba);
+ assert.strictEqual(result,rgba,'in-place normalization avoids duplicate multi-megabyte buffers');
+ assert.deepEqual(Array.from(rgba),alphas.flatMap(a=>[0,0,0,a]));
+ assert.throws(()=>blackTransparentRgba8(new Uint8Array(3)),/RGBA8/);
+ assert.throws(()=>blackTransparentRgba8(new Uint8ClampedArray(4)),/RGBA8/);
+});
+
+test('alpha62: Canvas output normalizes colored fringe to black/transparent mask',async()=>{
+ const plan={x:0,y:0,widthMm:30,heightMm:10,width:3,height:1,dpi:2.54};
+ const src=doc(),snapshot=structuredClone(src);
+ const rgb=[230,240,250,0,120,140,160,127,240,100,50,255];
+ const ctx={
+  clearRect(){},save(){},restore(){},setTransform(){},beginPath(){},
+  moveTo(){},lineTo(){},bezierCurveTo(){},quadraticCurveTo(){},closePath(){},
+  fill(){},stroke(){},getImageData:()=>({data:new Uint8ClampedArray(rgb)})
+ };
+ const out=await rasterizeDocument(src,plan,{
+  canvasFactory:()=>({getContext:(name,options)=>{
+   assert.equal(name,'2d');assert.equal(options.alpha,true);return ctx;
+  }})
+ });
+ assert.equal(out.mask,'black-transparent-rgba8');
+ assert.deepEqual(Array.from(out.pixels),[0,0,0,0,0,0,0,127,0,0,0,255]);
+ assert.deepEqual(src,snapshot);
+});
+
+test('alpha62: DoctorTracer Worker receives only black RGB + alpha and packed transfer from a view',async()=>{
+ const backing=Uint8Array.from([7,7,7,7,255,255,255,0,240,120,60,127,
+   50,80,140,255,8,8,8,8]);
+ const pixels=backing.subarray(4,16),snapshot=Array.from(backing);
+ let transferred,seen;
+ const factory=()=>({postMessage(data,transfer){
+  transferred=transfer;seen=data;
+  queueMicrotask(()=>this.onmessage({data:{
+   svg:'<svg><path d="M0 0 L1 0 Z"/></svg>',paths:1,backend:'Rust WASM'}}));
+ },terminate(){}});
+ const out=await traceWithDoctorTracer({pixels,width:3,height:1},{
+  pageUrl:'https://tohaa28.github.io/relief-forge/',workerFactory:factory
+ });
+ assert.equal(out.paths,1);
+ assert.deepEqual(Array.from(new Uint8Array(seen.pixels)),[
+  0,0,0,0,0,0,0,127,0,0,0,255
+ ]);
+ assert.equal(seen.pixels.byteLength,3*1*4);
+ assert.equal(transferred.length,1);
+ assert.strictEqual(transferred[0],seen.pixels);
+ assert.deepEqual(Array.from(backing),snapshot,'non-packed source view not mutated');
+});
+
+test('alpha62: production integration normalizes BOTH initial and retry rasters before Worker',()=>{
+ const source=readFileSync(new URL('../web/doctortracer-fallback.js',import.meta.url),'utf8');
+ const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
+ assert.match(source,/const pixels=blackTransparentRgba8\(new Uint8Array\(/);
+ assert.match(source,/const pixels=blackTransparentRgba8\(/);
+ assert.match(source,/worker\.postMessage\(\{pixels:pixels\.buffer/);
+ assert.match(source,/alpha:true,willReadFrequently:true/);
+ assert.match(app,/firstRaster:raster,signal:abort\.signal/);
+ assert.match(source,/await rasterize\(source,current,\{signal\}\)/);
 });

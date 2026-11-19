@@ -955,3 +955,15 @@ Added a2-million native segment-comparison budget per compound path; if full int
 - Intermediate PR runs during version-key migration failed/cancelled (44524487570, 44524562343,
   44524626582, 44524688389, 44524752903); final synchronized version run passed.
 - Full documentation: docs/history/ALPHA61_ADAPTIVE_DOCTORTRACER.md; F-061 and M-061.
+
+## 0.2.0-alpha.62 — чёрный RGBA8 с прозрачным фоном для DoctorTracer (кандидат, 2026-11-19)
+- Фиксируется обязательная канонизация входного растра перед Worker: каждый RGB=(0,0,0), alpha остаётся точным 8-bit покрытием (0, 1..254, 255), без белого фона, маттинга или жёсткого порога.
+- Прямой Canvas renderer по-прежнему использует исходные M/L/Q/C/Z, fill evenodd для отверстий и stroke для незамкнутых линий. Canvas создаётся с alpha:true.
+- Маска нормализуется дважды: после getImageData и на границе postMessage. Для Uint8Array с byteOffset!=0 передаётся собственный packed буфер.
+- Исходный EPS/PDF, исходные цвета, допуски, Undo, ретрай 100%/70%/45%, IoU и Rust+native safety gates сохранены. DoctorTracer 0.21.1 не модифицируется.
+- Новые тесты: RGBA цветные пиксели с alpha=0/127/255, сохранение градиентной alpha, проверка Canvas alpha:true, Worker transfer из subarray, integration пути ретрая.
+- Базовый опубликованный main alpha.61: 2035f00eaaa654ca1e1780997be5933e5827fd2b; откат на него.
+- PR #94 https://github.com/tohaa28/relief-forge/pull/94 ; до успешных CI, merge и GitHub Pages не называть alpha.62 опубликованной.
+- Реальный пользовательский EPS не предоставлен, точность на нём и Windows FPS не проверены.
+- Подробности: docs/history/ALPHA62_BLACK_TRANSPARENT_TRACER_INPUT.md, F-062, M-062.
+

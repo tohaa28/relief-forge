@@ -1,6 +1,6 @@
-import './vendor/clipper.js?v=0.2.0-alpha.61';
-import {sampledContours} from './rich-svg.js?v=0.2.0-alpha.61';
-import {cleanUnionContours} from './union-node-cleanup.js?v=0.2.0-alpha.61';
+import './vendor/clipper.js?v=0.2.0-alpha.62';
+import {sampledContours} from './rich-svg.js?v=0.2.0-alpha.62';
+import {cleanUnionContours} from './union-node-cleanup.js?v=0.2.0-alpha.62';
 const C=globalThis.ClipperLib;
 if(!C?.Clipper)throw Error('Clipper 6.4.2.2 is not available');
 

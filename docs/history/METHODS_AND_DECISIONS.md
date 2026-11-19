@@ -1,3 +1,10 @@
+## M-062. Канонизация RGBA8 «чёрный + прозрачность» перед трассировкой (2026-11-19)
+- Силуэт чёрный RGB(0,0,0) в КАЖДОМ пикселе, включая alpha=0. Истинный фон alpha=0; полное покрытие 255; fractional 1..254 сохранить без квантования для точности краёв.
+- Сначала paintDocumentSilhouette Canvas 2D c alpha:true, даже если исходный EPS бесцветный/цветной. Затем blackTransparentRgba8 после getImageData и ещё раз перед Worker postMessage, чтобы защитить будущие пути внедрения.
+- Worker передаёт tightly-packed Uint8Array RGBA8 width*height*4. Для slice byteOffset >0 выделять собственный packed buffer; нормальный полноценный буфер использовать без лишней копии.
+- Не использовать белый маттинг / пороговый бинарный alpha / изменение исходного материала. Отверстия compound paths сохраняются через evenodd. Режим DoctorTracer 0.21.1 hard и параметры worker пока не изменять (минимизация регрессий).
+- Те же строгие acceptance gates для реструктуризации: IoU, площадь, полная диагностика, Undo. Методы и тесты описаны в ALPHA62_BLACK_TRANSPARENT_TRACER_INPUT.md.
+
 ## M-061. Bounded re-trace of dense DoctorTracer 0.21.1 SVG (2026-11-19)
 - Source vector stays immutable; three resolution levels 100%, 70%, 45% preserve source bbox in millimetres.
 - Retry only the exact RichSVG 200000-node cap, stop on unrelated errors and cancellation.

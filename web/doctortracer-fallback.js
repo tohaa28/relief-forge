@@ -1,5 +1,5 @@
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.61';
-import {importRichSvg} from './rich-svg.js?v=0.2.0-alpha.61';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.62';
+import {importRichSvg} from './rich-svg.js?v=0.2.0-alpha.62';
 
 // The linked DoctorTracer 0.21.1 WASM gh-pages site owns its Worker and its GPL
 // dependencies. Nothing from that distribution is copied or relicensed here.
@@ -100,6 +100,10 @@ export function paintDocumentSilhouette(ctx,document,plan,{batchSize=0,signal}={
   ctx.save();
   try{
     ctx.setTransform(sx,0,0,sy,-plan.x*sx,-plan.y*sy);
+    // No source paint survives into the trace bitmap: one solid black ink,
+    // transparency is the ONLY representation of uncovered pixels / holes.
+    ctx.globalAlpha=1;
+    ctx.globalCompositeOperation='source-over';
     ctx.fillStyle='#000000';ctx.strokeStyle='#000000';
     ctx.lineWidth=Math.max(1/sx,1/sy);
     ctx.lineJoin='round';ctx.lineCap='round';
@@ -134,8 +138,10 @@ export async function rasterizeDocument(document,plan,{bitmap=null,
   canvasFactory=()=>globalThis.document.createElement('canvas'),signal}={}){
   if(signal?.aborted)throw Error('DoctorTracer: операция отменена');
   const canvas=canvasFactory();canvas.width=plan.width;canvas.height=plan.height;
-  const context=canvas.getContext('2d',{willReadFrequently:true});
+  const context=canvas.getContext('2d',{alpha:true,willReadFrequently:true});
   if(!context)throw Error('DoctorTracer: Canvas 2D недоступен');
+  if(context.getContextAttributes?.()?.alpha===false)
+    throw Error('DoctorTracer: Canvas не поддерживает прозрачный фон');
   if(bitmap){
     const svg=vectorRasterSvg(document,plan);
     const blob=new Blob([svg],{type:'image/svg+xml'});
@@ -145,8 +151,24 @@ export async function rasterizeDocument(document,plan,{bitmap=null,
     finally{image.close?.();}
   }else paintDocumentSilhouette(context,document,plan,{signal});
   if(signal?.aborted)throw Error('DoctorTracer: операция отменена');
-  const pixels=new Uint8Array(context.getImageData(0,0,plan.width,plan.height).data);
-  return {pixels,width:plan.width,height:plan.height,plan,backend:bitmap?'svg-image':'canvas2d-direct'};
+  // Canvas coverage / antialiasing is kept in the alpha channel verbatim.
+  // Even if the browser or test bitmap produces colored fringe RGB values,
+  // DoctorTracer receives BLACK only, with a truly transparent background.
+  const pixels=blackTransparentRgba8(new Uint8Array(
+    context.getImageData(0,0,plan.width,plan.height).data));
+  return {pixels,width:plan.width,height:plan.height,plan,
+    mask:'black-transparent-rgba8',backend:bitmap?'svg-image':'canvas2d-direct'};
+}
+
+// Canonical single-ink trace mask. Do not threshold or flatten antialiasing:
+// intermediate alpha (1..254) preserves sub-pixel edge coverage.
+export function blackTransparentRgba8(pixels){
+  if(!(pixels instanceof Uint8Array)||pixels.byteLength%4!==0)
+    throw Error('DoctorTracer: для чёрной прозрачной маски требуется RGBA8');
+  for(let i=0;i<pixels.byteLength;i+=4){
+    pixels[i]=0;pixels[i+1]=0;pixels[i+2]=0;
+  }
+  return pixels;
 }
 
 export function doctorTracerWorkerUrl(pageUrl){
@@ -179,6 +201,13 @@ export function traceWithDoctorTracer(raster,{pageUrl=globalThis.location?.href,
   // Validate that the RGBA buffer matches the actual 0.21.1 Worker contract
   // before transferring ownership; malformed data must not reach Rust WASM.
   validateDoctorTracerRgba(raster);
+  // Enforce the black/transparent mask AT the Worker boundary, including
+  // injected non-Canvas rasters. Convert non-packed views before transfer.
+  const pixels=blackTransparentRgba8(
+    raster.pixels.byteOffset===0 &&
+    raster.pixels.byteLength===raster.pixels.buffer.byteLength &&
+    raster.pixels.buffer instanceof ArrayBuffer ?
+      raster.pixels : new Uint8Array(raster.pixels));
   return new Promise((resolve,reject)=>{
     let worker,settled=false,timer;
     const cleanup=()=>{
@@ -202,9 +231,9 @@ export function traceWithDoctorTracer(raster,{pageUrl=globalThis.location?.href,
       worker.onerror=e=>finish(Error('DoctorTracer Worker: '+(e.message||'ошибка загрузки')));
       signal?.addEventListener('abort',onAbort,{once:true});
       timer=setTimeout(()=>finish(Error('DoctorTracer: превышено время трассировки')),timeoutMs);
-      worker.postMessage({pixels:raster.pixels.buffer,width:raster.width,height:raster.height,
+      worker.postMessage({pixels:pixels.buffer,width:raster.width,height:raster.height,
         category:'hard',colors:2,detail:2,speckle:0,polygon:false,gpu:false},
-        [raster.pixels.buffer]);
+        [pixels.buffer]);
     }catch(error){finish(error);}
   });
 }
