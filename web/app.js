@@ -1211,7 +1211,14 @@ async function buildLargeUnifiedPreview(indices){
       '. Контроль геометрии: отклонено изменений '+(stats.rejected+stats.smoothingRejected+(stats.refit.rejected||0))+'. Реальные узлы '+stats.actualNodesBefore+' → '+stats.actualNodesAfter+'. '+(different?'Результат в режиме ПОСЛЕ. Применяйте изменения вручную после просмотра.':
       'Форма кривых не изменилась.')+
       '\nПолная диагностика между блоками не подтверждена; перед экспортом может появиться предупреждение.';
-    record('large-preview',{paths:indices.length,stats,changed:different,afterDiagnosticComplete:false});
+    // Do not retain the entire source/result document inside a log event.
+    // The 8101921 EPS session produced an 11 MB single JSONL record here.
+    record('large-preview',{paths:indices.length,changed:different,
+      originalNodes:stats.actualNodesBefore,resultNodes:stats.actualNodesAfter,
+      originalSegments:stats.original,resultSegments:stats.result,
+      rejected:stats.rejected,skipped:stats.pointRepairs.skipped,
+      budgetReason:stats.budget?.reason,
+      diagnosticComplete:false,afterDiagnosticComplete:false});
     progressStage('Оптимизация завершена',100,indices.length+' контуров');
     lock(false);
     if(ready)void checkPreviewAfter(pv);
