@@ -41,7 +41,7 @@ test('zoom path updates are frame coalesced; global vector DOM is hidden ONLY in
  assert.match(app,/if\(!curveEditing\(\)\|\|manualZoomFrame\)return/);
  assert.match(app,/requestAnimationFrame\(\(\)=>\{/);
  assert.match(app,/rescaleLocalEditorGlyphs\(unit\)/);
- assert.match(app,/visibleSegmentSVG\(center,Math\.hypot\(view\.width,view\.height\)/);
+ assert.match(app,/visibleSegmentSVG\(center,\s*Math\.hypot\(view\.width,view\.height\)/);
  assert.match(app,/document\.body\.classList\.add\('manual-local-zoom'\)/);
  assert.match(app,/drag\.livePath=el\('path',\{d:'',class:'manual-live-patch'\},\$\('manual-patches'\)\)/);
  assert.match(css,/\.manual-local-zoom #geometry\{display:none!important\}/);
