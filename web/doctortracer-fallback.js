@@ -56,9 +56,13 @@ export function vectorRasterSvg(document,plan){
     const fragments=d.split(/(?=M)/).filter(Boolean);
     // Retrace the geometry, not source paint, which for CNC EPS may be invisible.
     // Closed paths become black silhouettes; open curves use a one-pixel stroke.
-    for(const f of fragments){
-      if(f.trimEnd().endsWith('Z'))paths.push('<path d="'+escape(f)+'" fill="#000" fill-rule="evenodd"/>');
-      else paths.push('<path d="'+escape(f)+'" fill="none" stroke="#000" stroke-width="'+stroke+
+    // All closed subpaths of ONE compound shape must be painted together:
+    // evenodd holes would disappear if each M…Z was filled individually.
+    const closed=fragments.filter(f=>f.trimEnd().endsWith('Z'));
+    if(closed.length)paths.push('<path d="'+escape(closed.join(' '))+
+      '" fill="#000" fill-rule="evenodd"/>');
+    for(const f of fragments.filter(f=>!f.trimEnd().endsWith('Z'))){
+      paths.push('<path d="'+escape(f)+'" fill="none" stroke="#000" stroke-width="'+stroke+
         '" stroke-linecap="round" stroke-linejoin="round"/>');
     }
   }

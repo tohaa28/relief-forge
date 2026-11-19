@@ -39,6 +39,18 @@ test('cropped raster keeps physical mm, imposes 2400 px / eight million pixel ca
   assert.ok(limited.width<=2400&&limited.height<=2400);
   assert.throws(()=>rasterPlan(doc([{kind:'image',points:[]}])),/вектор/);
 });
+test('compound path holes stay evenodd inside one filled shape during rasterization',()=>{
+ const paths=[['M',0,0],['L',20,0],['L',20,20],['L',0,20],['Z'],
+   ['M',5,5],['L',5,15],['L',15,15],['L',15,5],['Z']];
+ const vector={kind:'vector',artwork:'<path/>',offset:[0,0],commands:paths,
+   points:paths.filter(c=>c[0]!=='Z').map(c=>c.slice(-2)),closed:true};
+ const input=doc([vector]);
+ const raster=vectorRasterSvg(input,rasterPlan(input));
+ assert.equal((raster.match(/<path /g)||[]).length,1);
+ assert.match(raster,/fill-rule="evenodd"/);
+ assert.match(raster,/M0 0.*Z M5 5/);
+});
+
 test('open curves rasterize as thin lines rather than solid fills',()=>{
   const input=doc([p([[1,1],[4,4],[7,1]],false)]);
   const svg=vectorRasterSvg(input,rasterPlan(input));
