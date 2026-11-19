@@ -1,3 +1,15 @@
+## 0.2.0-alpha.59 — подтверждены PR CI и успешная публикация GitHub Pages (2026-11-19)
+- **PR [#90](https://github.com/tohaa28/relief-forge/pull/90)** объединён в `main`, merge commit `68c32504bf12afb84711763b8723447c277ab9cb`.
+- Финальная проверка PR head `593f73f329c26b7af3791c151f450eaf21c7e4f4`: [Actions 44487102555](https://github.com/tohaa28/relief-forge/actions/runs/44487102555) **SUCCESS**, **340/340 JS**, **17/17 Rust**, релизная WASM-сборка + check.
+- Реальный workflow основного репозитория [Actions 44487505352](https://github.com/tohaa28/relief-forge/actions/runs/44487505352) **SUCCESS**: `build` SUCCESS и `deploy` SUCCESS. Страница **https://tohaa28.github.io/relief-forge/?v=alpha59** опубликована. **Внешняя приёмка в браузере и измерение FPS на `gerb2.pdf` не подтверждены**, UI-публикация не доказывает, что 0.21.1 Worker успешно оттрассировал пользовательский PDF.
+- Поведение: строго **>10 подтверждённых** оставшихся проблем даже после *частичной* проверки большого файла → DoctorTracer отдельный Worker `/DoctorTracer/worker.js?v=0.21.1` → растр импортированного вектора → новый SVG → размер в мм → принятие только если новый результат полностью диагностирован, число ошибок уменьшилось и IoU >=.95/площадь 95–105%. Ошибку/причину отсутствия запуска видно справа.
+- Manual zoom: при глубоком увеличении и >1800 команд вместо полной 7k-кривой отрисовки браузер видит ≤600 native Bézier, 12px невидимый hit-контур, лёгкие glyphs in-place и coalesced requestAnimationFrame. До/Undo и оригинальные кривые не заменяются. Вне локальной области при сильном zoom временно скрыты другие объекты — это **визуальная изоляция**, не удаление.
+- CI неудачи не стёрты: [44485981560](https://github.com/tohaa28/relief-forge/actions/runs/44485981560) FAILED 339/340 JS из-за несинхронизированного NEXT_CHAT_START release string; исправлено, затем [44486446090](https://github.com/tohaa28/relief-forge/actions/runs/44486446090) SUCCESS 340/340, финальный 44487102555 SUCCESS после исправления области захвата.
+- Возврат к alpha.58: commit `a29802f59dafbde80fd28c18feb64db562f8a0ec` (проверенный успешный main Pages).
+- Подробности: `docs/history/ALPHA59_DOCTORTRACER_ZOOM.md`; журналы `docs/history/FAILURE_REGISTER.md`, `docs/history/METHODS_AND_DECISIONS.md`, `logs/actions.jsonl`. **Следующая задача: браузерная приёмка реального сложного файла и live Worker**.
+
+---
+
 ## Кандидат 0.2.0-alpha.59 — DoctorTracer 0.21.1 / ручной zoom (2026-11-19)
 - **PR #90:** https://github.com/tohaa28/relief-forge/pull/90. Alpha.58 rollback main `a29802f59dafbde80fd28c18feb64db562f8a0ec`.
 - Исправлен прошлый недостижимый триггер: при >=11 **подтверждённых** остаточных дефектах даже в *частичном* большом документе запускать новый векторизатор, если выбрана вся геометрия. **Приёмка нового SVG всё равно только после полной Rust+native диагностики + улучшения количества ошибок + IoU >=95%.** Все стадии/причины отказа показывать справа.
