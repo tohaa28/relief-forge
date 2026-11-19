@@ -27,3 +27,12 @@
 - Регрессии старого `tests/doctortracer-fallback.test.mjs` защищают один чёрный цвет, holes, отмену, SVG cap и strict mask check. PR CI ещё ожидается. Нельзя утверждать, что реальный пользовательский EPS с IoU=.491 получил IoU>=.95: пользователь в предыдущих циклах присылал только JSONL, не EPS bytes. Требуется новая проверка исходного документа.
 - Сбой CI/тестов и применённые альтернативы записывать в FAILURE_REGISTER и DEVELOPMENT_LOG; релиз только после подтверждённых тестов и GitHub Pages SUCCESS.
 
+
+## Alpha65 first CI failed, regression compatibility fixes (2026-11-19)
+- Workflow https://github.com/tohaa28/relief-forge/actions/runs/44588150682 FAILED at JS: 362/367 passed, 5 failed. Rust 17/17 passed before npm tests; WASM/browser stages not completed.
+- Failure 1: a legacy DoctorTracer test expected literal `rasterPlan(source)` in fallback, but import cache uses `preparedRasterPlan(source)`. Corrected test to expect the new cache contract `doctorMaskCache.get(preview.doctorMaskToken)` (e302bfcae68ea74d6f9266c323600c565dccc46d).
+- Failures 2,3: `real-boolean-union` and `union-node-cleanup` static tests relied on the original literal `const pv={source:clone(doc),result:after`. Restored original property order; cache token assigned after pv creation so geometry and APIs unchanged.
+- Failure 4: `unified-point-apply` VM harness extracts only preview functions and lacks global `doctorMaskCache`; direct access threw, silently nulled `curvePreview`. Now `pv.doctorMaskToken=typeof doctorMaskCache==='undefined'?null:doctorMaskCache.generation` and real application sees actual instance; mocked independent tests can work. Fix commit 31b48285f4a573d376041133e2be07cf4dcf9f3b.
+- Failure 5: history-integrity required exact `0.2.0-alpha.65` in HANDOFF.md; this is now explicit (ce68a41d4eb5657fda9a53a1e8850c089b81e057).
+- The CI failure is recorded; do NOT claim candidate published or green. New complete CI required after this synchronization.
+

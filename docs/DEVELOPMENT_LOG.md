@@ -1005,3 +1005,12 @@ Next: if user still sees discrepancy, obtain same file/marked location and ArtCA
 - Baseline published alpha64 `65e27e8b6f59837c4128952417428e2c138b0f39`; feature `feature/alpha65-import-600dpi-raster-cache`; publication CI and GitHub Pages pending. This doesn't prove alpha64 failure IoU=.491 has been fixed on private user EPS.
 - Unit tests: `tests/doctortracer-prepared.test.mjs` and existing `doctortracer-fallback.test.mjs`. Full log: `docs/history/ALPHA65_IMPORT_600DPI_MASK.md`, F-065/M-065, `logs/actions.jsonl`.
 
+
+## Alpha65 first CI failed, regression compatibility fixes (2026-11-19)
+- Workflow https://github.com/tohaa28/relief-forge/actions/runs/44588150682 FAILED at JS: 362/367 passed, 5 failed. Rust 17/17 passed before npm tests; WASM/browser stages not completed.
+- Failure 1: a legacy DoctorTracer test expected literal `rasterPlan(source)` in fallback, but import cache uses `preparedRasterPlan(source)`. Corrected test to expect the new cache contract `doctorMaskCache.get(preview.doctorMaskToken)` (e302bfcae68ea74d6f9266c323600c565dccc46d).
+- Failures 2,3: `real-boolean-union` and `union-node-cleanup` static tests relied on the original literal `const pv={source:clone(doc),result:after`. Restored original property order; cache token assigned after pv creation so geometry and APIs unchanged.
+- Failure 4: `unified-point-apply` VM harness extracts only preview functions and lacks global `doctorMaskCache`; direct access threw, silently nulled `curvePreview`. Now `pv.doctorMaskToken=typeof doctorMaskCache==='undefined'?null:doctorMaskCache.generation` and real application sees actual instance; mocked independent tests can work. Fix commit 31b48285f4a573d376041133e2be07cf4dcf9f3b.
+- Failure 5: history-integrity required exact `0.2.0-alpha.65` in HANDOFF.md; this is now explicit (ce68a41d4eb5657fda9a53a1e8850c089b81e057).
+- The CI failure is recorded; do NOT claim candidate published or green. New complete CI required after this synchronization.
+

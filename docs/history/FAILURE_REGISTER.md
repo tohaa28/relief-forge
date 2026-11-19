@@ -532,3 +532,12 @@ F-051 verified: PR78 and Pages run42985447239 green; live browser regression PAS
 - URL https://tohaa28.github.io/relief-forge/?v=alpha63 ; rollback alpha.62 `b461a5fd1df0d043e27f721c32c3f3a7c516e7cf`.
 - This is a targeted single-ink palette hypothesis based on alpha.62 session log and DoctorTracer transparency handling; actual private EPS result/IoU still UNVERIFIED. Never claim 0.491 fixed before a new run.
 
+
+## Alpha65 first CI failed, regression compatibility fixes (2026-11-19)
+- Workflow https://github.com/tohaa28/relief-forge/actions/runs/44588150682 FAILED at JS: 362/367 passed, 5 failed. Rust 17/17 passed before npm tests; WASM/browser stages not completed.
+- Failure 1: a legacy DoctorTracer test expected literal `rasterPlan(source)` in fallback, but import cache uses `preparedRasterPlan(source)`. Corrected test to expect the new cache contract `doctorMaskCache.get(preview.doctorMaskToken)` (e302bfcae68ea74d6f9266c323600c565dccc46d).
+- Failures 2,3: `real-boolean-union` and `union-node-cleanup` static tests relied on the original literal `const pv={source:clone(doc),result:after`. Restored original property order; cache token assigned after pv creation so geometry and APIs unchanged.
+- Failure 4: `unified-point-apply` VM harness extracts only preview functions and lacks global `doctorMaskCache`; direct access threw, silently nulled `curvePreview`. Now `pv.doctorMaskToken=typeof doctorMaskCache==='undefined'?null:doctorMaskCache.generation` and real application sees actual instance; mocked independent tests can work. Fix commit 31b48285f4a573d376041133e2be07cf4dcf9f3b.
+- Failure 5: history-integrity required exact `0.2.0-alpha.65` in HANDOFF.md; this is now explicit (ce68a41d4eb5657fda9a53a1e8850c089b81e057).
+- The CI failure is recorded; do NOT claim candidate published or green. New complete CI required after this synchronization.
+
