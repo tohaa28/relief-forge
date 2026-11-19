@@ -1,3 +1,6 @@
+## F-056 — закрыто после проверки alpha.56
+PR #86 merged main `1e9ff2b617c7b1df57f3d4bf96ac870eba12a80d`. CI `44464521648` SUCCESS (318 JavaScript, 17 Rust, fresh WASM, Chromium heavy-edit 2300 C / 40 cursor moves / 7 mouseups / 0 main geometry rebuild, PDF/EPS and startup all green). Добавлены три топологические проверки выбранной точки размыкания/реверса/сохранения типов узлов; исправлено неправильно реализованное начальное размыкание по старому M. Реальный `gerb2.pdf` целиком не проходил финальное браузерное испытание. Live Pages отдельно не подтверждён. [Подробный журнал](ALPHA56_DEFERRED_LOCAL_EDITOR.md). Контрольный rollback: alpha55 `cbf5495fa9af24677783bf0c86ffa46b6a12d49b`.
+
 ## F-056. Полный commit сложной фигуры на каждом отпускании мыши в alpha.55
 - **Жалоба:** даже после ускорения pointermove приложение сильно тормозит при ручной коррекции проблем в `gerb2.pdf`.
 - **Корень:** старый `pointerup` запускал `moveCurveNode`/`moveCurveHandle`, полную обработку 7545 C, SVG rewrite/DOMParser, clone+JSON.stringify всего документа, checkpoint, `changed`, рендер и `nativeParts` диагностики. Предыдущая оптимизация не устранила O(N) после мышиного жеста.
