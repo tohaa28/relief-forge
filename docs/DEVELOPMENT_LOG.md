@@ -909,3 +909,14 @@ Next: if user still sees discrepancy, obtain same file/marked location and ArtCA
 - **Не проверено браузером на самом EPS**: передан только диагностический JSONL, а не байты `8101921_maket_7_121126_163426.eps`; не измерен реальный FPS и не подтверждён конец-to-конец Worker DoctorTracer WASM на этом изображении. Внешняя UI приёмка: открыть именно EPS; после 11+ residual появится `doctortracer-rgba-ready`, Worker progress; сравнить до/после, маску IoU, Undo и экспорт. Для zoom сравнить ×5–×20 на 1,975 shapes. Исходный документ не перезаписывается при отклонённой трассировке.
 - Полный план/методы `docs/history/ALPHA60_CANVAS_DOCTORTRACER_PERFORMANCE.md`; провалы F-060, методы M-060, события `logs/actions.jsonl`.
 
+
+## 2026-11-19 — 0.2.0-alpha.61 candidate / DoctorTracer 200k-node budget
+- Evidence: user relief-forge-session(2).jsonl (29 events) on alpha.60; actual EPS bytes absent.
+- 1975 vector paths, 398 remaining problems. DoctorTracer Canvas RGBA 1262x1795 (9061160 bytes) succeeded;
+  remapDoctorTracerSvg import rejected result with 200000-node cap. F-060 bitmap fault no longer observed.
+- Created branch from published checkpoint 94cc59b1b92519642452ad2b932f1a25f0e9ebb2; draft PR #93.
+- Solution: 100/70/45% retrace only on exact limit, preserving original geometry and source-mm mapping.
+- Final candidate stays subject to original-size raster IoU>=95%, area 0.95..1.05, full diagnostics and fewer issues.
+- Added tests for budget-only retries, cap exhausted, unrelated rejection, cancellation. All test outcomes pending CI.
+- No source EPS in public repository; no browser FPS measurement. Not yet merged or deployed.
+- Reference: docs/history/ALPHA61_ADAPTIVE_DOCTORTRACER.md, F-061, M-061.

@@ -1,3 +1,11 @@
+## M-061. Bounded re-trace of dense DoctorTracer 0.21.1 SVG (2026-11-19)
+- Source vector stays immutable; three resolution levels 100%, 70%, 45% preserve source bbox in millimetres.
+- Retry only the exact RichSVG 200000-node cap, stop on unrelated errors and cancellation.
+- Re-render candidate at original raster resolution and require IoU>=0.95, area 0.95..1.05.
+- Require complete Rust+native diagnosis and fewer issues before replacing AFTER; never bypass Undo.
+- Reject alternatives: globally raising SVG cap (memory/diagnostic risk) or accepting on Worker response alone.
+- Tests and evidence: ALPHA61_ADAPTIVE_DOCTORTRACER.md.
+
 ## M-060. Direct native Canvas raster and hysteretic ROI (2026-11-19)
 - Для отдельного Worker DoctorTracer 0.21.1 использовать **RGBA8 typed pixel data**, а не SVG Blob. Alpha59 ошибочно пытался декодировать искусственно собранный массивный SVG через createImageBitmap; journal доказал мгновенный отказ до WASM. Canvas 2D → getImageData обходят этот codec. Композитные дыры сохранять `evenodd`, open полилинии рисовать тонким stroke; original EPS неизменен. Validate rgba length/alpha before transferring.
 - Для высокочастотного zoom не обновлять каждый `d` и каждый glyph при wheel. Держать `manualZoomRegion`, пересоздать local Bézier only когда viewport покидает ROI или геометрия изменилась; скрыть исходное огромное SVG дерево во время manual zoom. Сохранять Canvas/Undo и восстанавливать геометрию при выходе. 
