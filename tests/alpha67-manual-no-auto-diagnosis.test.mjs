@@ -25,7 +25,7 @@ test('user-initiated defect scan only diagnoses, does not start automatic optimi
  assert.match(app,/\$\('recheck-defects'\)\.onclick=\(\)=>\{/);
  assert.match(app,/calculate\(0,\{diagnosticsOnly:true\}\)/);
  assert.match(app,/if\(diagnosticsOnly\)\{[\s\S]*?record\('user-requested-diagnostics'/);
- assert.match(app,/manualReviewPending=false;\n        markersVisible=true/);
+ assert.match(app,/manualReviewPending=false;manualClearancePaused=false;\n        markersVisible=true/);
 });
 
 test('unchanged exit pauses clearance Worker without mislabeling existing valid defect witnesses',()=>{
