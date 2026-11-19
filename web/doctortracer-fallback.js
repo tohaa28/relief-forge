@@ -1,5 +1,5 @@
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.59';
-import {importRichSvg} from './rich-svg.js?v=0.2.0-alpha.59';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.60';
+import {importRichSvg} from './rich-svg.js?v=0.2.0-alpha.60';
 
 // The linked DoctorTracer 0.21.1 WASM gh-pages site owns its Worker and its GPL
 // dependencies. Nothing from that distribution is copied or relicensed here.
@@ -74,21 +74,81 @@ export function vectorRasterSvg(document,plan){
     '" height="'+plan.height+'" viewBox="'+view+
     '" preserveAspectRatio="none">'+paths.join('')+'</svg>';
 }
-export async function rasterizeDocument(document,plan,{bitmap=createImageBitmap,
-  canvasFactory=()=>globalThis.document.createElement('canvas')}={}){
-  const svg=vectorRasterSvg(document,plan);
-  const blob=new Blob([svg],{type:'image/svg+xml'});
-  const image=await bitmap(blob);
-  try{
-    const canvas=canvasFactory();canvas.width=plan.width;canvas.height=plan.height;
-    const context=canvas.getContext('2d',{willReadFrequently:true});
-    if(!context)throw Error('DoctorTracer: Canvas 2D недоступен');
-    context.clearRect(0,0,plan.width,plan.height);
-    context.drawImage(image,0,0,plan.width,plan.height);
-    const pixels=context.getImageData(0,0,plan.width,plan.height).data;
-    return {pixels:new Uint8Array(pixels),width:plan.width,height:plan.height,plan};
-  }finally{image.close?.();}
+// Direct geometry -> Canvas 2D -> RGBA, with no SVG Blob/ImageBitmap
+// intermediate. Chromium can refuse to decode very large compound SVG
+// (confirmed with 1975 paths from EPS in session alpha59). The actual
+// DoctorTracer 0.21.1 Worker requires only tightly packed RGBA pixels.
+function paintCommands(ctx,commands){
+  for(const c of commands){
+    switch(c[0]){
+      case 'M':ctx.moveTo(c[1],c[2]);break;
+      case 'L':ctx.lineTo(c[1],c[2]);break;
+      case 'Q':ctx.quadraticCurveTo(c[1],c[2],c[3],c[4]);break;
+      case 'C':ctx.bezierCurveTo(c[1],c[2],c[3],c[4],c[5],c[6]);break;
+      case 'Z':ctx.closePath();break;
+      default:throw Error('DoctorTracer: неподдерживаемый сегмент '+c[0]);
+    }
+  }
 }
+export function paintDocumentSilhouette(ctx,document,plan,{batchSize=0,signal}={}){
+  if(!ctx?.beginPath||!ctx?.fill||!ctx?.stroke||!ctx?.setTransform)
+    throw Error('DoctorTracer: Canvas 2D не поддерживает прямое рисование вектора');
+  const sx=plan.width/plan.widthMm,sy=plan.height/plan.heightMm;
+  if(!finite(sx)||!finite(sy)||sx<=0||sy<=0)
+    throw Error('DoctorTracer: неверная матрица растрирования');
+  ctx.clearRect(0,0,plan.width,plan.height);
+  ctx.save();
+  try{
+    ctx.setTransform(sx,0,0,sy,-plan.x*sx,-plan.y*sy);
+    ctx.fillStyle='#000000';ctx.strokeStyle='#000000';
+    ctx.lineWidth=Math.max(1/sx,1/sy);
+    ctx.lineJoin='round';ctx.lineCap='round';
+    for(const path of document.paths){
+      if(signal?.aborted)throw Error('DoctorTracer: операция отменена');
+      const contours=[],commands=geometryCommands(path);let part=[];
+      for(const cmd of commands){
+        if(cmd[0]==='M'&&part.length){contours.push(part);part=[];}
+        part.push(cmd);
+      }
+      if(part.length)contours.push(part);
+      const closed=contours.filter(a=>a.some(c=>c[0]==='Z'));
+      // Preserve holes for compound EPS shapes by filling ALL closed
+      // subpaths together using the even-odd rule.
+      if(closed.length){
+        ctx.beginPath();
+        for(const contour of closed)paintCommands(ctx,contour);
+        ctx.fill('evenodd');
+      }
+      for(const contour of contours){
+        if(contour.some(c=>c[0]==='Z'))continue;
+        ctx.beginPath();paintCommands(ctx,contour);ctx.stroke();
+      }
+    }
+  }finally{ctx.restore();}
+}
+
+// Optional bitmap remains injectable for regression of the old failure,
+// but production always takes the direct vector Canvas route. This avoids
+// both the >11MB SVG data URI and createImageBitmap('image/svg+xml') failures.
+export async function rasterizeDocument(document,plan,{bitmap=null,
+  canvasFactory=()=>globalThis.document.createElement('canvas'),signal}={}){
+  if(signal?.aborted)throw Error('DoctorTracer: операция отменена');
+  const canvas=canvasFactory();canvas.width=plan.width;canvas.height=plan.height;
+  const context=canvas.getContext('2d',{willReadFrequently:true});
+  if(!context)throw Error('DoctorTracer: Canvas 2D недоступен');
+  if(bitmap){
+    const svg=vectorRasterSvg(document,plan);
+    const blob=new Blob([svg],{type:'image/svg+xml'});
+    const image=await bitmap(blob);
+    try{context.clearRect(0,0,plan.width,plan.height);
+      context.drawImage(image,0,0,plan.width,plan.height);}
+    finally{image.close?.();}
+  }else paintDocumentSilhouette(context,document,plan,{signal});
+  if(signal?.aborted)throw Error('DoctorTracer: операция отменена');
+  const pixels=new Uint8Array(context.getImageData(0,0,plan.width,plan.height).data);
+  return {pixels,width:plan.width,height:plan.height,plan,backend:bitmap?'svg-image':'canvas2d-direct'};
+}
+
 export function doctorTracerWorkerUrl(pageUrl){
   const page=new URL(pageUrl);
   if(page.protocol!=='https:'||page.hostname!=='tohaa28.github.io')
@@ -97,10 +157,28 @@ export function doctorTracerWorkerUrl(pageUrl){
   worker.searchParams.set('v',DOCTORTRACER_VERSION); // avoid stale 0.16.0 Worker cache
   return worker.href;
 }
+export function validateDoctorTracerRgba(raster){
+  const {width,height,pixels}=raster||{};
+  if(!Number.isSafeInteger(width)||!Number.isSafeInteger(height)||
+    width<1||height<1||width>2400||height>2400||
+    width*height>8000000||!(pixels instanceof Uint8Array)||
+    pixels.byteLength!==width*height*4)
+    throw Error('DoctorTracer: неверный формат RGBA (ожидается Uint8Array width×height×4)');
+  let opaque=0,transparent=0;
+  for(let i=3;i<pixels.length;i+=4){
+    if(pixels[i]>=128)opaque++;
+    else transparent++;
+  }
+  if(!opaque)throw Error('DoctorTracer: растр не содержит непрозрачных векторных элементов');
+  return {width,height,bytes:pixels.byteLength,opaque,transparent,format:'RGBA8'};
+}
 export function traceWithDoctorTracer(raster,{pageUrl=globalThis.location?.href,
   workerFactory=(url,options)=>new Worker(url,options),signal,timeoutMs=120000,progress=()=>{}}={}){
   const url=doctorTracerWorkerUrl(pageUrl);
   if(signal?.aborted)return Promise.reject(Error('DoctorTracer: операция отменена'));
+  // Validate that the RGBA buffer matches the actual 0.21.1 Worker contract
+  // before transferring ownership; malformed data must not reach Rust WASM.
+  validateDoctorTracerRgba(raster);
   return new Promise((resolve,reject)=>{
     let worker,settled=false,timer;
     const cleanup=()=>{

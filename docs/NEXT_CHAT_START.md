@@ -1,3 +1,13 @@
+## 0.2.0-alpha.60 — кандидат CI, 19 ноября 2026
+
+## alpha.60 — Canvas RGBA / DoctorTracer 0.21.1 / zoom performance (2026-11-19)
+**Новый PR #92:** https://github.com/tohaa28/relief-forge/pull/92. База alpha.59 `345fac5b7df66120fdaa84284c2a5985b9d497ad`.
+**Доказательство из присланного `relief-forge-session.jsonl`:** EPS 1.226MB, 1975 paths, 1115 initial errors, 398 remaining; событие `doctortracer-fallback-start` затем через 75ms `doctortracer-fallback-rejected` `The source image could not be decoded.`. Значит триггер уже сработал; падала `createImageBitmap(SVG Blob)` **до вызова** DoctorTracer WASM.
+В `web/doctortracer-fallback.js` production использует `CanvasRenderingContext2D` для нативных M/L/Q/C/Z напрямую→RGBA8 `Uint8Array`, отверстия через `evenodd`, открытые stroke; валидирует буфер 4*width*height и opaque pixels; Worker 0.21.1 получает прежний контракт `ArrayBuffer`. В `app.js` журналируется `doctortracer-rgba-ready`; исходник только после полного accept с IOU.
+**Zoom**: `manualZoomRegion` кэширует ROI между wheel frames, снимает большую часть path-d reparse; скрывает исходные 1975 SVG path/markers почти сразу при зуме; локально до 24 соседних shapes / 600 segments / 80 issue markers; исходные кривые сохраняются в памяти и Undo.
+**История:** `docs/history/ALPHA60_CANVAS_DOCTORTRACER_PERFORMANCE.md`, F-060/M-060, `logs/actions.jsonl`. Первый CI #44511911748: 341/343 JS; два тестовых сбоя: JS -0 vs 0 и ещё не обновлённый файл релизной истории. **Не утверждать успешный окончательный CI/деплой, пока не проверено**.
+
+---
 ## 0.2.0-alpha.59 — подтверждены PR CI и успешная публикация GitHub Pages (2026-11-19)
 - **PR [#90](https://github.com/tohaa28/relief-forge/pull/90)** объединён в `main`, merge commit `68c32504bf12afb84711763b8723447c277ab9cb`.
 - Финальная проверка PR head `593f73f329c26b7af3791c151f450eaf21c7e4f4`: [Actions 44487102555](https://github.com/tohaa28/relief-forge/actions/runs/44487102555) **SUCCESS**, **340/340 JS**, **17/17 Rust**, релизная WASM-сборка + check.

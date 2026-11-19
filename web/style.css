@@ -612,3 +612,12 @@ aside.right #issues-panel #issues{max-height:26dvh;overflow:auto}
   stroke-linejoin:round;pointer-events:none;
 }
 
+/* alpha60: hide all document-wide SVG paint/hit geometry while zoomed into
+   the manual editor; only the bounded local geometry and local marks remain. */
+.manual-local-zoom #markers,
+.manual-local-zoom #nodes,
+.manual-local-zoom #clearance-markers{display:none!important}
+#manual-local-geometry .manual-local-issue{
+  fill:none;stroke:#e25463;stroke-width:1.5px;
+  vector-effect:non-scaling-stroke;pointer-events:none
+}

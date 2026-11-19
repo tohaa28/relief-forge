@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {DOMParser} from '@xmldom/xmldom';
 import {needsDoctorTracer,rasterPlan,vectorRasterSvg,doctorTracerWorkerUrl,
   traceWithDoctorTracer,remapDoctorTracerSvg,maskSimilarity,acceptRetracing,
-  rasterizeDocument} from '../web/doctortracer-fallback.js';
+  rasterizeDocument,paintDocumentSilhouette,validateDoctorTracerRgba} from '../web/doctortracer-fallback.js';
 const p=(coordinates,closed=true)=>({
   kind:'vector',artwork:'<path fill="none" stroke="#123"/>',offset:[0,0],
   commands:coordinates.map((pt,i)=>[i?'L':'M',...pt]).concat(closed?[['Z']]:[]),
@@ -83,7 +83,7 @@ test('worker handshake uses native DoctorTracer hard-edge Rust WASM request with
   };
   const seen=[];
   const out=await traceWithDoctorTracer(
-    {pixels:new Uint8Array(4*12*10),width:12,height:10},
+    {pixels:Uint8Array.from({length:4*12*10},(_,i)=>i%4===3?255:0),width:12,height:10},
     {pageUrl:'https://tohaa28.github.io/relief-forge/',workerFactory:factory,
       progress:(pct,stage)=>seen.push([pct,stage])});
   assert.match(createdUrl,/DoctorTracer\/worker\.js\?v=0\.21\.1$/);
@@ -95,10 +95,10 @@ test('worker handshake uses native DoctorTracer hard-edge Rust WASM request with
 test('worker failure and explicit abort never return a synthetic successful vector',async()=>{
   const workerFactory=()=>({postMessage(){queueMicrotask(()=>this.onmessage(
     {data:{error:'WASM unavailable'}}));},terminate(){}});
-  await assert.rejects(traceWithDoctorTracer({pixels:new Uint8Array(8),width:1,height:2},
+  await assert.rejects(traceWithDoctorTracer({pixels:Uint8Array.from([0,0,0,255,0,0,0,255]),width:1,height:2},
     {pageUrl:'https://tohaa28.github.io/relief-forge/',workerFactory}),/WASM unavailable/);
   const controller=new AbortController();controller.abort();
-  await assert.rejects(traceWithDoctorTracer({pixels:new Uint8Array(8),width:1,height:2},
+  await assert.rejects(traceWithDoctorTracer({pixels:Uint8Array.from([0,0,0,255,0,0,0,255]),width:1,height:2},
     {pageUrl:'https://tohaa28.github.io/relief-forge/',signal:controller.signal}),/отменена/);
 });
 test('trace SVG remapping respects original document millimetres and strips stale import bytes',()=>{
@@ -145,6 +145,59 @@ test('rasterizer can run with injected bitmap and Canvas 2D, no network or file 
   assert.equal(output.pixels.length,plan.width*plan.height*4);
   assert.deepEqual(input,src);
 });
+
+test('native 0.21.1 payload is validated RGBA8 exactly before ArrayBuffer ownership transfer',()=>{
+ const input={width:2,height:1,pixels:Uint8Array.from([0,0,0,255,0,0,0,0])};
+ assert.deepEqual(validateDoctorTracerRgba(input),{
+   width:2,height:1,bytes:8,opaque:1,transparent:1,format:'RGBA8'});
+ assert.throws(()=>validateDoctorTracerRgba({...input,pixels:new Uint8Array(7)}),/RGBA/);
+ assert.throws(()=>validateDoctorTracerRgba({...input,pixels:new Uint8Array(8)}),/не содержит/);
+ assert.throws(()=>validateDoctorTracerRgba({...input,width:0}),/RGBA/);
+});
+test('direct Canvas 2D rasterizer does not attempt SVG Blob decoding on 1975 imported EPS paths',async()=>{
+ const document=doc(Array.from({length:1975},(_,i)=>
+   p([[i%50,i%50],[i%50+1,i%50],[i%50+1,i%50+1],[i%50,i%50+1]])));
+ const snapshot=JSON.stringify(document),plan={x:0,y:0,widthMm:70,heightMm:70,width:140,height:140};
+ const calls={moves:0,lines:0,fills:0,strokes:0,transform:null,saved:0};
+ const ctx={
+  clearRect(){},save(){calls.saved++;},restore(){calls.saved--;},
+  setTransform(...v){calls.transform=v;},beginPath(){},
+  moveTo(){calls.moves++;},lineTo(){calls.lines++;},
+  bezierCurveTo(){},quadraticCurveTo(){},closePath(){},
+  fill(rule){assert.equal(rule,'evenodd');calls.fills++;},stroke(){calls.strokes++;},
+  getImageData(){return {data:new Uint8ClampedArray(plan.width*plan.height*4).fill(255)}}
+ };
+ const raster=await rasterizeDocument(document,plan,{
+  canvasFactory:()=>({getContext:()=>ctx})
+ });
+ assert.equal(raster.backend,'canvas2d-direct');
+ assert.equal(raster.pixels.byteLength,plan.width*plan.height*4);
+ assert.equal(calls.fills,1975);
+ assert.deepEqual(calls.transform.slice(0,4),[2,0,0,2]);
+ assert.ok(Math.abs(calls.transform[4])<1e-12);
+ assert.ok(Math.abs(calls.transform[5])<1e-12);
+ assert.equal(calls.saved,0);
+ assert.equal(JSON.stringify(document),snapshot);
+ assert.ok(validateDoctorTracerRgba(raster).opaque>0);
+});
+test('direct Canvas 2D renderer paints compound holes in one evenodd fill and open curves as stroke',()=>{
+ const geometry={...doc().paths[0],commands:[
+  ['M',0,0],['L',20,0],['L',20,20],['L',0,20],['Z'],
+  ['M',5,5],['L',5,15],['L',15,15],['L',15,5],['Z'],
+  ['M',22,22],['C',24,22,26,25,28,25]
+ ]};
+ const kinds=[],ctx={
+  clearRect(){},save(){},restore(){},setTransform(){},
+  beginPath(){kinds.push('begin');},moveTo(){},lineTo(){},quadraticCurveTo(){},
+  bezierCurveTo(){kinds.push('bezier');},closePath(){},
+  fill(rule){kinds.push('fill:'+rule);},stroke(){kinds.push('stroke');}
+ };
+ paintDocumentSilhouette(ctx,doc([geometry]),{x:0,y:0,widthMm:30,heightMm:30,width:300,height:300});
+ assert.equal(kinds.filter(v=>v==='fill:evenodd').length,1);
+ assert.equal(kinds.filter(v=>v==='stroke').length,1);
+ assert.equal(kinds.filter(v=>v==='bezier').length,1);
+});
+
 test('AFTER integration takes source, rechecks candidate and keeps undo; does not rerun on every edit',()=>{
   const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
   const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
