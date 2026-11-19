@@ -1016,7 +1016,7 @@ Added a2-million native segment-comparison budget per compound path; if full int
 - User's private source EPS bytes not available. Do not claim improvement in actual IoU or solved tracer geometry until fresh journal. If segmentation IoU is already low, investigate DoctorTracer hard mode; if segmentation good but final low, inspect SVG, compound holes and raster remapping. Retain fail-closed 200k cap/IoU>=95%/native+Rust full validation/Undo.
 
 
-## Alpha65 — 600 DPI cached at import BEFORE vector work (candidate, 2026-11-19)
+## 0.2.0-alpha.65 — 600 DPI cached at import BEFORE vector work (candidate, 2026-11-19)
 - Requirement: import EPS/PDF/SVG/JSON, paint black on transparent at target 600dpi and keep an in-memory temporary silhouette before diagnostics / auto-repair. If >10 residual errors after native check and whole-document scope, pass cached raster to DoctorTracer 0.21.1.
 - Implemented in `web/doctortracer-prepared.js` and `web/doctortracer-fallback.js`: 600dpi Canvas2D -> read only alpha strips and keep Uint8Array (1 byte/pixel), 36MP / maxSide9000 cap. Transparent background is alpha=0, black objects are alpha=1..255; original EPS colors and Bézier source untouched.
 - `web/app.js` changed import sequence: openValue -> prepareImportBlackMask (with progress, cancel, per-document generation) -> calculate(0). Worker gets materialized black RGBA from already computed high-res alpha, capped 12MP / maxSide5000; full original alpha remains for strict fidelity at prepared resolution.
