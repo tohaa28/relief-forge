@@ -1267,18 +1267,21 @@ async function retryUnfixableWithDoctorTracer(preview,report,callRust,generation
     const originalMask={width:raster.width,height:raster.height,pixels:new Uint8Array(raster.pixels)};
     progressStage('DoctorTracer: трассировка Rust WASM',30);
     const {candidate,traced,tracePlan,attempts}=await traceDocumentWithNodeBudget(source,plan,{
-      firstRaster:raster,signal:abort.signal,
+      // Stable physical silhouette: node-budget retries downsample this
+      // immutable original RGBA rather than redraw 1px strokes at each DPI.
+      firstRaster:raster,referenceRaster:originalMask,signal:abort.signal,
       traceOptions:{timeoutMs:240000,
         progress:(pct,stage)=>progressStage('DoctorTracer: '+(stage||'трассировка'),
           Math.min(70,30+Math.round(pct*.4)),Math.round(pct)+'%')},
-      onAttempt:({attempt,total,plan:attemptPlan})=>{
+      onAttempt:({attempt,total,plan:attemptPlan,rasterBackend})=>{
         record('doctortracer-trace-attempt',{attempt,total,width:attemptPlan.width,
-          height:attemptPlan.height});
+          height:attemptPlan.height,rasterBackend});
         progressStage('DoctorTracer: трассировка WASM · попытка '+attempt+'/'+total,30);
       },
-      onTraced:({attempt,plan:attemptPlan,paths,paletteCount,backend})=>{
+      onTraced:({attempt,plan:attemptPlan,paths,paletteCount,backend,segmentation})=>{
         record('doctortracer-trace-result',{attempt,width:attemptPlan.width,
-          height:attemptPlan.height,paths,paletteCount,backend,requestedInkCount:1});
+          height:attemptPlan.height,paths,paletteCount,backend,requestedInkCount:1,
+          segmentation});
       },
       onRetry:({attempt,nextPlan,reason})=>{
         record('doctortracer-node-limit-retry',{attempt,reason,
