@@ -612,3 +612,9 @@ Functional PR https://github.com/tohaa28/relief-forge/pull/78 merged 5c8169a50e3
 F-051: true coordinate coincidence separated from near_node; unrelated subpaths rely on pink clearance, densely spaced local runs excluded by control-polygon upper bound. Witness coordinates and distance are double precision in mm, display five significant digits. Near-node marker substitutes only the two actual owner+coordinate anchors. Other diagnostics and repair/export geometry unchanged. Local original gerb project snapshot (not a new EPS import): source1686/after25 vs alpha50 source1729/after29, same 11493->9668 anchors and exact paths/paint, both downloaded EPS matching-after9668. 25 remaining include9near/1coincident and unchanged crossings/overlaps; two Boolean groups still protected. ArtCAM parity and user's exact discrepancy not verified.
 Next: if user still sees discrepancy, obtain same file/marked location and ArtCAM settings; do not widen eps, change curve geometry or remove legitimate diagnostics to force count parity. Preserve alpha50 parallel engine download/cancellation fixes, native provenance, exact AFTER exports and Undo. Base rollback b2f8116.
 
+
+## 0.2.0-alpha.70 — кандидат к выпуску, 2026-11-20
+
+- База опубликованной alpha.69: main 934a99a94cb8e9b7603ed4e16a594742af1493f0, Pages #44713201875. Откат выпуска к этому коммиту.
+- Состав: бюджеты ремонта, нативные параметры прямых, локальный ремонт ручками и обрезка, разделение микропетли, разведение близких узлов, сварка настоящих концов, фильтр геометрически замкнутых микроэлементов, проверенные пары Union. Приватный EPS в локальном Chrome: 355 → 321 остаточных замечаний, короткие 12 → 0. Межблочная диагностика остаётся неполной. Отчёт узких зазоров не запускает ремонт.
+- Код и версия подготовлены в release/alpha70-repair. Для публикации требуется подтверждение сборки и Pages. Подробные этапы и методы в DEVELOPMENT_LOG.md.

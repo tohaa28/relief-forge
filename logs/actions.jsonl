@@ -263,3 +263,5 @@
 {"at": "2026-11-20T15:06:00+03:00", "action": "bounded-repair-cycles-all-except-clearance", "base": "75b96e8", "js": 408, "rust": 17, "wasm": true, "browserSmoke": true, "privateEpsCycles": [355, 344, 343, 341, 341], "complete": false, "published": false}
 
 {"at": "2026-11-20T15:12:00+03:00", "action": "fix-implicit-micro-closure-and-numerical-seam", "base": "da6f250", "js": 410, "browserSmoke": true, "privateEpsCycles": [341, 322, 321], "remainingShort": 0, "complete": false, "published": false}
+
+{"at":"2026-11-20T15:15:00+03:00","action":"alpha70-release-candidate","rollback":"934a99a94cb8e9b7603ed4e16a594742af1493f0","privateEpsBase":355,"privateEpsCandidate":321,"publishPending":true}
