@@ -1,3 +1,12 @@
+## 0.2.0-alpha.73 — кандидат: зум редактора и сглаживание, 2026-11-20
+
+- Ветка `feature/alpha73-editor-zoom-smoothing`, база main `9cca63f5f8fc1b171892d6c647b3bd05c699ddf7` (alpha.72). PR/CI/Pages этой версии пока ожидаются. Базовый main Pages [44786577224](https://github.com/tohaa28/relief-forge/actions/runs/44786577224) SUCCESS. Открытая PR #103 не изменялась.
+- Зум: wheel накапливает точный cursor-anchored виртуальный viewport; один RAF изменяет SVG. World-space hull cache + bounded nearest-K + lazy SVG cache, инвалидируется локальной правкой/Undo. Усечённый viewport-кеш обновляется при зуме; соседние кривые учитывают ручки и offset.
+- Сглаживание: исправлен подтверждённый отказ на смещённых объектах из-за сравнения local/world anchors. Quality теперь сравнивает мировую геометрию без двойного offset. Допуски/защита углов/пересечений не ослаблены.
+- На синтетических 20 000 C с CPU 4× серия 60 wheel: 294 → 5.3–6.1 мс; geometry total 289.3 → 22.8–31.5 мс; одна запись viewBox с точной итоговой камерой. Это не замер пользовательского GPU или FPS. UI smoothing 0 / 0.05 мм, реальные handles, EPS, Undo/Redo, 151 стык PASS.
+- Checkpoint: 420 JS и targeted browser PASS. Полный финальный Rust/WASM/Chromium и GitHub CI ещё предстоят. Подробности: [ALPHA73_EDITOR_ZOOM_SMOOTHING.md](docs/history/ALPHA73_EDITOR_ZOOM_SMOOTHING.md).
+- Порядок alpha.72 и ДО/ПОСЛЕ/подложка/EPS сохранены. Пользовательский исходный EPS не предоставлен. Откат: исходный main `9cca63f5f8fc1b171892d6c647b3bd05c699ddf7`. Следующий шаг — полные checks, PR и подтверждение deploy перед заявлением о выпуске.
+
 ## 0.2.0-alpha.72 — опубликована и проверена, 2026-11-20
 
 - [PR #104](https://github.com/tohaa28/relief-forge/pull/104) MERGED. Исходный checkpoint `3d563a25de70c75e817eafe93902ecf5af9f1b88`; source main merge `147298ad35821bdd2ee4b5b4f52f0875845c6365`. Текущая документационная ревизия следует за source merge; точный HEAD получать через git.

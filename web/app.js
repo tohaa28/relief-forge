@@ -1,44 +1,44 @@
-import {prepareAfterCopy} from './after-preparation.js?v=0.2.0-alpha.72';
-import {prepareNativeIntersections} from './native-intersections.js?v=0.2.0-alpha.72';
-import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.72';
-import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.72';
-import {issueViewBox} from './issue-focus.js?v=0.2.0-alpha.72';
-import {visibleHealthyAnchors,circlePath} from './vector-points.js?v=0.2.0-alpha.72';
-import {issueDistanceLabel,screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.72';
-import {issuesForManualEditor,resolveManualIssues,retainsIssuesDuringManualChange} from './manual-issue-state.js?v=0.2.0-alpha.72';
-import {diagnoseLocalNodeArea,localNodeRadius} from './local-node-diagnostics.js?v=0.2.0-alpha.72';
-import {buildAnchorIndex,nearbyAnchors,createLiveCurvePatch,drawLiveCurvePatch} from './manual-edit-performance.js?v=0.2.0-alpha.72';
-import {heavyManualScene,screenToDocumentPoint} from './manual-viewport-performance.js?v=0.2.0-alpha.72';
-import {createDeferredCurveEditor} from './deferred-curve-editor.js?v=0.2.0-alpha.72';
-import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.72';
-import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.72';
-import {packedInput} from './auto-repair.js?v=0.2.0-alpha.72';
-import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js?v=0.2.0-alpha.72';
-import {removeTinyClosedSubpaths} from './cnc-microfilter.js?v=0.2.0-alpha.72';
-import {beginImportBefore,captureImportBefore,importedComparison} from './import-before.js?v=0.2.0-alpha.72';
-import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js?v=0.2.0-alpha.72';
-import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.72';
-import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.72';
-import {separateCoincidentNonadjacentNodes} from './coincident-node-separation.js?v=0.2.0-alpha.72';
-import {repairSelfIntersections} from './self-intersection-repair.js?v=0.2.0-alpha.72';
-import {mergeNearbyGeometry} from './nearby-curve-merge.js?v=0.2.0-alpha.72';
-import {needsDoctorTracer,rasterPlan,rasterizeDocument,rasterizeDocumentAlpha,traceDocumentWithNodeBudget,maskSimilarity,acceptRetracing} from './doctortracer-fallback.js?v=0.2.0-alpha.72';
-import {createDoctorTracerMaskCache,preparedRasterPlan,boundedWorkerRasterPlan,workerRasterFromPreparedMask,PREPARED_RASTER_DPI} from './doctortracer-prepared.js?v=0.2.0-alpha.72';
-import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode,finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.72';
-import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.72';
-import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.72';
-import {inspectDocumentComplexity,largeFileWarning} from './complexity-preflight.js?v=0.2.0-alpha.72';
-import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.72';
-import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.72';
-import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.72';
-import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.72';
-import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.72';
-import {runNativeJob,cancelNativeJobs} from './native-jobs.js?v=0.2.0-alpha.72';
+import {prepareAfterCopy} from './after-preparation.js?v=0.2.0-alpha.73';
+import {prepareNativeIntersections} from './native-intersections.js?v=0.2.0-alpha.73';
+import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.73';
+import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.73';
+import {issueViewBox} from './issue-focus.js?v=0.2.0-alpha.73';
+import {visibleHealthyAnchors,circlePath} from './vector-points.js?v=0.2.0-alpha.73';
+import {issueDistanceLabel,screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.73';
+import {issuesForManualEditor,resolveManualIssues,retainsIssuesDuringManualChange} from './manual-issue-state.js?v=0.2.0-alpha.73';
+import {diagnoseLocalNodeArea,localNodeRadius} from './local-node-diagnostics.js?v=0.2.0-alpha.73';
+import {buildAnchorIndex,nearbyAnchors,createLiveCurvePatch,drawLiveCurvePatch} from './manual-edit-performance.js?v=0.2.0-alpha.73';
+import {heavyManualScene,screenToDocumentPoint,manualVectorBounds} from './manual-viewport-performance.js?v=0.2.0-alpha.73';
+import {createDeferredCurveEditor} from './deferred-curve-editor.js?v=0.2.0-alpha.73';
+import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.73';
+import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.73';
+import {packedInput} from './auto-repair.js?v=0.2.0-alpha.73';
+import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js?v=0.2.0-alpha.73';
+import {removeTinyClosedSubpaths} from './cnc-microfilter.js?v=0.2.0-alpha.73';
+import {beginImportBefore,captureImportBefore,importedComparison} from './import-before.js?v=0.2.0-alpha.73';
+import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js?v=0.2.0-alpha.73';
+import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.73';
+import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.73';
+import {separateCoincidentNonadjacentNodes} from './coincident-node-separation.js?v=0.2.0-alpha.73';
+import {repairSelfIntersections} from './self-intersection-repair.js?v=0.2.0-alpha.73';
+import {mergeNearbyGeometry} from './nearby-curve-merge.js?v=0.2.0-alpha.73';
+import {needsDoctorTracer,rasterPlan,rasterizeDocument,rasterizeDocumentAlpha,traceDocumentWithNodeBudget,maskSimilarity,acceptRetracing} from './doctortracer-fallback.js?v=0.2.0-alpha.73';
+import {createDoctorTracerMaskCache,preparedRasterPlan,boundedWorkerRasterPlan,workerRasterFromPreparedMask,PREPARED_RASTER_DPI} from './doctortracer-prepared.js?v=0.2.0-alpha.73';
+import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode,finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.73';
+import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.73';
+import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.73';
+import {inspectDocumentComplexity,largeFileWarning} from './complexity-preflight.js?v=0.2.0-alpha.73';
+import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.73';
+import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.73';
+import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.73';
+import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.73';
+import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.73';
+import {runNativeJob,cancelNativeJobs} from './native-jobs.js?v=0.2.0-alpha.73';
 const mergeOverlappingObjects=(document,options)=>runNativeJob({action:'union',document,options});
-import {gpuBroadphase} from './gpu-broadphase.js?v=0.2.0-alpha.72';
-import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.72';
-import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.72';
-import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.72';
+import {gpuBroadphase} from './gpu-broadphase.js?v=0.2.0-alpha.73';
+import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.73';
+import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.73';
+import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.73';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 let clearanceKey='',clearanceJob=0,clearanceTimer=null,clearanceWorker=null,clearanceReport=null;
 function updateClearance(document,unit){
@@ -60,7 +60,7 @@ function updateClearance(document,unit){
     clearanceKey=key;clearanceReport=null;clearanceJob++;clearTimeout(clearanceTimer);clearanceWorker?.terminate();clearanceWorker=null;
     label.textContent=threshold?'Измерение расстояний…':'Укажите расстояние больше 0 и не больше 1000 мм.';
     if(threshold&&document.paths.length){const id=clearanceJob;clearanceTimer=setTimeout(()=>{
-      clearanceWorker=new Worker(new URL('./clearance-worker.js?v=0.2.0-alpha.72',import.meta.url),{type:'module'});
+      clearanceWorker=new Worker(new URL('./clearance-worker.js?v=0.2.0-alpha.73',import.meta.url),{type:'module'});
       clearanceWorker.onmessage=({data})=>{if(data.id!==clearanceJob)return;clearanceReport=data.report||null;label.textContent=data.error||('Узкие места < '+threshold+' мм: '+data.report.markers.length+(data.report.complete?' · проверка завершена':' · проверка неполная (лимит или пограничная точность)'));clearanceWorker?.terminate();clearanceWorker=null;render();};
       clearanceWorker.onerror=()=>{if(id!==clearanceJob)return;label.textContent='Измерение расстояний не завершено: ошибка вычисления.';clearanceWorker?.terminate();clearanceWorker=null;};
       clearanceWorker.postMessage({id,document:{paths:document.paths.map(p=>({kind:p.kind,artwork:Boolean(p.artwork),commands:p.commands,points:p.points,closed:p.closed,offset:p.offset}))},threshold});
@@ -155,6 +155,7 @@ let manualFocus=null,manualLocalTimer=null,manualLocalGeneration=0;
 let localEditors=new Map(),localEditUndo=[],localEditRedo=[],localEditCount=0;
 let localEditorIndexes=new Map(),localPatchElements=new Map();
 let manualGlyphBuildUnit=0,manualZoomFrame=0,manualZoomRegion=null,manualZoomDirty=true;
+let manualPendingView=null,manualGlyphScaleUnit=0;
 let manualPathBounds=null,manualSceneHeavy=null,manualGlyphCenter=null,
   manualViewportCenter=null,manualScreenRect=null;
 const localPatchKey=(path,segment)=>path+':'+segment;
@@ -211,6 +212,7 @@ function resetLocalEditors(){
   $('manual-local-geometry').replaceChildren();
   if(manualZoomFrame)cancelAnimationFrame(manualZoomFrame);
   manualZoomFrame=0;manualGlyphBuildUnit=0;manualZoomRegion=null;
+  manualPendingView=null;manualGlyphScaleUnit=0;
   manualZoomDirty=true;manualPathBounds=null;manualSceneHeavy=null;
   manualGlyphCenter=null;manualViewportCenter=null;manualScreenRect=null;
   document.body.classList.remove('local-editor-active','manual-local-zoom');
@@ -235,12 +237,8 @@ function localEditorToolbar(){
 function nearbyManualPaths(center,radius){
   // Compute once per editor session, not once per wheel/animation frame.
   if(!manualPathBounds)manualPathBounds=doc.paths.map((p,i)=>{
-    if(p.kind==='image')return null;
-    let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
-    for(const [x,y] of p.points||[]){
-      x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y);
-    }
-    return Number.isFinite(x0)?{path:i,x0,y0,x1,y1}:null;
+    const bounds=manualVectorBounds(p);
+    return bounds?{path:i,...bounds}:null;
   }).filter(Boolean);
   return manualPathBounds.filter(b=>b.x1>=center[0]-radius&&b.x0<=center[0]+radius&&
     b.y1>=center[1]-radius&&b.y0<=center[1]+radius)
@@ -268,6 +266,8 @@ function refreshLocalZoomGeometry(){
   // all visible pixels. Wheel events no longer rebuild the SVG d attribute.
   const cached=manualZoomRegion;
   if(!manualZoomDirty&&cached&&
+    (!cached.limited||Math.max(span/cached.span,cached.span/span)<1.35&&
+      Math.hypot(center[0]-cached.center[0],center[1]-cached.center[1])<span*.2)&&
     Math.hypot(center[0]-cached.center[0],center[1]-cached.center[1])+
     span*.51<=cached.radius){
     document.body.classList.add('manual-local-zoom');return;
@@ -294,7 +294,7 @@ function refreshLocalZoomGeometry(){
     // Nothing nearby: avoid resurrecting the 1975-vector SVG. Keep
     // a deliberately empty local layer; the source remains untouched.
     layer.replaceChildren();
-    manualZoomRegion={center,radius:desired};
+    manualZoomRegion={center,radius:desired,span,limited:false};
     manualZoomDirty=false;
     document.body.classList.add('manual-local-zoom');return;
   }
@@ -310,11 +310,12 @@ function refreshLocalZoomGeometry(){
     q.point[1]<=center[1]+view.height*.65).slice(0,80);
   for(const mark of marks)el('circle',{cx:mark.point[0],cy:mark.point[1],
     r:unit*6,class:'manual-local-issue'},layer);
-  manualZoomRegion={center,radius:desired};
+  manualZoomRegion={center,radius:desired,span,limited:available===0||neighbors.length>chosen.length};
   manualZoomDirty=false;
   document.body.classList.add('manual-local-zoom');
 }
 function rescaleLocalEditorGlyphs(unit){
+  manualGlyphScaleUnit=unit;
   const glyphs=$('manual-glyphs');
   for(const item of glyphs.children){
     if(!item.hasAttribute('data-mm-x'))continue;
@@ -333,6 +334,10 @@ function scheduleManualZoomRefresh(){
   manualZoomFrame=requestAnimationFrame(()=>{
     manualZoomFrame=0;
     if(!curveEditing())return;
+    if(manualPendingView){
+      const {x,y,width,height}=manualPendingView;manualPendingView=null;
+      $('canvas').setAttribute('viewBox',`${x} ${y} ${width} ${height}`);
+    }
     const view=$('canvas').viewBox.baseVal,
       unit=screenUnitsPerPixel(view,$('canvas').clientWidth,$('canvas').clientHeight);
     if(!manualFocus){
@@ -350,7 +355,7 @@ function scheduleManualZoomRefresh(){
     if(!manualGlyphBuildUnit||moved||Math.max(unit/manualGlyphBuildUnit,
       manualGlyphBuildUnit/unit)>1.8)drawLocalEditorOverlay();
     else {
-      if(Math.max(unit/manualGlyphBuildUnit,manualGlyphBuildUnit/unit)>1.12)
+      if(!manualGlyphScaleUnit||Math.max(unit/manualGlyphScaleUnit,manualGlyphScaleUnit/unit)>1.12)
         rescaleLocalEditorGlyphs(unit);
       refreshLocalZoomGeometry();
     }
@@ -370,6 +375,7 @@ function drawLocalEditorOverlay(){
   const view=$('canvas').viewBox.baseVal,
     unit=screenUnitsPerPixel(view,$('canvas').clientWidth,$('canvas').clientHeight);
   manualGlyphBuildUnit=unit;
+  manualGlyphScaleUnit=unit;
   const focus=manualFocus.point;
   const center=[view.x+view.width/2,view.y+view.height/2];
   const glyphCenter=Math.abs(focus[0]-center[0])<=view.width*.65&&
@@ -588,22 +594,26 @@ function scheduleManualLocalRecheck(){
   },50);
 }
 function fit(){const pad=Math.max(doc.width,doc.height)*.07;
+  manualPendingView=null;
   $('canvas').setAttribute('viewBox',`${-pad} ${-pad} ${doc.width+pad*2} ${doc.height+pad*2}`);
   if(curveEditing()){refreshLocalZoomGeometry();scheduleManualZoomRefresh();}else render();
 }
 let preparingComparison=null;
 const currentComparison=()=>curvePreview?.comparisonData||preparingComparison||appliedComparison;
 function zoom(factor,center){
-  const box=$('canvas').viewBox.baseVal,
+  const box=curveEditing()&&manualPendingView||$('canvas').viewBox.baseVal,
     view=zoomBox({x:box.x,y:box.y,width:box.width,height:box.height},factor,center);
   if(!view)return;
-  $('canvas').setAttribute('viewBox',`${view.x} ${view.y} ${view.width} ${view.height}`);
   if(curveEditing()){
-    // Isolate heavy source artwork BEFORE the next browser paint, not one
-    // animation frame after a wheel event has already repainted everything.
-    if(!document.body.classList.contains('manual-local-zoom'))refreshLocalZoomGeometry();
+    // Accumulate cursor-anchored wheel transforms without touching SVG or
+    // querying native geometry for each event. One RAF commits the final view
+    // and isolates heavy artwork before that frame can paint.
+    manualPendingView=view;
     scheduleManualZoomRefresh();
-  }else render();
+  }else{
+    $('canvas').setAttribute('viewBox',`${view.x} ${view.y} ${view.width} ${view.height}`);
+    render();
+  }
 }
 function focusIssue(issue){
   const canvas=$('canvas'),view=canvas.viewBox.baseVal;
@@ -659,7 +669,7 @@ function workspaceScan({attemptRepair=false,manual=false}={}){
   state.hidden=health.ok&&!manual;
   state.dataset.health=health.ok?'ok':'warning';
   $('workspace-health-report').value=safeWorkspaceReport(health,{
-    version:'0.2.0-alpha.72',source:lastImportFailure?.source||doc.sourceFileName||'',
+    version:'0.2.0-alpha.73',source:lastImportFailure?.source||doc.sourceFileName||'',
     errors:displayErrors});
   record('workspace-health',{ok:health.ok,issues:health.issues,forceWireframe,attempts:repairs,
     count:health.elementCount,rect:health.canvasRect,bbox:health.geometryBox});
@@ -686,7 +696,7 @@ $('workspace-check').onclick=()=>{
   const health=workspaceScan({attemptRepair:true,manual:true});
   $('workspace-health-report').value=safeWorkspaceReport(health||{
     ok:true,issues:[],note:'Документ не открыт'},{
-    version:'0.2.0-alpha.72',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
+    version:'0.2.0-alpha.73',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
   $('workspace-health-dialog').showModal();
 };
 $('workspace-check-repair').onclick=()=>{
@@ -1215,7 +1225,7 @@ $('recheck-defects').onclick=()=>{
 
 function spawnWorker(){
   ready=false;$('engine').textContent='○ Загрузка Rust / WASM…';
-  worker=new Worker(new URL('worker.js?v=0.2.0-alpha.72',import.meta.url),{type:'module'});
+  worker=new Worker(new URL('worker.js?v=0.2.0-alpha.73',import.meta.url),{type:'module'});
   worker.onmessage=({data})=>{
     if(data.id===0){ready=!data.error;$('engine').textContent=ready?'● Rust / WASM готов':'○ WASM не собран';status(data.error||'Rust-ядро готово');render();if(ready&&doc.paths.length&&!currentComparison()&&!suppressNextDiagnostic)calculate(0);suppressNextDiagnostic=false;return;}
     if(!pending||data.id!==pending.id)return;
@@ -1945,6 +1955,9 @@ window.addEventListener('resize',()=>{
 });
 window.addEventListener('scroll',()=>{manualScreenRect=null;},true);
 $('canvas').addEventListener('pointerdown',e=>{
+  // A new editing gesture uses the viewport actually displayed at pointer
+  // down; a queued wheel event must not move its anchor during the drag.
+  manualPendingView=null;
   if(busy)return;const pos=at(e);const canvas=$('canvas');
   if(e.button===1){e.preventDefault();pan={pos};const b=canvas.viewBox.baseVal;pan.view=[b.x,b.y,b.width,b.height];canvas.setPointerCapture(e.pointerId);return;}
   if(e.button!==0)return;
@@ -2080,7 +2093,16 @@ $('canvas').addEventListener('pointercancel',()=>{
     drag=null;pan=null;drawLocalEditorOverlay();return;}
   if(drag)doc=drag.before;drag=null;pan=null;render();
 });
-$('canvas').addEventListener('wheel',e=>{if(busy)return;e.preventDefault();zoom(e.deltaY>0?1.15:1/1.15,at(e));},{passive:false});
+$('canvas').addEventListener('wheel',e=>{
+  if(busy)return;e.preventDefault();
+  let center;
+  if(curveEditing()){
+    const canvas=$('canvas');manualScreenRect??=canvas.getBoundingClientRect();
+    center=screenToDocumentPoint(e.clientX,e.clientY,manualScreenRect,
+      manualPendingView||canvas.viewBox.baseVal);
+  }else center=at(e);
+  zoom(e.deltaY>0?1.15:1/1.15,center);
+},{passive:false});
 document.addEventListener('keydown',e=>{
   if(busy||e.target.matches('input,textarea,select')||e.target.isContentEditable)return;
   if(e.key==='Escape'){
@@ -2242,7 +2264,7 @@ function openValue(value,name,historyStarted=false){const next=validate(value),o
   }}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;openingFile=true;lastImportFailure=null;lastImportAttempt={source:name,status:'converting',bytes:bytes.byteLength};updateMascot();if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта '+(/\.pdf$/i.test(name)?'PDF':'EPS')+'…';record('vector-import-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.72',import.meta.url));
+  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.73',import.meta.url));
   progressStage(/\.pdf$/i.test(name)?'Импорт PDF: подготовка MuPDF':'Импорт EPS: подготовка интерпретатора',9);
   const started=performance.now();let downloadLoaded=0,lastDownloadLogAt=0;
   const fail=message=>{
@@ -2509,4 +2531,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();if(!curveEditing())requestRecalculation();
 });
-record('session-start',{version:'0.2.0-alpha.72'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorVersion='0.2.0-alpha.72';document.documentElement.dataset.doctorReady='true';document.dispatchEvent(new Event('doctor-ready'));
+record('session-start',{version:'0.2.0-alpha.73'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorVersion='0.2.0-alpha.73';document.documentElement.dataset.doctorReady='true';document.dispatchEvent(new Event('doctor-ready'));

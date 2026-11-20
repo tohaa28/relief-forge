@@ -48,7 +48,8 @@ test('zoom path updates are frame coalesced; global vector DOM is hidden ONLY in
  assert.match(html,/id="manual-local-geometry"/);
  assert.match(app,/manual-local-hit/);
  assert.match(css,/#manual-local-geometry \.manual-local-hit\{/);
- assert.match(app,/manualZoomRegion=\{center,radius:desired\}/);
+ assert.match(app,/manualZoomRegion=\{center,radius:desired,span,limited:/);
+ assert.match(app,/!cached.limited\|\|Math.max\(span\/cached.span,cached.span\/span\)<1.35/);
  assert.match(app,/span\*\.51<=cached\.radius/);
  assert.match(css,/\.manual-local-zoom #markers,/);
 });

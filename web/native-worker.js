@@ -1,7 +1,7 @@
-import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.72';
-import {refineNativeDiagnostics} from './native-diagnostic-refinement.js?v=0.2.0-alpha.72';
-import {combineWorkingCopy} from './after-preparation.js?v=0.2.0-alpha.72';
-import {nativeUnionPaths} from './native-boolean.js?v=0.2.0-alpha.72';
+import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.73';
+import {refineNativeDiagnostics} from './native-diagnostic-refinement.js?v=0.2.0-alpha.73';
+import {combineWorkingCopy} from './after-preparation.js?v=0.2.0-alpha.73';
+import {nativeUnionPaths} from './native-boolean.js?v=0.2.0-alpha.73';
 self.postMessage({ready:true});
 self.onmessage=({data})=>{
  try{
