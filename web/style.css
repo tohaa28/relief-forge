@@ -82,11 +82,12 @@ main.left-collapsed{grid-template-columns:minmax(250px,1fr) 304px}
 #issues .issue{margin:3px 0;font-size:10px;padding:5px}
 #summary{max-height:3.8em;overflow:hidden;margin:6px 0;font-size:10.5px}
 .central-compare{position:absolute;top:11px;left:50%;transform:translateX(-50%);z-index:9;display:flex;align-items:center;gap:2px;background:#ffffffee;border:1px solid #c3d5df;border-radius:7px;padding:4px;box-shadow:0 4px 14px #223c4c20;max-width:calc(100% - 25px)}
-.central-compare button{font-size:11px;font-weight:650;padding:6px 10px;min-width:55px;border-radius:4px}
+.central-compare button{font-size:11px;font-weight:650;padding:6px 10px;min-width:55px;border-radius:4px;flex:0 0 auto;white-space:nowrap}
 .central-compare button[aria-pressed="true"]:not(:disabled){background:#147f77;border-color:#147f77;color:#fff}
-.central-compare small{font-size:10px;color:#597284;margin-left:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:230px}
+.central-compare small{font-size:10px;color:#597284;margin-left:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:230px;min-width:0}
 #canvas.is-comparing{cursor:grab}
 @media(max-width:850px){.central-compare small{max-width:90px}.central-compare{left:8px;transform:none}.central-compare button{min-width:42px;padding:5px 6px}}
+@media(max-width:600px){.central-compare{left:6px;right:6px;max-width:none;flex-wrap:wrap}.central-compare small{order:5;flex:1 0 100%;max-width:100%;margin:2px 0 0}.central-compare button{font-size:10px;padding:4px}}
 
 /* File history (browser-local metadata only), compact by default. */
 .file-history-wrap{padding:6px;max-height:290px;overflow:auto}
@@ -128,6 +129,8 @@ main.left-collapsed{grid-template-columns:minmax(250px,1fr) 304px}
 #geometry .comparison-path{fill:none!important;stroke:#344657!important;stroke-width:0.75px!important;vector-effect:non-scaling-stroke}
 #geometry .comparison-path.after{stroke:#12877b!important;stroke-width:1px!important}
 #geometry .comparison-ghost{fill:none!important;stroke:#db5960!important;stroke-width:1px!important;stroke-dasharray:3 3;vector-effect:non-scaling-stroke;opacity:.65;pointer-events:none}
+/* Comparison is read-only; it must not cover anchor handles in the editor. */
+body.curve-editing .central-compare{display:none}
 .auto-settings{display:grid;gap:7px;padding:8px 2px}
 .auto-settings>label{font-size:10.5px;font-weight:650;color:#385268}
 .auto-settings>input[type=number]{width:100%;padding:7px 8px}

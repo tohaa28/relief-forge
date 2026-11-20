@@ -26,7 +26,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('#busy').hidden&&
    !document.querySelector('#settings-pending').textContent.includes('Выполняется'),
    {},{timeout:120000});
- for(const stage of ['before','after']){
+ for(const stage of ['prepared','after']){
   await page.locator('#compare-'+stage).click();
   const near=page.locator('.problem-marker[aria-label*="Сближенные узлы"]');
   assert.equal(await near.count(),1,stage+' must report the real branch pair once');
@@ -43,7 +43,7 @@ try{
   !document.querySelector('#settings-pending').textContent.includes('Выполняется'));
  await page.locator('#compare-after').click();
  assert.equal(await page.locator('.problem-marker[aria-label*="Сближенные узлы"]').count(),0);
- await page.locator('#compare-before').click();
+ await page.locator('#compare-prepared').click();
  assert.equal(await page.locator('.problem-marker[aria-label*="Сближенные узлы"]').count(),1);
  assert.deepEqual(errors,[]);
  console.log('PASS native node proximity: parallel contours excluded, exact 0.006 mm branch pair on both original anchors when repair is disabled, then automatically separated only in AFTER');

@@ -94,8 +94,8 @@ try{
   const restored=(await page.locator('#canvas').getAttribute('viewBox')).split(/\s+/).map(Number),original=zoomWidth.split(/\s+/).map(Number);
   restored.forEach((n,i)=>assert.ok(Math.abs(n-original[i])<=Math.max(1,Math.abs(original[i]))*2e-6,'zoom +/- restores view'));
   console.log('PASS complete vector +/- signs and real zoom inverse controls');
-  // Independent import: the first Rust diagnostic's actual error rings belong
-  // to the original DO geometry, even after an asynchronous AFTER is ready.
+  // DO is now the immutable unscanned original. Duplicate removal/Union
+  // precedes the first diagnostic, which belongs to the combined-copy frame.
   const duplicateSvg='<svg xmlns="http://www.w3.org/2000/svg" width="30mm" height="30mm" viewBox="0 0 30 30">'+
     '<path fill="#222" d="M 2 2 L 20 2 L 20 20 L 2 20 Z"/>'+
     '<path fill="#222" d="M 2 2 L 20 2 L 20 20 L 2 20 Z"/></svg>';
@@ -109,8 +109,11 @@ try{
   assert.equal(await page.locator('#geometry .comparison-path.before').count(),2);
   const originalIssues=Number(await page.locator('#issue-count').textContent());
   const originalRings=await page.locator('#markers .problem-marker').count();
-  assert.ok(originalIssues>0&&originalRings>0,
-    'first imported original is displayed in DO with actual Rust diagnostic issue rings');
+  assert.equal(originalIssues,0,'original DO is not scanned before Union');
+  assert.equal(originalRings,0,'combined-copy markers cannot be remapped to original object indices');
+  await page.locator('#compare-prepared').click();
+  assert.equal(await page.locator('#geometry .comparison-path').count(),1,
+    'duplicates were combined before the first diagnostic');
   await page.locator('#compare-after').click();
   await page.locator('#compare-before').click();
   assert.equal(await page.locator('#issue-count').textContent(),String(originalIssues),

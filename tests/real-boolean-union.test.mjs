@@ -94,8 +94,8 @@ test('point-contact, different inks and open stroke geometry are never wrongly w
 });
 test('the calculation displays actual union in AFTER and reuse existing optimized result for export',()=>{
   const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
-  assert.match(app,/mergeOverlappingObjects\(repaired.document/);
-  assert.match(app,/mergeOverlappingObjects\(result/);
+  assert.match(app,/mergeOverlappingObjects\(copy/);
+  assert.match(app,/prepareWorkingCopy\(source,indices,generation\)/);
   assert.match(app,/const pv=\{source:clone\(doc\),result:after/);
   assert.match(app,/checkPreviewAfter\(pv\)/);
   assert.match(app,/prepareEpsOutput\(chosen.document\)/);

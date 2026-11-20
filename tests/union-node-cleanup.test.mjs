@@ -76,7 +76,7 @@ test('cleaned Union exports optimized geometry and the AFTER preview remains the
   assert.ok(merged.stats.cleanup.before>=merged.stats.cleanup.after);
   assert.match(exportEps(merged.document),/%%RF-OutlinePaths: 1/);
   const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
-  assert.match(app,/cleanupTolerance:optimizationTolerance/);
+  assert.match(app,/cleanupTolerance:settingNumber\('optimization-tolerance'\)/);
   assert.match(app,/st.overlaps.cleanup.short/);
   assert.match(app,/const pv=\{source:clone\(doc\),result:after/);
   assert.match(app,/checkPreviewAfter\(pv\)/);

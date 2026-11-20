@@ -1,3 +1,14 @@
+## 0.2.0-alpha.72 — новый порядок ПОСЛЕ, кандидат 2026-11-20
+
+- Ветка `feature/alpha72-union-diagnose-repair`, база main `2480c4c139fd1b9440a2a63feb9a6c020c69d5cc`. PR/релиз этой ветки ещё не опубликованы. Последняя наблюдаемая базовая Pages CI [44736860504](https://github.com/tohaa28/relief-forge/actions/runs/44736860504) success. Открытая PR #103 alpha.71 не изменялась.
+- Реализовано: immutable ДО → копия/guarded native Union + один совместимый compound → диагностика этой копии и отдельная вкладка «Объединено · дефекты» → исправление → повторная диагностика ПОСЛЕ → полная контурная подложка ДО. Apply/Undo и оба EPS используют прежний единый AFTER snapshot.
+- Проверено локально: 416/416 JS, 17/17 Rust, release WASM ABI; Chromium normal/filled/151-object pipeline, native Union, mode matrix, PDF/оба EPS/Undo, ручной редактор, heavy edit, opt-in zoom, self-intersections, clearance, startup/cancel/retry. После финальной синхронизации версии обязательный полный CI gate повторить.
+- Реальные исправления регрессий: comparison bar больше не перекрывает узлы в manual mode; Cancel останавливает и перезапускает Rust Worker; при сорванной первой загрузке нативного ядра браузер получает новый retry URL вместо закешированной ошибки import.
+- Ограничения: несовместимые цвета/маски/прозрачность и отклонённый Union остаются раздельными с причиной; неполная диагностика не считается успехом. Пользовательский EPS не проверялся в этой сессии. DoctorTracer по умолчанию выключен, manual Done не запускает глобальный скан.
+- Подробная история: [ALPHA72_UNION_DIAGNOSE_REPAIR.md](docs/history/ALPHA72_UNION_DIAGNOSE_REPAIR.md). Следующий шаг: полные финальные checks → PR → green CI → merge → подтвердить main build+deploy. Не объявлять публикацию до фактического успеха.
+- Откат: исходный main `2480c4c139fd1b9440a2a63feb9a6c020c69d5cc`, после merge — revert merge commit alpha.72. Не переносить экспериментальную/параллельную alpha.71 молча.
+
+
 ## 0.2.0-alpha.69 — ОПУБЛИКОВАНА, 2026-11-20
 - PR #101 https://github.com/tohaa28/relief-forge/pull/101 MERGED. Merge commit main 2e6a2e7a09a86c8b65731f40db412e70ef97c499, PR HEAD bf5c9ae3f87db8ac75d3bfd38109d6fc09599250.
 - Финальный PR CI https://github.com/tohaa28/relief-forge/actions/runs/44712420243 SUCCESS: 391/391 JavaScript, 17/17 Rust, WASM release и ABI, реальные браузерные тесты EPS/ПОСЛЕ/Apply/Undo/ручной режим и специальный alpha69, синтетический стресс 1975 объектов/около 20 тысяч сегментов.

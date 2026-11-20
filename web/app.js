@@ -1,43 +1,44 @@
-import {prepareNativeIntersections} from './native-intersections.js?v=0.2.0-alpha.70';
-import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.70';
-import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.70';
-import {issueViewBox} from './issue-focus.js?v=0.2.0-alpha.70';
-import {visibleHealthyAnchors,circlePath} from './vector-points.js?v=0.2.0-alpha.70';
-import {issueDistanceLabel,screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.70';
-import {issuesForManualEditor,resolveManualIssues,retainsIssuesDuringManualChange} from './manual-issue-state.js?v=0.2.0-alpha.70';
-import {diagnoseLocalNodeArea,localNodeRadius} from './local-node-diagnostics.js?v=0.2.0-alpha.70';
-import {buildAnchorIndex,nearbyAnchors,createLiveCurvePatch,drawLiveCurvePatch} from './manual-edit-performance.js?v=0.2.0-alpha.70';
-import {heavyManualScene,screenToDocumentPoint} from './manual-viewport-performance.js?v=0.2.0-alpha.70';
-import {createDeferredCurveEditor} from './deferred-curve-editor.js?v=0.2.0-alpha.70';
-import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.70';
-import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.70';
-import {packedInput} from './auto-repair.js?v=0.2.0-alpha.70';
-import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js?v=0.2.0-alpha.70';
-import {removeTinyClosedSubpaths} from './cnc-microfilter.js?v=0.2.0-alpha.70';
-import {beginImportBefore,captureImportBefore,importedComparison} from './import-before.js?v=0.2.0-alpha.70';
-import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js?v=0.2.0-alpha.70';
-import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.70';
-import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.70';
-import {separateCoincidentNonadjacentNodes} from './coincident-node-separation.js?v=0.2.0-alpha.70';
-import {repairSelfIntersections} from './self-intersection-repair.js?v=0.2.0-alpha.70';
-import {mergeNearbyGeometry} from './nearby-curve-merge.js?v=0.2.0-alpha.70';
-import {needsDoctorTracer,rasterPlan,rasterizeDocument,rasterizeDocumentAlpha,traceDocumentWithNodeBudget,maskSimilarity,acceptRetracing} from './doctortracer-fallback.js?v=0.2.0-alpha.70';
-import {createDoctorTracerMaskCache,preparedRasterPlan,boundedWorkerRasterPlan,workerRasterFromPreparedMask,PREPARED_RASTER_DPI} from './doctortracer-prepared.js?v=0.2.0-alpha.70';
-import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode,finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.70';
-import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.70';
-import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.70';
-import {inspectDocumentComplexity,largeFileWarning} from './complexity-preflight.js?v=0.2.0-alpha.70';
-import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.70';
-import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.70';
-import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.70';
-import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.70';
-import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.70';
-import {runNativeJob,cancelNativeJobs} from './native-jobs.js?v=0.2.0-alpha.70';
+import {prepareAfterCopy} from './after-preparation.js?v=0.2.0-alpha.72';
+import {prepareNativeIntersections} from './native-intersections.js?v=0.2.0-alpha.72';
+import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.72';
+import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.72';
+import {issueViewBox} from './issue-focus.js?v=0.2.0-alpha.72';
+import {visibleHealthyAnchors,circlePath} from './vector-points.js?v=0.2.0-alpha.72';
+import {issueDistanceLabel,screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.72';
+import {issuesForManualEditor,resolveManualIssues,retainsIssuesDuringManualChange} from './manual-issue-state.js?v=0.2.0-alpha.72';
+import {diagnoseLocalNodeArea,localNodeRadius} from './local-node-diagnostics.js?v=0.2.0-alpha.72';
+import {buildAnchorIndex,nearbyAnchors,createLiveCurvePatch,drawLiveCurvePatch} from './manual-edit-performance.js?v=0.2.0-alpha.72';
+import {heavyManualScene,screenToDocumentPoint} from './manual-viewport-performance.js?v=0.2.0-alpha.72';
+import {createDeferredCurveEditor} from './deferred-curve-editor.js?v=0.2.0-alpha.72';
+import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.72';
+import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.72';
+import {packedInput} from './auto-repair.js?v=0.2.0-alpha.72';
+import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js?v=0.2.0-alpha.72';
+import {removeTinyClosedSubpaths} from './cnc-microfilter.js?v=0.2.0-alpha.72';
+import {beginImportBefore,captureImportBefore,importedComparison} from './import-before.js?v=0.2.0-alpha.72';
+import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js?v=0.2.0-alpha.72';
+import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.72';
+import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.72';
+import {separateCoincidentNonadjacentNodes} from './coincident-node-separation.js?v=0.2.0-alpha.72';
+import {repairSelfIntersections} from './self-intersection-repair.js?v=0.2.0-alpha.72';
+import {mergeNearbyGeometry} from './nearby-curve-merge.js?v=0.2.0-alpha.72';
+import {needsDoctorTracer,rasterPlan,rasterizeDocument,rasterizeDocumentAlpha,traceDocumentWithNodeBudget,maskSimilarity,acceptRetracing} from './doctortracer-fallback.js?v=0.2.0-alpha.72';
+import {createDoctorTracerMaskCache,preparedRasterPlan,boundedWorkerRasterPlan,workerRasterFromPreparedMask,PREPARED_RASTER_DPI} from './doctortracer-prepared.js?v=0.2.0-alpha.72';
+import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode,finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.72';
+import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.72';
+import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.72';
+import {inspectDocumentComplexity,largeFileWarning} from './complexity-preflight.js?v=0.2.0-alpha.72';
+import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.72';
+import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.72';
+import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.72';
+import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.72';
+import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.72';
+import {runNativeJob,cancelNativeJobs} from './native-jobs.js?v=0.2.0-alpha.72';
 const mergeOverlappingObjects=(document,options)=>runNativeJob({action:'union',document,options});
-import {gpuBroadphase} from './gpu-broadphase.js?v=0.2.0-alpha.70';
-import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.70';
-import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.70';
-import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.70';
+import {gpuBroadphase} from './gpu-broadphase.js?v=0.2.0-alpha.72';
+import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.72';
+import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.72';
+import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.72';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 let clearanceKey='',clearanceJob=0,clearanceTimer=null,clearanceWorker=null,clearanceReport=null;
 function updateClearance(document,unit){
@@ -59,7 +60,7 @@ function updateClearance(document,unit){
     clearanceKey=key;clearanceReport=null;clearanceJob++;clearTimeout(clearanceTimer);clearanceWorker?.terminate();clearanceWorker=null;
     label.textContent=threshold?'Измерение расстояний…':'Укажите расстояние больше 0 и не больше 1000 мм.';
     if(threshold&&document.paths.length){const id=clearanceJob;clearanceTimer=setTimeout(()=>{
-      clearanceWorker=new Worker(new URL('./clearance-worker.js?v=0.2.0-alpha.70',import.meta.url),{type:'module'});
+      clearanceWorker=new Worker(new URL('./clearance-worker.js?v=0.2.0-alpha.72',import.meta.url),{type:'module'});
       clearanceWorker.onmessage=({data})=>{if(data.id!==clearanceJob)return;clearanceReport=data.report||null;label.textContent=data.error||('Узкие места < '+threshold+' мм: '+data.report.markers.length+(data.report.complete?' · проверка завершена':' · проверка неполная (лимит или пограничная точность)'));clearanceWorker?.terminate();clearanceWorker=null;render();};
       clearanceWorker.onerror=()=>{if(id!==clearanceJob)return;label.textContent='Измерение расстояний не завершено: ошибка вычисления.';clearanceWorker?.terminate();clearanceWorker=null;};
       clearanceWorker.postMessage({id,document:{paths:document.paths.map(p=>({kind:p.kind,artwork:Boolean(p.artwork),commands:p.commands,points:p.points,closed:p.closed,offset:p.offset}))},threshold});
@@ -552,7 +553,7 @@ function changed(action,{skipDiagnostics=false}={}){
   }else{
     issues=[];metrics=[];diagnosticComplete=true;manualDiagnosticsPending=false;
   }
-  markersVisible=true;appliedComparison=null;curvePreview=null;compareStage='before';
+  markersVisible=true;preparingComparison=null;appliedComparison=null;curvePreview=null;compareStage='before';
   if(activeHistoryId&&!action.startsWith('import-')&&action!=='auto-apply')
     updateFileHistory({status:'Изменён · требуется повторная проверка',diagnosis:null,repair:null});
   record(action,{paths:doc.paths.length,nodes:doc.paths.reduce((n,p)=>n+p.points.length,0),
@@ -590,7 +591,8 @@ function fit(){const pad=Math.max(doc.width,doc.height)*.07;
   $('canvas').setAttribute('viewBox',`${-pad} ${-pad} ${doc.width+pad*2} ${doc.height+pad*2}`);
   if(curveEditing()){refreshLocalZoomGeometry();scheduleManualZoomRefresh();}else render();
 }
-const currentComparison=()=>curvePreview?.comparisonData||appliedComparison;
+let preparingComparison=null;
+const currentComparison=()=>curvePreview?.comparisonData||preparingComparison||appliedComparison;
 function zoom(factor,center){
   const box=$('canvas').viewBox.baseVal,
     view=zoomBox({x:box.x,y:box.y,width:box.width,height:box.height},factor,center);
@@ -657,7 +659,7 @@ function workspaceScan({attemptRepair=false,manual=false}={}){
   state.hidden=health.ok&&!manual;
   state.dataset.health=health.ok?'ok':'warning';
   $('workspace-health-report').value=safeWorkspaceReport(health,{
-    version:'0.2.0-alpha.70',source:lastImportFailure?.source||doc.sourceFileName||'',
+    version:'0.2.0-alpha.72',source:lastImportFailure?.source||doc.sourceFileName||'',
     errors:displayErrors});
   record('workspace-health',{ok:health.ok,issues:health.issues,forceWireframe,attempts:repairs,
     count:health.elementCount,rect:health.canvasRect,bbox:health.geometryBox});
@@ -684,7 +686,7 @@ $('workspace-check').onclick=()=>{
   const health=workspaceScan({attemptRepair:true,manual:true});
   $('workspace-health-report').value=safeWorkspaceReport(health||{
     ok:true,issues:[],note:'Документ не открыт'},{
-    version:'0.2.0-alpha.70',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
+    version:'0.2.0-alpha.72',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
   $('workspace-health-dialog').showModal();
 };
 $('workspace-check-repair').onclick=()=>{
@@ -741,13 +743,20 @@ function render(){
   $('compare-exit').disabled=busy;
   $('compare-before').disabled=busy||!comparison;
   $('compare-after').disabled=busy||!comparison;
+  $('compare-prepared').disabled=busy||!comparison?.preparedDoc;
+  $('compare-prepared').setAttribute('aria-pressed',String(Boolean(comparison&&compareStage==='prepared')));
   $('compare-before').setAttribute('aria-pressed',String(!comparison||compareStage==='before'));
   $('compare-after').setAttribute('aria-pressed',String(Boolean(comparison&&compareStage==='after')));
   $('compare-status').textContent=comparison?
-    (compareStage==='after'?'ПОСЛЕ':'ДО')+' · '+visibleDoc.paths.length+' контуров · '+(curvePreview?('стыков '+curvePreview.stats.smoothedJoints+' · сегменты '+(compareStage==='after'?curvePreview.stats.result:curvePreview.stats.original)+(compareStage==='after'?(curvePreview.afterDiagnosed?' · замечаний '+visibleIssues.length:' · проверка после выполняется'):' · исходные')):visibleIssues.length+' замечаний')+(curvePreview?' · автоисправление':' · применено'):
+    (compareStage==='after'?'ПОСЛЕ':compareStage==='prepared'?'ОБЪЕДИНЕНО · ДЕФЕКТЫ':'ДО')+' · '+visibleDoc.paths.length+' контуров · '+(curvePreview?('стыков '+curvePreview.stats.smoothedJoints+' · сегменты '+(compareStage==='after'?curvePreview.stats.result:curvePreview.stats.original)+(compareStage==='after'?(curvePreview.afterDiagnosed?' · замечаний '+visibleIssues.length:' · проверка после выполняется'):' · исходные')):visibleIssues.length+' замечаний')+(curvePreview?' · автоисправление':' · применено'):
     'Сравнение после автоисправления';
   if(comparison&&curvePreview&&compareStage==='after')$('compare-status').textContent+=
     ' · итоговых узлов '+curvePreview.stats.actualNodesAfter;
+  if(comparison&&compareStage==='prepared')$('compare-status').textContent=
+    'ОБЪЕДИНЕНО · '+visibleDoc.paths.length+' объектов · '+visibleIssues.length+' замечаний'+
+    (comparison.preparedDiagnosticComplete?'':' · проверка частичная');
+  if(comparison&&compareStage==='before'&&!comparison.beforeDiagnosticComplete)
+    $('compare-status').textContent='ДО · исходный вектор без изменений; дефекты — на объединённой копии';
   $('width').value=doc.width;$('height').value=doc.height;$('count').textContent=visibleDoc.paths.length;
   for(const id of ['sheet','grid-bg']){$(id).setAttribute('width',visibleDoc.width);$(id).setAttribute('height',visibleDoc.height);}
   $('geometry').replaceChildren();$('nodes').replaceChildren();$('markers').replaceChildren();$('paths').replaceChildren();
@@ -767,16 +776,17 @@ function render(){
   const markerUnit=screenUnitsPerPixel(view,$('canvas').clientWidth,$('canvas').clientHeight);
   updateClearance(visibleDoc,markerUnit);
   const radius=Math.max(.00001,markerUnit*3.1);
+  if(reviewing&&compareStage==='after'){
+    const underlay=el('g',{'data-comparison-underlay':'before','aria-hidden':'true'},$('geometry'));
+    for(const original of comparison.beforeDoc.paths)if(original.kind!=='image')
+      el('path',{d:worldData(original),class:'comparison-ghost'},underlay);
+  }
   visibleDoc.paths.forEach((p,i)=>{
     const sel=!reviewing&&selected.has(i);
     const attrs={d:pathData(p),'data-path':i};
     if(reviewing&&p.kind!=='image'){
       // Draw the exact geometry commands, not the original imported SVG
       // markup: that artwork could still contain the unsmoothed curves.
-      if(compareStage==='after'&&comparison?.beforeDoc.paths[i]&&
-         worldData(comparison.beforeDoc.paths[i])!==worldData(p)){
-        el('path',{d:worldData(comparison.beforeDoc.paths[i]),class:'comparison-ghost'},$('geometry'));
-      }
       el('path',{...attrs,class:'comparison-path '+(compareStage==='after'?'after':'before')},$('geometry'));
     }else if(p.artwork&&!forceWireframe){
       const painted=el('g',{'data-path':i,class:visibleDoc.epsImport?.outlineRecovery?'outline-artwork':'svg-artwork'},$('geometry'));
@@ -874,6 +884,91 @@ function lock(value,{coverCanvas=true}={}){
   if(!value){endProgress();render();}
 }
 
+// One source of truth for copy -> Union/compound -> diagnose -> repair.
+async function prepareWorkingCopy(source,scope,generation){
+  const tolerance=settingNumber('tolerance');
+  let gpu;
+  const cancelled=()=>generation!==previewGeneration;
+  const result=await prepareAfterCopy(source,scope,{
+    cancelled,
+    combine:(document,indices,options)=>runNativeJob({action:'combine',document,indices,
+      options:{...options,skipFilledUnion:!settingChecked('merge-overlaps')}}),
+    union:async(copy,indices)=>{
+      progressStage('2/5 · Объединение копии',8);
+      await yieldForUi();
+      gpu=settingChecked('merge-overlaps')?await gpuBroadphase(copy,{tolerance}):
+        {mode:'cpu',pairs:null,reason:'union-disabled'};
+      if(cancelled())throw Error('Подготовка копии отменена');
+      $('gpu-status').textContent=gpu.mode==='webgpu'?'GPU: WebGPU':'GPU: CPU fallback ('+gpu.reason+')';
+      if(settingChecked('merge-overlaps'))return mergeOverlappingObjects(copy,{
+        indices,tolerance,cleanupTolerance:settingNumber('optimization-tolerance'),
+        gpuPairs:{...gpu,sourceCount:copy.paths.length}});
+      return {document:copy,selectedIndices:indices,stats:{mergedObjects:0,removedExact:0,
+        weldedGroups:0,compoundGroups:0,skipped:0,holes:0,normalizedObjects:0,
+        cleanup:{coincident:0,collinear:0,short:0,shortEdgesRemaining:0,reverted:0}}};
+    },
+    onPrepared:async combined=>{
+      // The original is intentionally unscanned. Finalize that baseline now:
+      // a later manual scan of an edited document cannot label the original.
+      if(importedBefore?.pending)importedBefore=captureImportBefore(importedBefore,[],false);
+      curvePreview=null;
+      preparingComparison={beforeDoc:clone(importedBefore?.document||source),beforeIssues:[],
+        afterDoc:combined.document,afterIssues:[],preparedDoc:combined.document,preparedIssues:[],
+        beforeDiagnosticComplete:false,preparedDiagnosticComplete:false};
+      if(!comparisonSelectionExplicit)compareStage='prepared';
+      render();await yieldForUi();
+    },
+    diagnose:async document=>{
+      progressStage('3/5 · Поиск дефектов объединённой копии',25);
+      const report=await diagnoseAfterDocument(document,tolerance,{
+        runBatch:runRustDiagnostic,progress:(label,pct,detail)=>
+          progressStage('3/5 · '+label,25+Math.round(pct*.3),detail),yieldUi:yieldForUi,cancelled});
+      if(!report||cancelled())return null;
+      const native=await runNativeJob({action:'diagnose',document,issues:report.issues,
+        indices:document.paths.map((p,i)=>p.kind==='image'?null:i).filter(i=>i!==null),tolerance});
+      if(cancelled())return null;
+      report.issues=native.issues;report.complete=report.complete&&native.complete;
+      return report;
+    }
+  });
+  if(cancelled())throw Error('Подготовка копии отменена');
+  preparingComparison.preparedIssues=clone(result.report.issues);
+  preparingComparison.preparedDiagnosticComplete=result.report.complete;
+  preparingComparison.afterIssues=clone(result.report.issues);
+  markersVisible=true;render();await yieldForUi();
+  record('combined-copy-diagnosed',{objects:result.document.paths.length,
+    issues:result.report.issues.length,complete:result.report.complete,compound:result.compound});
+  progressStage('4/5 · Исправление кривых',58);
+  return {...result,gpu};
+}
+function runRustDiagnostic(input){
+  return new Promise((resolve,reject)=>{
+    const id=++sequence;
+    pending={id,largeDiagnostic:true,onResponse:data=>
+      data.error?reject(new Error(data.error)):resolve(data.output)};
+    worker.postMessage({id,input});
+  });
+}
+function attachPreparedComparison(preview,prepared){
+  preview.comparisonData.preparedDoc=clone(prepared.document);
+  preview.comparisonData.preparedIssues=clone(prepared.report.issues);
+  preview.comparisonData.preparedDiagnosticComplete=prepared.report.complete;
+  preview.stats.preparation={...prepared.compound,issues:prepared.report.issues.length,
+    complete:prepared.report.complete};
+  preview.beforeDiagnosticComplete=prepared.report.complete;
+  preparingComparison=null;
+  const reason=prepared.compound.reason;
+  $('optimization-result').textContent+='\nОбъединённая копия: '+prepared.compound.inputObjects+
+    ' → '+prepared.compound.outputObjects+' объектов; до исправления '+prepared.report.issues.length+
+    ' замечаний'+(prepared.report.complete?'':' · проверка частичная')+
+    (reason?' · части сохранены раздельно: '+({
+      'incompatible-paint':'различное оформление',
+      'unsupported-appearance':'маски или неподдерживаемое оформление',
+      'unverified-union':'безопасность Union не подтверждена',
+      'union-disabled':'объединение заливок выключено'}[reason]||reason):'')+
+    '. Исходное ДО сохранено как контурная подложка.';
+}
+
 // The automatic section is declarative: settings trigger calculation, no
 // "start/cancel" action. Only Apply commits a candidate to the document.
 async function buildUnifiedPreview(){
@@ -888,25 +983,15 @@ async function buildUnifiedPreview(){
     const smoothingAmount=settingNumber('smoothing-amount');
     const optimizationTolerance=settingNumber('optimization-tolerance');
     const diagnosticTolerance=settingNumber('tolerance');
-    const repaired=repairVectorPoints(doc,scope,diagnosticTolerance,{weldOpen:true});
-    const gpu=settingChecked('merge-overlaps')
-      ?await gpuBroadphase(repaired.document,{tolerance:diagnosticTolerance})
-      :{mode:'cpu',pairs:null,reason:'union-disabled'};
+    const prepared=await prepareWorkingCopy(clone(doc),scope,generation);
     if(generation!==previewGeneration)return;
-    $('gpu-status').textContent=gpu.mode==='webgpu'
-      ?'GPU: WebGPU · '+gpu.candidates+' пар'
-      :'GPU: CPU fallback ('+gpu.reason+')';
-    // Union MUST precede post-Union smoothing/optimization. Keep independent
-    // native dedup even if a later Boolean group is rejected by node budget.
-    const merged=settingChecked('merge-overlaps')?
-      await mergeOverlappingObjects(repaired.document,{indices:scope,tolerance:diagnosticTolerance,
-         cleanupTolerance:optimizationTolerance,gpuPairs:{...gpu,sourceCount:repaired.document.paths.length}}):
-      {document:repaired.document,safeDocument:repaired.document,selectedIndices:scope,safeSelectedIndices:scope,
-        stats:{mergedObjects:0,removedExact:0,weldedGroups:0,compoundGroups:0,skipped:0,holes:0,normalizedObjects:0,unionToleranceMm:0.005,cleanup:{coincident:0,collinear:0,short:0,shortEdgesRemaining:0,reverted:0}}};
-    if(generation!==previewGeneration)return;
+    const repaired=repairVectorPoints(prepared.document,prepared.indices,diagnosticTolerance,{weldOpen:true});
+    const gpu=prepared.gpu;
+    const merged={...prepared.merged,document:repaired.document,safeDocument:clone(prepared.document),
+      selectedIndices:prepared.indices,safeSelectedIndices:prepared.indices};
     const refitted=refitBooleanUnion(merged.document,optimizationTolerance);
     let optimized=smoothAndOptimizePaths(refitted.document,merged.selectedIndices,smoothingAmount,optimizationTolerance,diagnosticTolerance);
-    let budget=protectPreviewNodeBudget(doc,merged.safeDocument,optimized.document);
+    let budget=protectPreviewNodeBudget(prepared.document,merged.safeDocument,optimized.document);
     if(budget.reason==='union-node-growth'){
       // Reject only the flattened Boolean candidate, not the native repair.
       // Still run smoothing/optimization AFTER the attempted Union, on the
@@ -914,7 +999,7 @@ async function buildUnifiedPreview(){
       // and Save/Undo must commit an actual changed AFTER when safe.
       const nativeOptimized=smoothAndOptimizePaths(merged.safeDocument,
         merged.safeSelectedIndices,smoothingAmount,optimizationTolerance,diagnosticTolerance);
-      const nativeBudget=protectPreviewNodeBudget(doc,merged.safeDocument,nativeOptimized.document);
+      const nativeBudget=protectPreviewNodeBudget(prepared.document,merged.safeDocument,nativeOptimized.document);
       if(!nativeBudget.reason){
         optimized=nativeOptimized;
         budget={...nativeBudget,reason:'union-fallback-optimized',rejectedUnionNodes:budget.after};
@@ -1000,19 +1085,21 @@ async function buildUnifiedPreview(){
       (different?'\nДля просмотра изменений выберите ДО / ПОСЛЕ. Красный пунктир — исходная кривая, зелёный — результат.':
         '\nПри этих допусках форма не изменена.');
     $('optimization-result').textContent=msg;
-    const initial=importedComparison(importedBefore,after);
+    const initial=importedComparison(importedBefore,after)||{
+      beforeDoc:clone(importedBefore?.document||doc),afterDoc:after,beforeIssues:[],afterIssues:[]};
     const pv={source:clone(doc),result:after,stats:st,hasGeometryChange:different,
       beforeDiagnosticComplete:initial?.beforeDiagnosticComplete??diagnosticComplete,
       afterDiagnosed:false,comparisonData:initial||{
         beforeDoc:clone(doc),afterDoc:after,beforeIssues:clone(issues),afterIssues:[]
       }};
     pv.doctorMaskToken=typeof doctorMaskCache==='undefined'?null:doctorMaskCache.generation;
+    attachPreparedComparison(pv,prepared);
     curvePreview=pv;
     if(!comparisonSelectionExplicit)compareStage='after'; // default result is ПОСЛЕ
     record('autoheal-curve-preview',{scope,stats:st,changed:different});
     previewActive=false;lock(false);
     if(ready)void checkPreviewAfter(pv);
-  }catch(err){if(generation!==previewGeneration)return;pendingSettingsApply=false;previewActive=false;lock(false);curvePreview=null;$('optimization-result').textContent=err.message;render();status('Автоисправление: '+err.message);}
+  }catch(err){if(generation!==previewGeneration)return;pendingSettingsApply=false;previewActive=false;preparingComparison=null;lock(false);curvePreview=null;$('optimization-result').textContent=err.message;render();status('Автоисправление: '+err.message);}
 }
 function applyUnifiedChanges(){
   if(busy||!curvePreview||!curvePreview.hasGeometryChange)return false;
@@ -1038,7 +1125,7 @@ function applyUnifiedChanges(){
   checkpoint(baseline);doc=clone(pv.result);
   changed('unified-apply');appliedComparison=comparison;compareStage='after';render();
   const st=pv.stats;
-  const beforeCount=comparison.beforeIssues.length,afterCount=comparison.afterIssues.length;
+  const beforeCount=(comparison.preparedIssues||comparison.beforeIssues).length,afterCount=comparison.afterIssues.length;
   const complete=pv.afterDiagnosed&&pv.afterDiagnosticComplete&&pv.beforeDiagnosticComplete;
   updateFileHistory({status:'Исправлено точек: '+st.pointRepairs.removedNodes+' · замкнуто: '+st.pointRepairs.closedGaps+
       ' · сглажено стыков: '+st.smoothedJoints+' · сегментов '+st.original+' → '+st.result,
@@ -1128,7 +1215,7 @@ $('recheck-defects').onclick=()=>{
 
 function spawnWorker(){
   ready=false;$('engine').textContent='○ Загрузка Rust / WASM…';
-  worker=new Worker(new URL('worker.js?v=0.2.0-alpha.70',import.meta.url),{type:'module'});
+  worker=new Worker(new URL('worker.js?v=0.2.0-alpha.72',import.meta.url),{type:'module'});
   worker.onmessage=({data})=>{
     if(data.id===0){ready=!data.error;$('engine').textContent=ready?'● Rust / WASM готов':'○ WASM не собран';status(data.error||'Rust-ядро готово');render();if(ready&&doc.paths.length&&!currentComparison()&&!suppressNextDiagnostic)calculate(0);suppressNextDiagnostic=false;return;}
     if(!pending||data.id!==pending.id)return;
@@ -1185,40 +1272,23 @@ async function buildLargeUnifiedPreview(indices){
   try{
     await prepareNativeIntersections();
     if(generation!==previewGeneration)return;
-    for(let k=0;k<indices.length;k++){
+    const prepared=await prepareWorkingCopy(source,indices,generation);
+    if(generation!==previewGeneration)return;
+    const workIndices=prepared.indices;
+    result=clone(prepared.document);qualitySource=clone(prepared.document);
+    for(let k=0;k<workIndices.length;k++){
       if(generation!==previewGeneration)return;
-      const index=indices[k],input=source.paths[index];
+      const index=workIndices[k],input=result.paths[index];
       const repaired=repairVectorPoints({paths:[input]},[0],tol,{weldOpen:true});
-      qualitySource.paths[index]=clone(repaired.document.paths[0]);
       result.paths[index]=repaired.document.paths[0];
       for(const key of ['removedNodes','closedGaps','removedRetraces','removedRetracedNodes','skipped'])
         stats.pointRepairs[key]+=repaired.stats[key]||0;
       stats.pointRepairs.maxDeviation=Math.max(stats.pointRepairs.maxDeviation,repaired.stats.maxDeviation);
-      if((k+1)%3===0||k===indices.length-1){
-        progressStage('Подготовка контуров перед Union',Math.round(5+26*(k+1)/indices.length),
-          (k+1)+' / '+indices.length+' контуров');
-        await yieldForUi();
-      }
+      if((k+1)%3===0||k===workIndices.length-1)await yieldForUi();
     }
-    if(generation!==previewGeneration)return;
-    // Point repair -> WebGPU broadphase -> CPU Boolean -> refit -> smooth.
-    progressStage('GPU: поиск возможных пересечений',32);
-    await yieldForUi();
-    const gpu=settingChecked('merge-overlaps')
-      ?await gpuBroadphase(result,{tolerance:tol})
-      :{mode:'cpu',pairs:null,reason:'union-disabled'};
-    if(generation!==previewGeneration)return;
-    $('gpu-status').textContent=gpu.mode==='webgpu'
-      ?'GPU: WebGPU · '+gpu.candidates+' пар'
-      :'GPU: CPU fallback ('+gpu.reason+')';
-    progressStage('Union: перекрытия и точные дубликаты',35);
-    await yieldForUi();
-    const merged=settingChecked('merge-overlaps')?
-      await mergeOverlappingObjects(result,{indices,tolerance:tol,cleanupTolerance:optimizationTolerance,
-        gpuPairs:{...gpu,sourceCount:result.paths.length}}):
-      {document:result,safeDocument:result,selectedIndices:indices,safeSelectedIndices:indices,
-       stats:{mergedObjects:0,removedExact:0,weldedGroups:0,compoundGroups:0,skipped:0,holes:0,normalizedObjects:0,unionToleranceMm:0.005,cleanup:{coincident:0,collinear:0,short:0,shortEdgesRemaining:0,reverted:0}}};
-    if(generation!==previewGeneration)return;
+    const gpu=prepared.gpu;
+    const merged={...prepared.merged,document:result,safeDocument:clone(prepared.document),
+      selectedIndices:workIndices,safeSelectedIndices:workIndices};
     progressStage('Восстановление кривых после Union',44);
     await yieldForUi();
     const refitted=refitBooleanUnion(merged.document,optimizationTolerance);
@@ -1252,7 +1322,7 @@ async function buildLargeUnifiedPreview(indices){
       stats.result=stats.original;stats.removed=0;stats.smoothedJoints=0;
       stats.maxError=0;stats.smoothingDeviation=0;
     }
-    let budget=protectPreviewNodeBudget(source,merged.safeDocument,result);
+    let budget=protectPreviewNodeBudget(prepared.document,merged.safeDocument,result);
     if(budget.reason==='union-node-growth'){
       // A rejected polygonized Union must not block independent safe native
       // optimization or erase earlier exact-copy removal on large EPS.
@@ -1281,7 +1351,7 @@ async function buildLargeUnifiedPreview(indices){
       if(generation!==previewGeneration)return;
       const nativeQuality=validateDocumentCurveChange(safeSource,safeResult,{
         tolerance:smoothingAmount+optimizationTolerance,nodeTolerance:tol});
-      const nativeBudget=protectPreviewNodeBudget(source,safeSource,safeResult);
+      const nativeBudget=protectPreviewNodeBudget(prepared.document,safeSource,safeResult);
       if(nativeQuality.accepted&&!nativeBudget.reason){
         result=safeResult;
         Object.assign(stats,nativeStats);
@@ -1329,7 +1399,7 @@ async function buildLargeUnifiedPreview(indices){
     const pv={source,result:after,stats,hasGeometryChange:different,beforeDiagnosticComplete:false,
       afterDiagnosed:false,afterDiagnosticComplete:false,afterScope:'unknown',
       comparisonData:importedComparison(importedBefore,after)||{
-        beforeDoc:clone(source),afterDoc:after,beforeIssues:clone(issues),afterIssues:[]
+        beforeDoc:clone(importedBefore?.document||source),afterDoc:after,beforeIssues:[],afterIssues:[]
       }};
     pv.doctorMaskToken=typeof doctorMaskCache==='undefined'?null:doctorMaskCache.generation;
     pv.beforeDiagnosticComplete=importedBefore?.complete??diagnosticComplete;
@@ -1365,6 +1435,7 @@ async function buildLargeUnifiedPreview(indices){
       '. Контроль геометрии: отклонено изменений '+(stats.rejected+stats.smoothingRejected+(stats.refit.rejected||0))+'. Реальные узлы '+stats.actualNodesBefore+' → '+stats.actualNodesAfter+'. '+(different?'Результат в режиме ПОСЛЕ. Применяйте изменения вручную после просмотра.':
       'Форма кривых не изменилась.')+
       '\nПолная диагностика между блоками не подтверждена; перед экспортом может появиться предупреждение.';
+    attachPreparedComparison(pv,prepared);
     // Do not retain the entire source/result document inside a log event.
     // The 8101921 EPS session produced an 11 MB single JSONL record here.
     record('large-preview',{paths:indices.length,changed:different,
@@ -1378,7 +1449,7 @@ async function buildLargeUnifiedPreview(indices){
     if(ready)void checkPreviewAfter(pv);
   }catch(error){
     if(generation!==previewGeneration)return;
-    pendingSettingsApply=false;previewActive=false;curvePreview=null;
+    pendingSettingsApply=false;previewActive=false;preparingComparison=null;curvePreview=null;
     $('optimization-result').textContent='Оптимизация остановлена: '+error.message;
     record('large-preview-error',{error:error.message});
     lock(false);status('Оптимизация не завершена: '+error.message+'. Исходные кривые сохранены.');
@@ -1697,7 +1768,13 @@ function calculate(action,{diagnosticsOnly=false}={}){
   const tol=settingNumber('tolerance'),parameter=Number($('loop-percent').value);
   if(!Number.isFinite(tol)||tol<1e-9||tol>1000){status('Укажите допуск от 0.000000001 до 1000 мм');return;}
   if(action&&selectedScope.some(i=>doc.paths[i].artwork)){status('Исходные EPS-кривые сохранены. Для лечения сначала создайте полилинии кнопкой «Копия для лечения».');return;}
-  if(action===0){void runProgressiveDiagnostics(selectedScope,tol,{diagnosticsOnly});return;}
+  if(action===0){
+    if(diagnosticsOnly){void runProgressiveDiagnostics(selectedScope,tol,{diagnosticsOnly:true});return;}
+    const count=selectedScope.reduce((sum,i)=>sum+(doc.paths[i].commands?.length??doc.paths[i].points?.length??0),0);
+    if(count>2500||selectedScope.length>150)void buildLargeUnifiedPreview(selectedScope);
+    else void buildUnifiedPreview();
+    return;
+  }
   try{
     const scope=[],paths=[];
     for(const i of selectedScope)for(const p of sampledContours(doc.paths[i],tol)){scope.push(i);paths.push(p);}
@@ -2026,8 +2103,9 @@ $('fit').onclick=fit;
 $('zoom-in').onclick=()=>zoom(0.8);
 $('zoom-out').onclick=()=>zoom(1.25);
 $('compare-before').onclick=()=>{if(!currentComparison())return;comparisonSelectionExplicit=true;compareStage='before';record('compare-stage',{stage:'before'});render();};
+$('compare-prepared').onclick=()=>{if(!currentComparison()?.preparedDoc)return;comparisonSelectionExplicit=true;compareStage='prepared';record('compare-stage',{stage:'prepared'});render();};
 $('compare-after').onclick=()=>{if(!currentComparison())return;comparisonSelectionExplicit=true;compareStage='after';record('compare-stage',{stage:'after'});render();};
-$('compare-exit').onclick=()=>{if(busy)return;comparisonSelectionExplicit=false;appliedComparison=null;curvePreview=null;compareStage='before';record('compare-close');render();status('Сравнение закрыто, редактирование доступно.');};
+$('compare-exit').onclick=()=>{if(busy)return;comparisonSelectionExplicit=false;preparingComparison=null;appliedComparison=null;curvePreview=null;compareStage='before';record('compare-close');render();status('Сравнение закрыто, редактирование доступно.');};
 $('toggle-info').onclick=()=>{if(busy)return;const panel=$('info-panel'),expanded=panel.hidden;panel.hidden=!expanded;$('main-layout').classList.toggle('left-collapsed',!expanded);$('toggle-info').setAttribute('aria-expanded',String(expanded));$('toggle-info-label').textContent=expanded?'Сведения ◂':'Сведения ▸';record('info-panel-toggle',{expanded});};
 $('toggle-points').onclick=()=>{
   pointsVisible=!pointsVisible;record('toggle-all-anchors',{visible:pointsVisible});
@@ -2056,7 +2134,7 @@ $('cancel').onclick=()=>{
     status('Подготовка 600 dpi отменена. Исходные векторы сохранены.');
     return;
   }
-  doctorTracerAbort?.abort();doctorTracerAbort=null;pendingSettingsApply=false;clearTimeout(manualLocalTimer);++manualLocalGeneration;cancelNativeJobs();++diagnosticGeneration;++readGeneration;++previewGeneration;++afterDiagnosticGeneration;if(previewActive){previewActive=false;lock(false);status('Оптимизация отменена, оригинальные кривые сохранены.');return;}if(readActive){readActive=false;openingFile=false;updateMascot();lock(false);status('Чтение файла отменено.');return;}if(epsImportActive){stopEps({destroy:true});openingFile=false;updateMascot();lock(false);record('vector-import-cancel');status('Импорт отменён. Предыдущий документ сохранён.');return;}worker.terminate();pending=null;ready=false;suppressNextDiagnostic=true;lock(false);record('engine-cancel');status('Расчёт отменён, документ сохранён.');spawnWorker();};
+  doctorTracerAbort?.abort();doctorTracerAbort=null;preparingComparison=null;pendingSettingsApply=false;clearTimeout(manualLocalTimer);++manualLocalGeneration;cancelNativeJobs();++diagnosticGeneration;++readGeneration;++previewGeneration;++afterDiagnosticGeneration;if(previewActive){previewActive=false;worker.terminate();pending=null;suppressNextDiagnostic=true;spawnWorker();lock(false);status('Оптимизация отменена, оригинальные кривые сохранены.');return;}if(readActive){readActive=false;openingFile=false;updateMascot();lock(false);status('Чтение файла отменено.');return;}if(epsImportActive){stopEps({destroy:true});openingFile=false;updateMascot();lock(false);record('vector-import-cancel');status('Импорт отменён. Предыдущий документ сохранён.');return;}worker.terminate();pending=null;ready=false;suppressNextDiagnostic=true;lock(false);record('engine-cancel');status('Расчёт отменён, документ сохранён.');spawnWorker();};
 $('undo').onclick=()=>{
   if(busy)return;
   if(curveEditing()&&localEditUndo.length){
@@ -2164,7 +2242,7 @@ function openValue(value,name,historyStarted=false){const next=validate(value),o
   }}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;openingFile=true;lastImportFailure=null;lastImportAttempt={source:name,status:'converting',bytes:bytes.byteLength};updateMascot();if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта '+(/\.pdf$/i.test(name)?'PDF':'EPS')+'…';record('vector-import-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.70',import.meta.url));
+  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.72',import.meta.url));
   progressStage(/\.pdf$/i.test(name)?'Импорт PDF: подготовка MuPDF':'Импорт EPS: подготовка интерпретатора',9);
   const started=performance.now();let downloadLoaded=0,lastDownloadLogAt=0;
   const fail=message=>{
@@ -2431,4 +2509,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();if(!curveEditing())requestRecalculation();
 });
-record('session-start',{version:'0.2.0-alpha.70'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorVersion='0.2.0-alpha.70';document.documentElement.dataset.doctorReady='true';document.dispatchEvent(new Event('doctor-ready'));
+record('session-start',{version:'0.2.0-alpha.72'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorVersion='0.2.0-alpha.72';document.documentElement.dataset.doctorReady='true';document.dispatchEvent(new Event('doctor-ready'));
