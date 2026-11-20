@@ -20,6 +20,7 @@ import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVe
 import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.68';
 import {separateCoincidentNonadjacentNodes} from './coincident-node-separation.js?v=0.2.0-alpha.68';
 import {repairSelfIntersections} from './self-intersection-repair.js?v=0.2.0-alpha.68';
+import {mergeNearbyGeometry} from './nearby-curve-merge.js?v=0.2.0-alpha.68';
 import {needsDoctorTracer,rasterPlan,rasterizeDocument,rasterizeDocumentAlpha,traceDocumentWithNodeBudget,maskSimilarity,acceptRetracing} from './doctortracer-fallback.js?v=0.2.0-alpha.68';
 import {createDoctorTracerMaskCache,preparedRasterPlan,boundedWorkerRasterPlan,workerRasterFromPreparedMask,PREPARED_RASTER_DPI} from './doctortracer-prepared.js?v=0.2.0-alpha.68';
 import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode,finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.68';
@@ -88,9 +89,10 @@ const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
 
 const settingIds=['tolerance','clearance-threshold','selection-only','smoothing-amount',
   'optimization-tolerance','merge-overlaps','separate-coincident','remove-micro','micro-width','micro-height',
-  'doctortracer-enabled','repair-self-intersections','self-intersection-mode','self-intersection-size','self-intersection-preserve'];
+  'doctortracer-enabled','repair-self-intersections','self-intersection-mode','self-intersection-size','self-intersection-preserve','merge-nearby','merge-nearby-distance','merge-nearby-strict'];
 const settingChecks=new Set(['selection-only','merge-overlaps','separate-coincident','remove-micro',
-  'doctortracer-enabled','repair-self-intersections','self-intersection-preserve']);
+  'doctortracer-enabled','repair-self-intersections','self-intersection-preserve',
+  'merge-nearby','merge-nearby-strict']);
 const settingSelects=new Set(['self-intersection-mode','self-intersection-size']);
 const settingOptions={'self-intersection-mode':['hybrid','handles','loops'],
   'self-intersection-size':['micro','small','all']};
@@ -933,16 +935,30 @@ async function buildUnifiedPreview(){
           preserve:settingChecked('self-intersection-preserve')}):
       {document:untangled.document,stats:{detected:0,correctedHandles:0,
         removedLoops:0,skipped:0,limited:0,maxDeviationMm:0}};
-    const after=selfHealed.document;
+    const nearby=settingChecked('merge-nearby')?
+      mergeNearbyGeometry(selfHealed.document,
+        budget.reason==='union-fallback-optimized'?merged.safeSelectedIndices:merged.selectedIndices,
+        settingNumber('merge-nearby-distance'),{strict:settingChecked('merge-nearby-strict')}):
+      {document:selfHealed.document,stats:{candidates:0,weldedNodes:0,mergedCurves:0,
+        connectedOpen:0,skipped:0,limited:0,maxMovementMm:0}};
+    const after=nearby.document;
     const actualCount=document=>document.paths.reduce((n,p)=>n+
       (p.kind==='image'?0:p.commands?.filter(c=>c[0]==='M'||c[0]==='L'||c[0]==='C'||c[0]==='Q').length??p.points.length),0);
     const st={...optimized.stats,scope:[...scope],gpu,refit:refitted.stats,budget,
-      actualNodesBefore:actualCount(doc),actualNodesAfter:actualCount(after),micro:filtered.stats,overlaps:merged.stats,mergeOverlaps:settingChecked('merge-overlaps'),pointRepairs:repaired.stats,untangled:untangled.stats,selfIntersections:selfHealed.stats,
+      actualNodesBefore:actualCount(doc),actualNodesAfter:actualCount(after),micro:filtered.stats,overlaps:merged.stats,mergeOverlaps:settingChecked('merge-overlaps'),pointRepairs:repaired.stats,untangled:untangled.stats,selfIntersections:selfHealed.stats,nearby:nearby.stats,
+      nearbyOptions:{enabled:settingChecked('merge-nearby'),distance:settingNumber('merge-nearby-distance'),
+        strict:settingChecked('merge-nearby-strict')},
       selfIntersectionSettings:{enabled:settingChecked('repair-self-intersections'),mode:settingValue('self-intersection-mode'),
         size:settingValue('self-intersection-size'),preserve:settingChecked('self-intersection-preserve')},diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
       smoothingDeviation:optimized.stats.smoothingError};
     const different=JSON.stringify(doc.paths.map(worldData))!==JSON.stringify(after.paths.map(worldData));
     const msg='ИТОГОВЫЕ реальные узлы: '+st.actualNodesBefore+' → '+st.actualNodesAfter+'.'+
+      '\nСближение контуров: объединено узлов '+st.nearby.weldedNodes+
+      ', совпадающих кривых '+st.nearby.mergedCurves+
+      ', соединено открытых контуров '+st.nearby.connectedOpen+
+      ', отклонено '+st.nearby.skipped+
+      (st.nearby.limited?' · пропущено из-за ограничений '+st.nearby.limited:'')+
+      ' · допуск '+settingNumber('merge-nearby-distance')+' мм.'+
       '\nСамопересечения: обнаружено '+st.selfIntersections.detected+
       ', исправлено управляющими точками '+st.selfIntersections.correctedHandles+
       ', удалено петель '+st.selfIntersections.removedLoops+
@@ -1004,6 +1020,9 @@ function applyUnifiedChanges(){
      Number($('optimization-tolerance').value)!==pv.stats.tolerance||
      Number($('tolerance').value)!==pv.stats.diagnosticTolerance||
      $('merge-overlaps').checked!==pv.stats.mergeOverlaps||
+     $('merge-nearby').checked!==pv.stats.nearbyOptions?.enabled||
+     Number($('merge-nearby-distance').value)!==pv.stats.nearbyOptions?.distance||
+     $('merge-nearby-strict').checked!==pv.stats.nearbyOptions?.strict||
      $('repair-self-intersections').checked!==pv.stats.selfIntersectionSettings?.enabled||
      $('self-intersection-mode').value!==pv.stats.selfIntersectionSettings?.mode||
      $('self-intersection-size').value!==pv.stats.selfIntersectionSettings?.size||
@@ -1284,9 +1303,18 @@ async function buildLargeUnifiedPreview(indices){
           preserve:settingChecked('self-intersection-preserve')}):
       {document:untangled.document,stats:{detected:0,correctedHandles:0,
         removedLoops:0,skipped:0,limited:0,maxDeviationMm:0}};
-    const after=selfHealed.document;
+    const nearby=settingChecked('merge-nearby')?
+      mergeNearbyGeometry(selfHealed.document,
+        budget.reason==='union-fallback-optimized'?merged.safeSelectedIndices:merged.selectedIndices,
+        settingNumber('merge-nearby-distance'),{strict:settingChecked('merge-nearby-strict')}):
+      {document:selfHealed.document,stats:{candidates:0,weldedNodes:0,mergedCurves:0,
+        connectedOpen:0,skipped:0,limited:0,maxMovementMm:0}};
+    const after=nearby.document;
     stats.untangled=untangled.stats;
     stats.selfIntersections=selfHealed.stats;
+    stats.nearby=nearby.stats;
+    stats.nearbyOptions={enabled:settingChecked('merge-nearby'),
+      distance:settingNumber('merge-nearby-distance'),strict:settingChecked('merge-nearby-strict')};
     stats.selfIntersectionSettings={enabled:settingChecked('repair-self-intersections'),
       mode:settingValue('self-intersection-mode'),size:settingValue('self-intersection-size'),
       preserve:settingChecked('self-intersection-preserve')};
@@ -1306,6 +1334,10 @@ async function buildLargeUnifiedPreview(indices){
     pv.beforeDiagnosticComplete=importedBefore?.complete??diagnosticComplete;
     curvePreview=pv;if(!comparisonSelectionExplicit)compareStage='after';
     $('optimization-result').textContent='ИТОГОВЫЕ реальные узлы: '+stats.actualNodesBefore+' → '+stats.actualNodesAfter+'.'+
+      '\nСближение контуров: объединено узлов '+stats.nearby.weldedNodes+
+      ', совпадающих кривых '+stats.nearby.mergedCurves+
+      ', соединено открытых контуров '+stats.nearby.connectedOpen+
+      ', отклонено '+stats.nearby.skipped+' · допуск '+settingNumber('merge-nearby-distance')+' мм.'+
       '\nСамопересечения: обнаружено '+stats.selfIntersections.detected+
       ', исправлено ручками '+stats.selfIntersections.correctedHandles+
       ', удалено петель '+stats.selfIntersections.removedLoops+

@@ -331,9 +331,11 @@ export function mergeNearbyGeometry(source,indices,tolerance,{
   }
   // Cross-object changes take place only after local node surgery; do not
   // remap source indices until no more index-based edits remain.
+  const selectedObjects=new Set([...selected].map(i=>document.paths[i]).filter(Boolean));
   if(connectOpenPaths)connectOpen(document,selected,tolerance,Parser,stats);
-  // Remap by source identities: closed-copy pass only inspects original selected
-  // paths left after the open connection pass, avoiding stale array indices.
-  if(mergeCopies)removeNearCopies(document,new Set(document.paths.map((_,i)=>i)),tolerance,stats);
+  // Selection-only mode cannot remove near copies outside its original scope.
+  // The closed paths retain identity after open-chain joining.
+  if(mergeCopies)removeNearCopies(document,new Set(document.paths.flatMap(
+    (p,i)=>selectedObjects.has(p)?[i]:[])),tolerance,stats);
   return {document,stats};
 }
