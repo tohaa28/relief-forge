@@ -1,11 +1,13 @@
-import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.73';
-import {refineNativeDiagnostics} from './native-diagnostic-refinement.js?v=0.2.0-alpha.73';
-import {combineWorkingCopy} from './after-preparation.js?v=0.2.0-alpha.73';
-import {nativeUnionPaths} from './native-boolean.js?v=0.2.0-alpha.73';
+import {roundBezierCorners} from './corner-rounding.js?v=0.2.0-alpha.74';
+import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.74';
+import {refineNativeDiagnostics} from './native-diagnostic-refinement.js?v=0.2.0-alpha.74';
+import {combineWorkingCopy} from './after-preparation.js?v=0.2.0-alpha.74';
+import {nativeUnionPaths} from './native-boolean.js?v=0.2.0-alpha.74';
 self.postMessage({ready:true});
 self.onmessage=({data})=>{
  try{
   const output=data.action==='union'?mergeOverlappingObjects(data.document,data.options):
+    data.action==='round-corners'?roundBezierCorners(data.document,data.indices,data.tolerance):
     data.action==='combine'?combineWorkingCopy(data.document,data.indices,{...data.options,unionFilled:nativeUnionPaths}):
     refineNativeDiagnostics(data.document,data.issues,data.indices,data.tolerance);
   self.postMessage({output});

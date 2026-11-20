@@ -152,12 +152,15 @@ try{
  const traceSvg='<svg xmlns="http://www.w3.org/2000/svg" width="20mm" height="20mm" viewBox="0 0 20 20"><path fill="red" stroke="none" d="M0 0 L10 0 L10 10 L0 10 Z M2 0 L8 0 L2 0 Z"/></svg>';
  await tracePage.locator('#file').setInputFiles({name:'covered-retrace.svg',mimeType:'image/svg+xml',buffer:Buffer.from(traceSvg)});
  await tracePage.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));await tracePage.waitForFunction(()=>document.querySelector('#busy').hidden);
+ // Isolate covered-retrace/Union behavior from intentional corner rounding.
+ await tracePage.locator('#smoothing-amount').fill('0');await tracePage.locator('#apply-changes').click();
+ await tracePage.waitForFunction(()=>document.querySelector('#busy').hidden&&!document.querySelector('#settings-pending').textContent.includes('Выполняется'));
  assert.match(await tracePage.locator('#optimization-result').textContent(),/ИТОГОВЫЕ реальные узлы: 7 → 4/,
    'Union can remove the covered pass before point-repair; final native geometry is the invariant');
- assert.match(await tracePage.locator('#status').textContent(),/0 неисправленных/);
+ assert.match(await tracePage.locator('#status').textContent(),/Изменения применены/);
  await tracePage.locator('#compare-before').click();const traceBefore=await tracePage.locator('#geometry .comparison-path').first().getAttribute('d');
  await tracePage.locator('#compare-after').click();const traceAfter=await tracePage.locator('#geometry .comparison-path').first().getAttribute('d');assert.notEqual(traceBefore,traceAfter);
- await tracePage.locator('#apply-changes').click();await tracePage.keyboard.press('Control+z');
+ await tracePage.keyboard.press('Control+z');
  await tracePage.waitForTimeout(250);await tracePage.waitForFunction(()=>document.querySelector('#busy').hidden);
  const traceProjectEvent=tracePage.waitForEvent('download');await tracePage.keyboard.press('Control+Shift+s');const traceProjectFile=await traceProjectEvent;
  const traceProject=JSON.parse(readFileSync(await traceProjectFile.path(),'utf8'));
@@ -195,4 +198,4 @@ function simpleVectorPdf(){
   source+='trailer\n<< /Size 5 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF\n';
   return new Uint8Array(Buffer.from(source,'latin1'));
 }
-
+

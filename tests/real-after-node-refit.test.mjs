@@ -68,7 +68,7 @@ test('Union output is refitted in AFTER, opening node editor commits that exact 
   const overlap=readFileSync(new URL('../web/overlap-merge.js',import.meta.url),'utf8');
   assert.match(app,/refitBooleanUnion\(merged\.document,optimizationTolerance\)/);
   assert.match(app,/let budget=protectPreviewNodeBudget\(prepared.document,merged\.safeDocument,optimized\.document\)/);
-  assert.match(app,/const after=nearby\.document/);
+  assert.match(app,/const after=rounded\.document/);
   assert.match(app,/mergeNearbyGeometry\(selfHealed\.document/);
   assert.match(app,/repairSelfIntersections\(untangled\.document/);
   assert.match(app,/const untangled=settingChecked\('separate-coincident'\)\?/);
