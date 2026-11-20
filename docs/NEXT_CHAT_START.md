@@ -1,3 +1,9 @@
+## 0.2.0-alpha.70 — опубликована и проверена, 2026-11-20
+
+- [PR #102](https://github.com/tohaa28/relief-forge/pull/102), merge 9b75794bf1f0ead0dfc998de2f74a4c92948347e. [Проверки PR](https://github.com/tohaa28/relief-forge/actions/runs/44736454615) PASS. [Pages build + deploy](https://github.com/tohaa28/relief-forge/actions/runs/44736860504) PASS.
+- [Публичная alpha.70](https://tohaa28.github.io/relief-forge/?v=alpha70) проверена после deploy в реальном Chrome. Видна версия 0.2.0-alpha.70, WASM загружается, при включении разведения и Apply близкая пара исчезает только в ПОСЛЕ. Пользовательский EPS проверен на локальной сборке, 355 → 321, 12 → 0 коротких; межблочная диагностика неполная.
+- Откат выпуска к проверенной alpha.69: git revert -m 1 9b75794bf1f0ead0dfc998de2f74a4c92948347e или восстановить публикацию из 934a99a94cb8e9b7603ed4e16a594742af1493f0. Исходные пользовательские файлы не публиковались. Незавершённые эксперименты Union в отдельной ветке, не часть alpha.70.
+
 ## 0.2.0-alpha.70 — кандидат к выпуску, 2026-11-20
 
 - База опубликованной alpha.69: main 934a99a94cb8e9b7603ed4e16a594742af1493f0, Pages #44713201875. Откат выпуска к этому коммиту.

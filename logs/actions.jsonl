@@ -267,3 +267,5 @@
 {"at":"2026-11-20T15:15:00+03:00","action":"alpha70-release-candidate","rollback":"934a99a94cb8e9b7603ed4e16a594742af1493f0","privateEpsBase":355,"privateEpsCandidate":321,"publishPending":true}
 
 {"at":"2026-11-20T15:30:00+03:00","action":"alpha70-ci-browser-proximity-expectation","pullRequest":102,"failedCi":44735958712,"localCorrectedBrowser":"pass","published":false}
+
+{"at":"2026-11-20T15:35:00+03:00","action":"alpha70-published","pullRequest":102,"merge":"9b75794bf1f0ead0dfc998de2f74a4c92948347e","prCi":44736454615,"pages":44736860504,"publicChrome":"pass","published":true}
