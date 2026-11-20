@@ -132,7 +132,12 @@ function loopCandidates(path,hit,parts,tolerance,{Parser,size,preserve}){
   const a=segs[i],b=segs[j];
   if(!a||!b||a.command===undefined||b.command===undefined||a.command>b.command||t1<0||t2>1)return [];
   const affected=segs.slice(i,j+1);
-  const envelope=bbox(affected.flatMap(s=>s.controls)),loopDiameter=Math.hypot(envelope[2]-envelope[0],envelope[3]-envelope[1]);
+  const loopPoints=[];
+  for(let n=i;n<=j;n++){
+    const s=segs[n],lo=n===i?t1:0,hi=n===j?t2:1;
+    for(let k=0;k<=10;k++)loopPoints.push(evaluateBezier(s.controls,lo+(hi-lo)*k/10));
+  }
+  const envelope=bbox(loopPoints),loopDiameter=Math.hypot(envelope[2]-envelope[0],envelope[3]-envelope[1]);
   const maxSize=size==='micro'?.1:size==='small'?.5:Infinity;
   if(loopDiameter>maxSize||loopDiameter<1e-9)return [];
   const commands=vectorCommands(path),candidates=[];

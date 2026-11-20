@@ -19,6 +19,7 @@ import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry
 import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.67';
 import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.67';
 import {separateCoincidentNonadjacentNodes} from './coincident-node-separation.js?v=0.2.0-alpha.67';
+import {repairSelfIntersections} from './self-intersection-repair.js?v=0.2.0-alpha.67';
 import {needsDoctorTracer,rasterPlan,rasterizeDocument,rasterizeDocumentAlpha,traceDocumentWithNodeBudget,maskSimilarity,acceptRetracing} from './doctortracer-fallback.js?v=0.2.0-alpha.67';
 import {createDoctorTracerMaskCache,preparedRasterPlan,boundedWorkerRasterPlan,workerRasterFromPreparedMask,PREPARED_RASTER_DPI} from './doctortracer-prepared.js?v=0.2.0-alpha.67';
 import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode,finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.67';
@@ -87,17 +88,25 @@ const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
 
 const settingIds=['tolerance','clearance-threshold','selection-only','smoothing-amount',
   'optimization-tolerance','merge-overlaps','separate-coincident','remove-micro','micro-width','micro-height',
-  'doctortracer-enabled'];
+  'doctortracer-enabled','repair-self-intersections','self-intersection-mode','self-intersection-size','self-intersection-preserve'];
 const settingChecks=new Set(['selection-only','merge-overlaps','separate-coincident','remove-micro',
-  'doctortracer-enabled']);
+  'doctortracer-enabled','repair-self-intersections','self-intersection-preserve']);
+const settingSelects=new Set(['self-intersection-mode','self-intersection-size']);
+const settingOptions={'self-intersection-mode':['hybrid','handles','loops'],
+  'self-intersection-size':['micro','small','all']};
 const readSettingsForm=()=>Object.fromEntries(settingIds.map(id=>
-  [id,settingChecks.has(id)?$(id).checked:Number($(id).value)]));
+  [id,settingChecks.has(id)?$(id).checked:settingSelects.has(id)?$(id).value:Number($(id).value)]));
 let appliedSettings=readSettingsForm(),settingsDirty=false,pendingSettingsApply=false;
 const settingNumber=id=>Number(appliedSettings[id]);
 const settingChecked=id=>Boolean(appliedSettings[id]);
+const settingValue=id=>appliedSettings[id];
 function validateSettingsDraft(draft){
   for(const id of settingIds){
     if(settingChecks.has(id))continue;
+    if(settingSelects.has(id)){
+      if(!settingOptions[id].includes(draft[id]))return 'Неверный режим исправления пересечений';
+      continue;
+    }
     const field=$(id),value=draft[id];
     if(!Number.isFinite(value)||field.value.trim()===''||
        value<Number(field.min||-Infinity)||value>Number(field.max||Infinity))
@@ -108,6 +117,7 @@ function validateSettingsDraft(draft){
 function markSettingsDirty(){
   settingsDirty=settingIds.some(id=>
     settingChecks.has(id)?$(id).checked!==appliedSettings[id]:
+      settingSelects.has(id)?$(id).value!==appliedSettings[id]:
       Number($(id).value)!==appliedSettings[id]);
   $('settings-pending').textContent=settingsDirty?
     'Параметры изменены, но не применены. Пересчёт начнётся только по кнопке.':
@@ -915,14 +925,29 @@ async function buildUnifiedPreview(){
       separateCoincidentNonadjacentNodes(filtered.document,
         budget.reason==='union-fallback-optimized'?merged.safeSelectedIndices:merged.selectedIndices,
         diagnosticTolerance):{document:filtered.document,stats:{detected:0,separated:0,skipped:0,limited:0,movedMm:0}};
-    const after=untangled.document;
+    const selfHealed=settingChecked('repair-self-intersections')?
+      repairSelfIntersections(untangled.document,
+        budget.reason==='union-fallback-optimized'?merged.safeSelectedIndices:merged.selectedIndices,
+        diagnosticTolerance,{mode:settingValue('self-intersection-mode'),
+          size:settingValue('self-intersection-size'),
+          preserve:settingChecked('self-intersection-preserve')}):
+      {document:untangled.document,stats:{detected:0,correctedHandles:0,
+        removedLoops:0,skipped:0,limited:0,maxDeviationMm:0}};
+    const after=selfHealed.document;
     const actualCount=document=>document.paths.reduce((n,p)=>n+
       (p.kind==='image'?0:p.commands?.filter(c=>c[0]==='M'||c[0]==='L'||c[0]==='C'||c[0]==='Q').length??p.points.length),0);
     const st={...optimized.stats,scope:[...scope],gpu,refit:refitted.stats,budget,
-      actualNodesBefore:actualCount(doc),actualNodesAfter:actualCount(after),micro:filtered.stats,overlaps:merged.stats,mergeOverlaps:settingChecked('merge-overlaps'),pointRepairs:repaired.stats,untangled:untangled.stats,diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
+      actualNodesBefore:actualCount(doc),actualNodesAfter:actualCount(after),micro:filtered.stats,overlaps:merged.stats,mergeOverlaps:settingChecked('merge-overlaps'),pointRepairs:repaired.stats,untangled:untangled.stats,selfIntersections:selfHealed.stats,
+      selfIntersectionSettings:{enabled:settingChecked('repair-self-intersections'),mode:settingValue('self-intersection-mode'),
+        size:settingValue('self-intersection-size'),preserve:settingChecked('self-intersection-preserve')},diagnosticTolerance,smoothingAmount,smoothedJoints:optimized.stats.smoothed,
       smoothingDeviation:optimized.stats.smoothingError};
     const different=JSON.stringify(doc.paths.map(worldData))!==JSON.stringify(after.paths.map(worldData));
     const msg='ИТОГОВЫЕ реальные узлы: '+st.actualNodesBefore+' → '+st.actualNodesAfter+'.'+
+      '\nСамопересечения: обнаружено '+st.selfIntersections.detected+
+      ', исправлено управляющими точками '+st.selfIntersections.correctedHandles+
+      ', удалено петель '+st.selfIntersections.removedLoops+
+      ', пропущено '+st.selfIntersections.skipped+
+      (st.selfIntersections.limited?' · ограничений '+st.selfIntersections.limited:'')+'.'+
       '\nCNC: удалено малых замкнутых подконтуров '+st.micro.removedSubpaths+
       ' (объектов: '+st.micro.removedObjects+', узлов: '+st.micro.removedNodes+
       '); размер строго меньше '+st.micro.width+' × '+st.micro.height+
@@ -979,6 +1004,10 @@ function applyUnifiedChanges(){
      Number($('optimization-tolerance').value)!==pv.stats.tolerance||
      Number($('tolerance').value)!==pv.stats.diagnosticTolerance||
      $('merge-overlaps').checked!==pv.stats.mergeOverlaps||
+     $('repair-self-intersections').checked!==pv.stats.selfIntersectionSettings?.enabled||
+     $('self-intersection-mode').value!==pv.stats.selfIntersectionSettings?.mode||
+     $('self-intersection-size').value!==pv.stats.selfIntersectionSettings?.size||
+     $('self-intersection-preserve').checked!==pv.stats.selfIntersectionSettings?.preserve||
      ($('remove-micro')?.checked??true)!==pv.stats.micro?.enabled||
      Number($('micro-width')?.value??.1)!==pv.stats.micro?.width||
      Number($('micro-height')?.value??.1)!==pv.stats.micro?.height||
@@ -1247,8 +1276,20 @@ async function buildLargeUnifiedPreview(indices){
       separateCoincidentNonadjacentNodes(filtered.document,
         budget.reason==='union-fallback-optimized'?merged.safeSelectedIndices:merged.selectedIndices,
         tol):{document:filtered.document,stats:{detected:0,separated:0,skipped:0,limited:0,movedMm:0}};
-    const after=untangled.document;
+    const selfHealed=settingChecked('repair-self-intersections')?
+      repairSelfIntersections(untangled.document,
+        budget.reason==='union-fallback-optimized'?merged.safeSelectedIndices:merged.selectedIndices,
+        tol,{mode:settingValue('self-intersection-mode'),
+          size:settingValue('self-intersection-size'),
+          preserve:settingChecked('self-intersection-preserve')}):
+      {document:untangled.document,stats:{detected:0,correctedHandles:0,
+        removedLoops:0,skipped:0,limited:0,maxDeviationMm:0}};
+    const after=selfHealed.document;
     stats.untangled=untangled.stats;
+    stats.selfIntersections=selfHealed.stats;
+    stats.selfIntersectionSettings={enabled:settingChecked('repair-self-intersections'),
+      mode:settingValue('self-intersection-mode'),size:settingValue('self-intersection-size'),
+      preserve:settingChecked('self-intersection-preserve')};
     stats.micro=filtered.stats;
     stats.gpu=gpu;stats.budget=budget;stats.overlaps=merged.stats;stats.refit=refitted.stats;
     stats.mergeOverlaps=settingChecked('merge-overlaps');
@@ -1265,6 +1306,10 @@ async function buildLargeUnifiedPreview(indices){
     pv.beforeDiagnosticComplete=importedBefore?.complete??diagnosticComplete;
     curvePreview=pv;if(!comparisonSelectionExplicit)compareStage='after';
     $('optimization-result').textContent='ИТОГОВЫЕ реальные узлы: '+stats.actualNodesBefore+' → '+stats.actualNodesAfter+'.'+
+      '\nСамопересечения: обнаружено '+stats.selfIntersections.detected+
+      ', исправлено ручками '+stats.selfIntersections.correctedHandles+
+      ', удалено петель '+stats.selfIntersections.removedLoops+
+      ', пропущено '+stats.selfIntersections.skipped+'.'+
       '\nCNC: удалено малых замкнутых подконтуров '+stats.micro.removedSubpaths+
       ', узлов '+stats.micro.removedNodes+'; размер '+stats.micro.width+' × '+
       stats.micro.height+' мм'+(stats.micro.enabled?'':' · фильтр отключён')+'.'+
