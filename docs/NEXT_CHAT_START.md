@@ -1,3 +1,8 @@
+## Alpha69 · 2026-11-20 · подтверждение выпуска и региональный визуальный контроль
+- Опубликована alpha69, main `06874f3ff8cde8133eb40fe90cee58d0d85ae5dc`, Pages CI #44713201875 PASS build+deploy, PR #101 уже merged.
+- На пользовательском EPS независимый эксперимент: SHA256 original `5d16bd22a143a7e2d262224923207b2fe2ea3c88c5846e7268330c31ea1c5d6c`, corrected `0f4de794fc8473b85cf7696a8e1eebfdc951fca6a45d506e97b0d1839ea484a7`; 600dpi 195 отличающихся пикселей, 192 в нижней левой эмблеме, 3 наверху, текст и основной рисунок без отличий на бинарном растре. В production JS импорт именно этого EPS пока не подтверждён.
+- Подробности и воспроизводимость: docs/history/ALPHA69_PROXIMITY_EPS.md. Опубликованное приложение https://tohaa28.github.io/relief-forge/?v=alpha69; гарантированный откат alpha68 f428f8ab9f7f73195e944a460de8a3cc95e4fb9d.
+
 ## 0.2.0-alpha.69 — ОПУБЛИКОВАНА, 2026-11-20
 - PR #101 https://github.com/tohaa28/relief-forge/pull/101 MERGED. Merge commit main 2e6a2e7a09a86c8b65731f40db412e70ef97c499, PR HEAD bf5c9ae3f87db8ac75d3bfd38109d6fc09599250.
 - Финальный PR CI https://github.com/tohaa28/relief-forge/actions/runs/44712420243 SUCCESS: 391/391 JavaScript, 17/17 Rust, WASM release и ABI, реальные браузерные тесты EPS/ПОСЛЕ/Apply/Undo/ручной режим и специальный alpha69, синтетический стресс 1975 объектов/около 20 тысяч сегментов.
