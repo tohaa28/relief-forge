@@ -20,7 +20,9 @@ test('the actual unified preview and Apply commit point repairs even when smooth
     'optimization-tolerance':{value:'0.00001'},tolerance:{value:'0.01'},'optimization-result':{},'gpu-status':{},'merge-overlaps':{checked:false},
     'remove-micro':{checked:true},'micro-width':{value:'0.1'},'micro-height':{value:'0.1'},
     'repair-self-intersections':{checked:false},'self-intersection-mode':{value:'hybrid'},
-    'self-intersection-size':{value:'all'},'self-intersection-preserve':{checked:true}};
+    'self-intersection-size':{value:'all'},'self-intersection-preserve':{checked:true},
+    'merge-nearby':{checked:false},'merge-nearby-distance':{value:'0.05'},
+    'merge-nearby-strict':{checked:true}};
   const changes=[],past=[],history=[];
   const context={doc:structuredClone(source),selected:new Set(),issues:[{kind:'short'}],
     diagnosticComplete:true,busy:false,ready:false,curvePreview:null,previewGeneration:0,previewActive:false,lock:()=>{},comparisonSelectionExplicit:false,importedBefore:null,importedComparison:()=>null,curveEditing:()=>false,
