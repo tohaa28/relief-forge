@@ -29,7 +29,7 @@ test('alpha69: local welding of near-adjacent vertices retains filled contour, c
   assert.deepEqual(after.document.paths[0].commands.map(c=>c[0]),['M','L','L','L','Z']);
   assert.match(after.document.paths[0].artwork,/fill="#123456"/);
   assert.equal(nativeIntersections([after.document.paths[0]]).filter(h=>h.crossing).length,0);
-  assert.match(exportEps(after.document),/ F$/m);
+  assert.match(exportEps(after.document),/@c\nN\n/,'default EPS outline export retains a closed native path');
 });
 test('alpha69: tight tolerance and disabled selection do not alter geometry',()=>{
   const source=doc([path([['M',0,0],['L',8,0],['L',8,.03],['L',8,8],['L',0,8],['Z']])]);
