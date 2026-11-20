@@ -1,4 +1,6 @@
-# Доктор Узелков — 0.2.0-alpha.73 (кандидат)
+# Доктор Узелков — 0.2.0-alpha.73
+
+[Открыть alpha.73](https://tohaa28.github.io/relief-forge/?v=alpha73) · [PR #105](https://github.com/tohaa28/relief-forge/pull/105) · [Проверки и публикация](https://github.com/tohaa28/relief-forge/actions/runs/44799058271). 420 JS / 17 Rust / WASM / 15 Chromium PASS; публичный сайт проверен на синтетических сценариях.
 
 Оптимизирован зум редактора: одно обновление viewport на кадр, кеш видимых нативных сегментов и локальная инвалидация. Исправлено сглаживание Безье смещённых объектов; проверяются реальные handles, опорные точки, EPS и Undo/Redo. [Методика и измерения](docs/history/ALPHA73_EDITOR_ZOOM_SMOOTHING.md). Проверка на конкретном пользовательском устройстве ещё нужна.
 

@@ -1,3 +1,13 @@
+## 0.2.0-alpha.73 — опубликована и проверена, 2026-11-20
+
+- [PR #105](https://github.com/tohaa28/relief-forge/pull/105) MERGED; source checkpoint `35e8c957041e33e72e76dfe9302a1787766e526f`, source main merge `5d61b690aa9f54b97e30e26c5b72b2307d87f90d`. Эта документационная ревизия следует за проверенным source merge; актуальный HEAD получать через git.
+- [PR CI 44798543441](https://github.com/tohaa28/relief-forge/actions/runs/44798543441) SUCCESS. [Main CI / Pages 44799058271](https://github.com/tohaa28/relief-forge/actions/runs/44799058271) SUCCESS: build + deploy. 420/420 JS, 17/17 Rust, fresh WASM release/ABI и все 15 Chromium сценариев.
+- [Публичная alpha.73](https://tohaa28.github.io/relief-forge/?v=alpha73) после deploy проверена Chromium через ALPHA73_URL. Viewport benchmark инструментирует именно fetched public app.js; исходные 20k C/DOM сохраняются, burst60 даёт 1 viewBox write и 5.40ms CPU4. UI проверяется без hooks: smoothing zero/0.05, actual handles и anchors, translated project, exact EPS, Undo/Redo, 151 joins PASS. Это синтетический тест, не пользовательский FPS/GPU/реальный EPS.
+- Зум: pending viewport + один RAF, world hull/nearest-K/lazy SVG cache, локальная инвалидация, контроль truncated cache. Сглаживание: quality использует мировые координаты без двойного offset, fast exact-anchor lookup сохраняет прежний численный fallback. Допуски и topology guards не ослаблены.
+- Подробная история/замеры/failed regressions: [ALPHA73_EDITOR_ZOOM_SMOOTHING.md](history/ALPHA73_EDITOR_ZOOM_SMOOTHING.md). Порядок alpha.72, исходный ДО, AFTER=EPS, Undo и отсутствие скана при manual Done сохранены. DoctorTracer по умолчанию выключен. PR #103 и другие проекты не менялись.
+- Пользовательский файл/устройство не предоставлены. Следующая предметная проверка — тот же реальный файл в редакторе alpha.73, плавность zoom/pan и результат smoothing при нужном допуске. При повторной задержке снять trace сцены/плотность и сравнить локальный слой, не отключать проверки геометрии вслепую.
+- Откат: `git revert -m 1 5d61b690aa9f54b97e30e26c5b72b2307d87f90d` или source base `9cca63f5f8fc1b171892d6c647b3bd05c699ddf7` (alpha.72).
+
 ## 0.2.0-alpha.73 — кандидат: зум редактора и сглаживание, 2026-11-20
 
 - Ветка `feature/alpha73-editor-zoom-smoothing`, база main `9cca63f5f8fc1b171892d6c647b3bd05c699ddf7` (alpha.72). PR/CI/Pages этой версии пока ожидаются. Базовый main Pages [44786577224](https://github.com/tohaa28/relief-forge/actions/runs/44786577224) SUCCESS. Открытая PR #103 не изменялась.

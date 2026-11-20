@@ -652,3 +652,7 @@ PR #104 merged main 147298ad35821bdd2ee4b5b4f52f0875845c6365. PR CI 44786123198 
 | UI smoothing + Apply/EPS/Undo/Redo + large 151 joins | Chromium PASS |
 | Пользовательский файл/GPU | не проверено, исходник не предоставлен |
 | PR CI / Pages | ожидаются, последующие записи уточняют |
+
+### Alpha.73 — подтверждённый выпуск
+
+PR105 source main5d61b690aa9f54b97e30e26c5b72b2307d87f90d; PR CI44798543441 SUCCESS; main CI/Pages44799058271 SUCCESS build+deploy. 420JS/17Rust/WASM/15Chromium PASS. Public app.js zoom benchmark и uninstrumented UI smoothing/translated JSON/EPS/Undo/151joins PASS. Реальный пользовательский EPS/GPU не проверялся. Полные ссылки: NEXT_CHAT_START.md.
