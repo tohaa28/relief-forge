@@ -147,9 +147,10 @@ function tryWeld(doc,index,proposal,tol,strict,Parser,stats,indexed){
   catch{stats.skipped++;return false;}
   if(!areaPreserved(path,candidate,tol,proposal.span,strict)){stats.skipped++;return false;}
   const offset=path.offset||[0,0];
-  const sweep=expand(bounds([...proposal.prevControls,...proposal.controls,
+  const affected=[...proposal.prevControls,...proposal.controls,
     ...segs(candidate).flatMap(s=>s.controls).filter(p=>overlaps(
-      [p[0],p[1],p[0],p[1]],expand(proposal.box,tol)))]).map(p=>shift(p,offset))),tol*1.5);
+      [p[0],p[1],p[0],p[1]],expand(proposal.box,tol)))];
+  const sweep=expand(bounds(affected.map(p=>shift(p,offset))),tol*1.5);
   try{
     if(!localTopologySafe(doc,index,path,candidate,sweep,tol,indexed)){stats.skipped++;return false;}
   }catch{stats.limited++;return false;}
