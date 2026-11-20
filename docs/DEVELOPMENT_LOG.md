@@ -1188,3 +1188,19 @@ PR #102, цикл CI #44735958712: Rust и JS прошли; браузерный
 - [PR #102](https://github.com/tohaa28/relief-forge/pull/102), merge 9b75794bf1f0ead0dfc998de2f74a4c92948347e. [Проверки PR](https://github.com/tohaa28/relief-forge/actions/runs/44736454615) PASS. [Pages build + deploy](https://github.com/tohaa28/relief-forge/actions/runs/44736860504) PASS.
 - [Публичная alpha.70](https://tohaa28.github.io/relief-forge/?v=alpha70) проверена после deploy в реальном Chrome. Видна версия 0.2.0-alpha.70, WASM загружается, при включении разведения и Apply близкая пара исчезает только в ПОСЛЕ. Пользовательский EPS проверен на локальной сборке, 355 → 321, 12 → 0 коротких; межблочная диагностика неполная.
 - Откат выпуска к проверенной alpha.69: git revert -m 1 9b75794bf1f0ead0dfc998de2f74a4c92948347e или восстановить публикацию из 934a99a94cb8e9b7603ed4e16a594742af1493f0. Исходные пользовательские файлы не публиковались. Незавершённые эксперименты Union в отдельной ветке, не часть alpha.70.
+
+## 2026-11-20 · alpha.72 / feature/alpha72-union-diagnose-repair — новый порядок ПОСЛЕ
+
+Запрос: сохранить вектор ДО; копию объединить в один объект; диагностировать/выделить дефекты копии; исправить кривые; сравнить с контурной подложкой оригинала. База main 2480c4c139fd1b9440a2a63feb9a6c020c69d5cc, alpha.70. Наблюдались PR #103 alpha.71 OPEN и последняя успешная базовая main Pages 44736860504; параллельная PR не затрагивалась.
+
+Изменены after-preparation.js, оба preview-маршрута app.js, native Worker, central-comparison, HTML/CSS. Исходник не диагностируется и не ремонтируется до copy/Union; подготовленные ошибки сохраняются отдельно. Все оригинальные контуры рисуются под ПОСЛЕ. Общая диагностика после manual Done не включалась; экспорт остаётся точным cached AFTER. Новая версия/все cache URLs синхронизированы как alpha.72.
+
+Неудачи: stale assertions старого порядка, локальные CRLF/нераспакованные approved PNG; две ошибки управления меню в новом браузерном тесте; старый smoke требовал original duplicate markers; covered-retrace тест требовал удаления на конкретной стадии, хотя Union теперь делает это раньше. Сохранены реальные геометрические проверки и новые assertions. Обнаружены/исправлены настоящий перехват клика панели в manual, Cancel/restart и cached failed import ядра. Подробные причины и сценарии в ALPHA72_UNION_DIAGNOSE_REPAIR.md и FAILURE_REGISTER.
+
+Checkpoint перед финальной версией: 416/416 JS, 17/17 Rust, release WASM ABI PASS; Chromium normal/filled/151-object pipeline, native Union, все 8 комбинаций настроек, оба EPS, Undo, PDF (raster mismatch 0 на синтетическом PDF), ручной editor, heavy edit, zoom, self-intersection, clearance и startup retry PASS по отдельным сценариям. Полный последовательный финальный gate/PR/deploy ещё предстоят. Приватных пользовательских файлов не читали/не коммитили; полного устранения дефектов реального EPS не заявляем.
+
+### Alpha.72 — финальные локальные проверки перед PR
+
+416/416 JavaScript, 17/17 Rust, свежая release WASM и полный последовательный `CI=true node scripts/check-wasm.mjs` PASS, включая все 14 браузерных сценариев и новую alpha72. Последние проверки immutable baseline/settings, полного underlay, Apply/Undo и startup повторены после финальных правок; основной browser-smoke повторён после коррекции CSS. Визуально просмотрен локальный screenshot 1440×960: кнопки ДО/Объединено/ПОСЛЕ больше не переносят подписи по буквам. Ручной режим скрывает панель сравнения. Baseline ДО завершён как unscanned до диагностики копии, чтобы будущая ручная проверка не приписала ему чужие замечания. Причины layout/cancel/retry и два устаревших browser expectations сохранены в истории.
+
+GitHub PR/CI/main deploy пока ожидаются. Результат на пользовательском EPS не заявляется. В репозиторий не включаются screenshots, локальные test outputs, распакованные generated icons и временные скрипты миграции.

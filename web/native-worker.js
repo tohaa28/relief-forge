@@ -1,9 +1,13 @@
-import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.70';
-import {refineNativeDiagnostics} from './native-diagnostic-refinement.js?v=0.2.0-alpha.70';
+import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.72';
+import {refineNativeDiagnostics} from './native-diagnostic-refinement.js?v=0.2.0-alpha.72';
+import {combineWorkingCopy} from './after-preparation.js?v=0.2.0-alpha.72';
+import {nativeUnionPaths} from './native-boolean.js?v=0.2.0-alpha.72';
 self.postMessage({ready:true});
 self.onmessage=({data})=>{
  try{
-  const output=data.action==='union'?mergeOverlappingObjects(data.document,data.options):refineNativeDiagnostics(data.document,data.issues,data.indices,data.tolerance);
+  const output=data.action==='union'?mergeOverlappingObjects(data.document,data.options):
+    data.action==='combine'?combineWorkingCopy(data.document,data.indices,{...data.options,unionFilled:nativeUnionPaths}):
+    refineNativeDiagnostics(data.document,data.issues,data.indices,data.tolerance);
   self.postMessage({output});
  }catch(error){self.postMessage({error:error.message});}
 };

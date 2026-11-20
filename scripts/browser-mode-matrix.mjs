@@ -152,7 +152,8 @@ try{
  const traceSvg='<svg xmlns="http://www.w3.org/2000/svg" width="20mm" height="20mm" viewBox="0 0 20 20"><path fill="red" stroke="none" d="M0 0 L10 0 L10 10 L0 10 Z M2 0 L8 0 L2 0 Z"/></svg>';
  await tracePage.locator('#file').setInputFiles({name:'covered-retrace.svg',mimeType:'image/svg+xml',buffer:Buffer.from(traceSvg)});
  await tracePage.waitForFunction(()=>document.querySelector('#auto-status').textContent.includes('Предварительный'));await tracePage.waitForFunction(()=>document.querySelector('#busy').hidden);
- assert.match(await tracePage.locator('#optimization-result').textContent(),/покрытых повторных проходов 1/);
+ assert.match(await tracePage.locator('#optimization-result').textContent(),/ИТОГОВЫЕ реальные узлы: 7 → 4/,
+   'Union can remove the covered pass before point-repair; final native geometry is the invariant');
  assert.match(await tracePage.locator('#status').textContent(),/0 неисправленных/);
  await tracePage.locator('#compare-before').click();const traceBefore=await tracePage.locator('#geometry .comparison-path').first().getAttribute('d');
  await tracePage.locator('#compare-after').click();const traceAfter=await tracePage.locator('#geometry .comparison-path').first().getAttribute('d');assert.notEqual(traceBefore,traceAfter);

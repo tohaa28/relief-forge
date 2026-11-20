@@ -65,8 +65,8 @@ test('GPU workgroup dispatch has readback and cannot replace CPU Boolean/EPS val
  assert.match(broadphaseShader,/@compute @workgroup_size\(64\)/);
  assert.match(broadphaseShader,/flags\.values\[index\]/);
  const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
- assert.match(app,/await gpuBroadphase\(repaired.document/);
- assert.match(app,/await gpuBroadphase\(result/);
+ assert.match(app,/await gpuBroadphase\(copy/);
+ assert.match(app,/prepared.gpu/);
  assert.match(app,/refitBooleanUnion\(merged\.document/);
  assert.match(app,/prepareEpsOutput\(chosen.document\)/);
 });

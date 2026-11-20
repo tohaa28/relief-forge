@@ -24,8 +24,13 @@ test('the actual unified preview and Apply commit point repairs even when smooth
     'merge-nearby':{checked:false},'merge-nearby-distance':{value:'0.05'},
     'merge-nearby-strict':{checked:true}};
   const changes=[],past=[],history=[];
-  const context={doc:structuredClone(source),selected:new Set(),issues:[{kind:'short'}],
-    diagnosticComplete:true,busy:false,ready:false,curvePreview:null,previewGeneration:0,previewActive:false,lock:()=>{},comparisonSelectionExplicit:false,importedBefore:null,importedComparison:()=>null,curveEditing:()=>false,
+  const context={
+    prepareWorkingCopy:async source=>({document:structuredClone(source),indices:[0],
+      gpu:{mode:'cpu'},merged:{stats:{mergedObjects:0,weldedGroups:0,holes:0,normalizedObjects:0,
+        cleanup:{coincident:0,collinear:0,short:0}}},report:{issues:[{kind:'short'}],complete:true}}),
+    attachPreparedComparison:(pv,prepared)=>{pv.comparisonData.preparedIssues=prepared.report.issues;},
+    doc:structuredClone(source),selected:new Set(),issues:[{kind:'short'}],
+    diagnosticComplete:true,busy:false,ready:false,curvePreview:null,previewGeneration:0,previewActive:false,lock:()=>{},comparisonSelectionExplicit:false,importedBefore:null,preparingComparison:null,importedComparison:()=>null,curveEditing:()=>false,
     gpuBroadphase:async()=>({mode:'cpu',pairs:null,reason:'union-disabled'}),prepareNativeIntersections:async()=>{},
     removeTinyClosedSubpaths:(document,options)=>({document:structuredClone(document),stats:{...options,removedSubpaths:0,removedObjects:0,removedNodes:0}}),
     $:id=>elements[id],settingNumber:id=>Number(elements[id]?.value),

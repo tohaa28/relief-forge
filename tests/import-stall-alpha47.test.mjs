@@ -35,10 +35,10 @@ test('a stalled GPU shader compile also falls back to CPU',async()=>{
 });
 test('complex document gets cooperative per-object treatment even if source diagnostic was complete',()=>{
  const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
- assert.match(app,/const largeWork=plan\.totalPoints>2500\|\|indices\.length>150/);
- assert.match(app,/if\(complete&&!largeWork\)void buildUnifiedPreview\(\)/);
- assert.match(app,/else if\(!curveEditing\(\)\)void buildLargeUnifiedPreview\(indices\)/);
- assert.match(app,/progressStage\('Подготовка контуров перед Union'/);
+ assert.match(app,/count>2500\|\|selectedScope.length>150/);
+ assert.match(app,/void buildLargeUnifiedPreview\(selectedScope\)/);
+ assert.match(app,/else void buildUnifiedPreview\(\)/);
+ assert.match(app,/progressStage\('2\/5 · Объединение копии'/);
 });
 test('fixed second editing row is visible, while info icon has explicit center alignment',()=>{
  const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');

@@ -83,6 +83,7 @@ if(process.env.CI){
  execFileSync(process.execPath,['scripts/browser-alpha66-optin-zoom.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-alpha68-self-intersection.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-alpha69-proximity-merge.mjs'],{stdio:'inherit'});
+ execFileSync(process.execPath,['scripts/browser-alpha72-pipeline.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-startup-loading.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-clearance.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-pdf-import.mjs'],{stdio:'inherit'});

@@ -34,6 +34,7 @@ export function mappedComparison(source,scope,sampledScope,beforeIssues,afterIss
 }
 export function activeComparisonFrame(comparison,mode,document,issues){
   if(!comparison)return {document,issues,readOnly:false,stage:null};
+  if(mode==='prepared'&&comparison.preparedDoc)return {document:comparison.preparedDoc,issues:comparison.preparedIssues||[],readOnly:true,stage:'prepared'};
   if(mode==='after')return {document:comparison.afterDoc,issues:comparison.afterIssues,readOnly:true,stage:'after'};
   return {document:comparison.beforeDoc,issues:comparison.beforeIssues,readOnly:true,stage:'before'};
 }

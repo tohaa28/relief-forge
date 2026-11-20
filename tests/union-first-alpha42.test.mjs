@@ -66,8 +66,12 @@ test('both preview routes run Union before smoothing, and export uses cached AFT
  const normal=app.slice(app.indexOf('function buildUnifiedPreview(){'),app.indexOf('function applyUnifiedChanges(){'));
  const large=app.slice(app.indexOf('async function buildLargeUnifiedPreview(indices){'),
   app.indexOf('// After calculation belongs to the immutable optimized result'));
- assert.ok(normal.indexOf('mergeOverlappingObjects(')<normal.indexOf('smoothAndOptimizePaths('));
- assert.ok(large.indexOf('mergeOverlappingObjects(')<large.indexOf('smoothVectorPath('));
+ for(const [code,repair] of [[normal,'repairVectorPoints('],[large,'repairVectorPoints(']]){
+  assert.ok(code.includes('await prepareWorkingCopy('));
+  assert.ok(code.indexOf('await prepareWorkingCopy(')<code.indexOf(repair));
+  assert.equal(code.includes('await mergeOverlappingObjects('),false,
+    'Union belongs to the preparation stage, never a post-repair pass');
+ }
  assert.match(normal,/checkPreviewAfter\(pv\)/);
  assert.match(large,/checkPreviewAfter\(pv\)/);
  assert.match(app,/prepareEpsOutput\(chosen.document\)/);
