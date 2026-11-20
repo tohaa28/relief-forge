@@ -816,3 +816,7 @@ Windows: \`BUILD_WINDOWS.bat\` или \`powershell -NoProfile -ExecutionPolicy B
 
 ### Upcoming EPS-specific guards
 - Node-budget check after Clipper/refit compares real M/L/C/Q AFTER with pre-Union optimized commands; fallback if increased. UI displays the actual final count, not only optimizer's intermediate number. Export parses and compares every numeric PostScript command with cached AFTER before download; synthetic and browser regression tests added. User's actual failed output file not supplied: do not assert byte-for-byte reproduction.
+
+## 0.2.0-alpha.71 DoctorTracer raster limit fix
+
+Candidate. Real 2525x3592 RGBA rejects with invalid trace parameters, 2000x2800 succeeds with the same Worker options. Bound Worker transfer to 6MP; retain original 600dpi mask for acceptance. Rollback alpha70 9b75794.

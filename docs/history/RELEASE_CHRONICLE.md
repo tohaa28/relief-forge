@@ -712,3 +712,7 @@ Next: if user still sees discrepancy, obtain same file/marked location and ArtCA
 - [PR #102](https://github.com/tohaa28/relief-forge/pull/102), merge 9b75794bf1f0ead0dfc998de2f74a4c92948347e. [Проверки PR](https://github.com/tohaa28/relief-forge/actions/runs/44736454615) PASS. [Pages build + deploy](https://github.com/tohaa28/relief-forge/actions/runs/44736860504) PASS.
 - [Публичная alpha.70](https://tohaa28.github.io/relief-forge/?v=alpha70) проверена после deploy в реальном Chrome. Видна версия 0.2.0-alpha.70, WASM загружается, при включении разведения и Apply близкая пара исчезает только в ПОСЛЕ. Пользовательский EPS проверен на локальной сборке, 355 → 321, 12 → 0 коротких; межблочная диагностика неполная.
 - Откат выпуска к проверенной alpha.69: git revert -m 1 9b75794bf1f0ead0dfc998de2f74a4c92948347e или восстановить публикацию из 934a99a94cb8e9b7603ed4e16a594742af1493f0. Исходные пользовательские файлы не публиковались. Незавершённые эксперименты Union в отдельной ветке, не часть alpha.70.
+
+## 0.2.0-alpha.71 DoctorTracer raster limit fix
+
+Candidate. Real 2525x3592 RGBA rejects with invalid trace parameters, 2000x2800 succeeds with the same Worker options. Bound Worker transfer to 6MP; retain original 600dpi mask for acceptance. Rollback alpha70 9b75794.

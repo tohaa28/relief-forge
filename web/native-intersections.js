@@ -3,14 +3,14 @@ export function prepareNativeIntersections(){
  if(paper)return Promise.resolve();
  if(loading)return loading;
  let timer;
- const moduleReady=import('./vendor/paper-core.mjs?v=0.2.0-alpha.70').then(m=>{paper=m.default;});
+ const moduleReady=import('./vendor/paper-core.mjs?v=0.2.0-alpha.71').then(m=>{paper=m.default;});
  loading=Promise.race([moduleReady,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Не удалось загрузить модуль геометрии за 20 секунд. Проверьте соединение и повторите.')),20000);})]).finally(()=>{clearTimeout(timer);loading=null;});
  return loading;
 }
 // Node tests and dedicated Workers need the synchronous geometry API ready.
 // The page itself loads the kernel only when vector processing actually starts.
 if(typeof document==='undefined')await prepareNativeIntersections();
-import {nativeParts,evaluateBezier,pointDistance,cubicControls} from './native-bezier.js?v=0.2.0-alpha.70';
+import {nativeParts,evaluateBezier,pointDistance,cubicControls} from './native-bezier.js?v=0.2.0-alpha.71';
 const controls=loc=>loc.path.data.controls[loc.curve.index];
 function sourceTime(loc,points){
  const t=loc.time;

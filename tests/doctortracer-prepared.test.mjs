@@ -89,13 +89,14 @@ test('alpha65: reduced Worker RGBA preserves original millimetres and area-weigh
  assert.throws(()=>workerRasterFromPreparedMask(prepared,{...workPlan,x:1}),/несовместимые/);
 });
 
-test('alpha65: bounded Worker plan permits 600 dpi on this complex EPS-sized bitmap',()=>{
+test('Worker downscales the EPS mask below the verified 6MP tracing limit',()=>{
  const plan={x:0,y:0,widthMm:106.85,heightMm:152.1,
    width:2524,height:3590,dpi:600};
  const work=boundedWorkerRasterPlan(plan);
- assert.equal(work.width,2524);
- assert.equal(work.height,3590);
- assert.equal(work.dpi,600);
+ assert.ok(work.width<2524);
+ assert.ok(work.height<3590);
+ assert.ok(work.dpi<600);
+ assert.equal(plan.dpi,600);
  assert.ok(work.width*work.height<=WORKER_RASTER_MAX_PIXELS);
  assert.ok(work.height<=WORKER_RASTER_MAX_SIDE);
  const page=boundedWorkerRasterPlan({...plan,width:6000,height:6000});
