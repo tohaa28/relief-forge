@@ -636,3 +636,7 @@ Next: if user still sees discrepancy, obtain same file/marked location and ArtCA
 | Cancel/retry при прерванной загрузке kernel | Chromium startup regression PASS |
 | Пользовательский EPS / полная межблочная проверка | не подтверждено; ограничения сохраняются |
 | GitHub PR/main deploy | ожидается; последующие записи уточняют фактический статус |
+
+### Alpha.72 — подтверждение выпуска
+
+PR #104 merged main 147298ad35821bdd2ee4b5b4f52f0875845c6365. PR CI 44786123198 и main Pages 44786577224 SUCCESS (build+deploy). 416 JS/17 Rust/WASM/14 browser gates; публичный Chromium alpha72 normal/filled/151-object, prepared defects, full original underlay, Apply/Undo PASS. Пользовательский EPS не проверялся. Подробные ссылки и дальнейшая проверка в NEXT_CHAT_START.md.
