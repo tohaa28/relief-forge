@@ -7,7 +7,7 @@ const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
 test('DoctorTracer is an opt-in staged checkbox, disabled by default, never runs when off',()=>{
  assert.match(html,/id="doctortracer-enabled" type="checkbox"/);
  assert.doesNotMatch(html,/id="doctortracer-enabled"[^>]*checked/);
- assert.match(app,/'doctortracer-enabled'\]\)/);
+ assert.match(app,/'doctortracer-enabled','repair-self-intersections','self-intersection-mode'/);
  assert.match(app,/if\(!settingChecked\('doctortracer-enabled'\)\)\{[\s\S]*?return report;/);
  assert.match(app,/if\(settingChecked\('doctortracer-enabled'\)\)void prepareImportBlackMask\(doc\)/);
  assert.match(app,/else\{ \$\('doctortracer-status'\)[\s\S]*?if\(ready\)calculate\(0\);/);
