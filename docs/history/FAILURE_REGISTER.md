@@ -1,3 +1,10 @@
+## F-068. 2026-11-20 — Первый CI alpha68: 378/382 JS
+- Workflow https://github.com/tohaa28/relief-forge/actions/runs/44699199391, job 136163186539 — FAILED на npm test; Rust native tests PASS, WASM не выполнялся из-за ранней ошибки.
+- Четыре жёстких устаревших теста: tests/alpha66-doctortracer-optin-zoom.test.mjs ожидал doctortracer-enabled последним элементом settingIds; tests/history-integrity.test.mjs требовал alpha68 в HANDOFF/NEXT_CHAT_START/RELEASE_CHRONICLE; tests/real-after-node-refit.test.mjs требовал const after=untangled.document вместо нового selfHealed.document; tests/unified-point-apply.test.mjs не передавал новые settings/DOM элементы в изолированный VM и preview сбрасывался.
+- Новые tests/self-intersection-repair.test.mjs прошли на этом же прогоне: native segment/time, минипетля, paint/EPS, protect filled, staged UI.
+- Исправление: дополнить проверку alpha66, обновить структурный тест AFTER, предоставить реальные новые настройки в тестовом VM, добавить полную историю alpha68. НИ ОДИН тест или функциональный защитный механизм не удалён. Финальная проверка ожидается.
+- Не публиковать неуспешный кандидат. Сохранять предыдущий alpha67 SHA 2cd4afbf4db611c49ae8076d5f1bbe121e54764e для отката.
+
 
 ## CI #44602496526 — 374/377 JavaScript, три совместимости старых тестов
 - GitHub Actions https://github.com/tohaa28/relief-forge/actions/runs/44602496526 остановился на npm test (374 pass, 3 fail), до Rust/WASM/browser этапов.
