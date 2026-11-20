@@ -1,3 +1,7 @@
+# Доктор Узелков — 0.2.0-alpha.74
+
+Сглаживание Безье теперь скругляет острые углы линий и кривых реальными кубическими дугами. 0 отключает; значение в мм ограничивает изменение формы. Исходное ДО сохраняется, Apply/Undo/EPS проверены. [Открыть приложение](https://tohaa28.github.io/relief-forge/?v=alpha74) · [PR#106](https://github.com/tohaa28/relief-forge/pull/106) · [Алгоритм и проверки](docs/history/ALPHA74_SHARP_CORNER_SMOOTHING.md).
+
 # Доктор Узелков — 0.2.0-alpha.73
 
 [Открыть alpha.73](https://tohaa28.github.io/relief-forge/?v=alpha73) · [PR #105](https://github.com/tohaa28/relief-forge/pull/105) · [Проверки и публикация](https://github.com/tohaa28/relief-forge/actions/runs/44799058271). 420 JS / 17 Rust / WASM / 15 Chromium PASS; публичный сайт проверен на синтетических сценариях.
