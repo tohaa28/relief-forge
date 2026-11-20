@@ -12,6 +12,21 @@ function splitParts(commands){
  }
  return parts;
 }
+function cancelReverseSegments(part){
+ if(part.at(-1)?.[0]!=='Z')return part;
+ const stack=[part[0]];
+ for(const command of part.slice(1,-1)){
+  const previous=stack.at(-1),start=stack.at(-2);
+  const control=command.slice(1,-2),prior=previous.slice(1,-2);
+  const reverse=control.length===4?[...control.slice(2),...control.slice(0,2)]:control;
+  if(start&&['L','C','Q'].includes(command[0])&&previous[0]===command[0]&&
+     end(start).every((v,i)=>v===end(command)[i])&&
+     prior.every((v,i)=>v===reverse[i]))stack.pop();
+  else stack.push(command);
+ }
+ // Keep contour identity if cancellation would erase the entire subpath.
+ return stack.length>=3?[...stack,['Z']]:part;
+}
 function axisFor(part){
  if(part.at(-1)?.[0]!=='Z'||part.some(c=>!['M','L','Z'].includes(c[0])))return null;
  const points=part.filter(c=>c[0]!=='Z').map(end),origin=points[0];
@@ -62,15 +77,17 @@ export function pruneCoveredRetraces(path,{maxComparisons=2000000}={}){
  if(!path?.artwork||!Array.isArray(path.commands)||path.kind==='image'||
     !paint||typeof paint.fill!=='string'||paint.fill.toLowerCase()==='none'||paint.stroke&&String(paint.stroke).toLowerCase()!=='none'||paint.unsupported||
     /(?:clip-path|mask=|filter=|<image\b|(?:fill|stroke)="url\()/i.test(path.artwork))return unchanged;
- const parts=splitParts(path.commands);if(!parts||parts.length<2)return unchanged;
+ const original=splitParts(path.commands);if(!original)return unchanged;
+ const parts=original.map(cancelReverseSegments);
+ const cancelled=original.reduce((sum,p,i)=>sum+p.length-parts[i].length,0);
  const axes=parts.map(axisFor),survivors=parts.filter((_,i)=>!axes[i]);
  // Two degenerate rings must not justify removal of each other.
  if(!survivors.length)return unchanged;
  const removed=new Set(),budget={remaining:maxComparisons,limited:false};
  axes.forEach((axis,i)=>{if(axis&&budget.remaining>=0&&covered(axis,survivors,budget))removed.add(i);});
- if(!removed.size)return {...unchanged,limited:budget.limited};
+ if(!removed.size&&!cancelled)return {...unchanged,limited:budget.limited};
  const commands=parts.filter((_,i)=>!removed.has(i)).flat().map(c=>[...c]);
- const removedNodes=parts.reduce((n,p,i)=>n+(removed.has(i)?p.filter(c=>c[0]!=='Z').length:0),0);
+ const removedNodes=cancelled+parts.reduce((n,p,i)=>n+(removed.has(i)?p.filter(c=>c[0]!=='Z').length:0),0);
  const result={...structuredClone(path),commands,points:commands.filter(c=>c[0]!=='Z').map(end),closed:commands.at(-1)?.[0]==='Z',
   artwork:'<path d="'+commands.map(c=>c.join(' ')).join(' ')+'" fill="none" stroke="#34465b" stroke-width="0.07"/>'};
  return {path:result,removedContours:removed.size,removedNodes,limited:budget.limited};

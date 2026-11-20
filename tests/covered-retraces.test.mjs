@@ -48,3 +48,14 @@ test('work budget cannot license partially proven removal',()=>{
  assert.equal(r.removedContours,0);assert.equal(r.limited,true);assert.deepEqual(r.path,p);
  assert.throws(()=>pruneCoveredRetraces(p,{maxComparisons:0}));
 });
+
+test('exact reversed cubic excursions cancel inside a filled contour but survive with stroke',()=>{
+ const excursion=[['C',1,3,2,4,3,3],['C',2,4,1,3,0,0]];
+ const commands=[ring[0],...excursion,...ring.slice(1)];
+ const filled=pruneCoveredRetraces(path(commands));
+ assert.equal(filled.removedNodes,2);
+ assert.deepEqual(filled.path.commands,ring);
+ assert.deepEqual(pruneCoveredRetraces(path(commands,{fill:'#000',stroke:'#000'})).path.commands,commands);
+ const mismatched=structuredClone(commands);mismatched[2][1]+=.000001;
+ assert.deepEqual(pruneCoveredRetraces(path(mismatched)).path.commands,mismatched);
+});

@@ -101,3 +101,15 @@ test('the calculation displays actual union in AFTER and reuse existing optimize
   assert.match(app,/prepareEpsOutput\(chosen.document\)/);
   assert.doesNotMatch(app,/function saveEpsWithPreflight\(/);
 });
+
+test('a rejected filled group retries only adjacent verified pairs under the native gate',()=>{
+ const curved=path([['M',2.4731,9.0898],
+   ['C',-5.5268999999999995,1.0898000000000003,10.4731,1.0898000000000003,3.4731,9.0898],
+   ['C',-5.5268999999999995,17.0898,10.4731,17.0898,2.4731,9.0898],['Z']]);
+ const source=d([rect(0,0,5,5),rect(3,0,5,5),curved]);
+ const result=mergeOverlappingObjects(source,{tolerance:.01});
+ assert.ok(result.stats.rejectionReasons['native-source-provenance']);
+ assert.equal(result.stats.recoveredPairs,1);
+ assert.equal(result.document.paths.length,2);
+ assert.deepEqual(result.document.paths[1],curved);
+});

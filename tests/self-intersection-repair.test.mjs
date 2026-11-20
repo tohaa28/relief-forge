@@ -131,3 +131,22 @@ test('separation leaves filled shapes and non-micro loops intact',()=>{
   assert.deepEqual(result.document,source);
  }
 });
+
+test('handle repair of an offset object writes its controls in local coordinates',()=>{
+ const path=make([['M',0,0],['C',.015,.015,-.015,.015,.005,0]]);
+ const origin=run(doc(path),{mode:'handles'}).document.paths[0];
+ path.offset=[17,21];
+ const shifted=run(doc(path),{mode:'handles'});
+ assert.equal(shifted.stats.correctedHandles,1);
+ assert.deepEqual(shifted.document.paths[0].commands,origin.commands);
+ assert.deepEqual(shifted.document.paths[0].offset,path.offset);
+});
+
+test('a normal handle shift resolves a crossing that chord straightening cannot',()=>{
+ const source=doc(make([['M',-.18,0],['L',0,0],['L',.2,.2],['L',.0989,.0154],
+   ['C',-.0249,.0045,.033,.0112,-.0853,-.0045]]));
+ const {document,stats}=run(source,{mode:'handles'});
+ assert.equal(stats.correctedNormal,1);
+ assert.ok(stats.maxDeviationMm<=.01);
+ assert.equal(nativeIntersections(document.paths).filter(h=>h.crossing).length,0);
+});

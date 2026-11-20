@@ -134,6 +134,32 @@ const tangent=(p,t)=>{
   return [0,1].map(j=>3*(u*u*(c[1][j]-c[0][j])+2*u*t*(c[2][j]-c[1][j])+t*t*(c[3][j]-c[2][j])));
 };
 const unit=p=>{const l=Math.hypot(...p);return l>1e-10?p.map(v=>v/l):null;};
+function normalHandleCandidates(path,hit,parts,tolerance,{Parser}){
+  const part=parts[Number(hit.parts.split(':')[0])];
+  const commands=vectorCommands(path),out=[];
+  for(const side of [0,1]){
+    const current=part?.segments[hit.segments[side]],other=part?.segments[hit.segments[1-side]];
+    if(!current||!other||current.controls.length!==4||commands[current.command]?.[0]!=='C')continue;
+    if(side===1&&hit.segments[0]===hit.segments[1])continue;
+    const direction=unit(tangent(other.controls,hit.times[1-side]));
+    if(!direction)continue;
+    const normal=[-direction[1],direction[0]];
+    for(const scale of [.25,.5,1]){
+      const movement=tolerance*scale;
+      for(const sign of [-1,1]){
+        const delta=normal.map(v=>v*movement*sign);
+        const first=translate(current.controls[1],delta),second=translate(current.controls[2],delta);
+        const candidateCommands=structuredClone(commands);
+        candidateCommands[current.command].splice(1,4,...first,...second);
+        try{
+          const candidate=finishDeferredCurveCommands(path,candidateCommands,path.nodeKinds||{},{Parser});
+          out.push({candidate,method:'normal',score:movement*movement,movedMm:movement*.75});
+        }catch{/* Unsupported artwork cannot be changed safely. */}
+      }
+    }
+  }
+  return out;
+}
 function separationCandidates(path,hit,parts,tolerance,{Parser}){
   if(parts.length!==1||paintFromArtwork(path.artwork,{Parser}).fill.trim().toLowerCase()!=='none')return [];
   const segments=parts[0].segments;
@@ -248,7 +274,7 @@ export function repairSelfIntersections(source,indices,tolerance,{
   if(!['hybrid','handles','loops','separate'].includes(mode)||!['micro','small','all'].includes(size))
     throw Error('Неверный режим исправления самопересечений');
   const document=structuredClone(source),stats={
-    detected:0,correctedHandles:0,removedLoops:0,separatedLoops:0,skipped:0,limited:0,maxDeviationMm:0
+    detected:0,correctedHandles:0,correctedNormal:0,removedLoops:0,separatedLoops:0,skipped:0,limited:0,maxDeviationMm:0
   };
   let checked=0,completed=0;
   const order=[...new Set(indices)].filter(index=>
@@ -282,7 +308,7 @@ export function repairSelfIntersections(source,indices,tolerance,{
         if(!hit)break;
         const key=hit.parts+':'+hit.segments.join(':')+':'+hit.point.map(v=>v.toFixed(5)).join(':');
         stats.detected++;
-        const geometry=nativeParts(path);
+        const geometry=nativeParts({...path,offset:[0,0]});
         let accepted=null;
         const check=items=>{
           for(const item of items.sort((a,b)=>a.score-b.score)){
@@ -294,11 +320,14 @@ export function repairSelfIntersections(source,indices,tolerance,{
         };
         if(mode==='separate')accepted=check(separationCandidates(path,hit,geometry,tolerance,{Parser}));
         if(mode==='hybrid'||mode==='handles')accepted=check(handleCandidates(path,hit,geometry,tolerance,{Parser}));
+        if(!accepted&&(mode==='hybrid'||mode==='handles'))
+          accepted=check(normalHandleCandidates(path,hit,geometry,tolerance,{Parser}));
         if(!accepted&&(mode==='hybrid'||mode==='loops'))
           accepted=check(loopCandidates(path,hit,geometry,tolerance,{Parser,size,preserve}));
         if(!accepted){ignored.add(key);stats.skipped++;continue;}
         document.paths[index]=path=accepted.candidate;
         if(accepted.method==='handles')stats.correctedHandles++;
+        else if(accepted.method==='normal'){stats.correctedHandles++;stats.correctedNormal++;}
         else if(accepted.method==='separate')stats.separatedLoops++;
         else stats.removedLoops++;
         stats.maxDeviationMm=Math.max(stats.maxDeviationMm,accepted.movedMm);

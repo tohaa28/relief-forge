@@ -121,3 +121,12 @@ test('alpha69: bounded spatial index handles an EPS-scale 1,975-object, 20k-segm
   assert.ok(outcome.stats.weldedNodes>=4,'local surgery must still work on dense documents');
   assert.ok(duration<25000,'2000-object native spatial scan unexpectedly stalled: '+duration.toFixed(0)+'ms');
 });
+
+test('an exact filled copy with reversed winding and another start is removed',()=>{
+ const original=rect();
+ const reversed=path([['M',6,6],['L',6,0],['L',0,0],['L',0,6],['Z']]);
+ original.paint=reversed.paint={fill:'black',stroke:'none',fillRule:'nonzero'};
+ const result=repair(doc([original,reversed]),.01);
+ assert.equal(result.stats.mergedCurves,1);
+ assert.deepEqual(result.document.paths,[original]);
+});

@@ -19,8 +19,8 @@ const cloneCommands=p=>p.artwork?structuredClone(p.commands):
 const last=c=>c.slice(-2);
 const allControls=p=>nativeParts(p).flatMap(part=>part.segments.map(s=>s.controls));
 function bboxPath(p){
-  const cc=allControls(p),off=p.offset||[0,0];
-  return cc.length?bounds(cc.flat().map(q=>shift(q,off))):null;
+  const cc=allControls(p);
+  return cc.length?bounds(cc.flat()):null;
 }
 const isFiniteCommands=cmds=>cmds.every(c=>c.slice(1).every(x=>Number.isFinite(x)&&Math.abs(x)<=1e9));
 function asPath(path,commands,Parser){
@@ -68,7 +68,7 @@ function segmentPath(controls){
 }
 const geometryRecord=p=>{
   if(!supported(p))return null;
-  const off=p.offset||[0,0],rows=segs(p).map(s=>s.controls.map(q=>shift(q,off)));
+  const rows=segs(p).map(s=>s.controls);
   return {bounds:rows.length?bounds(rows.flat()):null,rows};
 };
 function localCurves(doc,index,replacement,box,indexed,maxLocal=104){
@@ -104,7 +104,7 @@ function localTopologySafe(doc,index,source,candidate,box,tol,indexed){
 }
 const norm=p=>Math.hypot(...p);
 function tinySegmentCandidates(path,tol){
-  const source=cloneCommands(path),parts=nativeParts(path),found=[];
+  const source=cloneCommands(path),parts=nativeParts({...path,offset:[0,0]}),found=[];
   for(const part of parts){
     if(part.closed&&part.segments.length<=3)continue;
     if(!part.closed&&part.segments.length<=2)continue;
@@ -148,7 +148,7 @@ function tryWeld(doc,index,proposal,tol,strict,Parser,stats,indexed){
   if(!areaPreserved(path,candidate,tol,proposal.span,strict)){stats.skipped++;return false;}
   const offset=path.offset||[0,0];
   const affected=[...proposal.prevControls,...proposal.controls,
-    ...segs(candidate).flatMap(s=>s.controls).filter(p=>overlaps(
+    ...segs({...candidate,offset:[0,0]}).flatMap(s=>s.controls).filter(p=>overlaps(
       [p[0],p[1],p[0],p[1]],expand(proposal.box,tol)))];
   const sweep=expand(bounds(affected.map(p=>shift(p,offset))),tol*1.5);
   try{
@@ -192,17 +192,44 @@ function closedEquivalence(a,b,tol){
   return Math.sign(areaA)===Math.sign(areaB)&&
     Math.abs(areaA-areaB)<=tol*tol*2+tol*.02;
 }
+function exactFilledRing(path,part){
+  // Only plain fill: a different start can change the phase of a dashed stroke.
+  const paint=path.paint;
+  if(!paint?.fill||paint.fill==='none'||paint.stroke&&paint.stroke!=='none'||
+     /stroke-dash|marker-|<style\b|\bstyle\s*=/i.test(path.artwork))return null;
+  const segments=part.segments.map(s=>s.controls);
+  if(segments.length<2)return null;
+  const keys=segments.map(row=>JSON.stringify(row));
+  const reverse=segments.toReversed().map(row=>JSON.stringify(row.toReversed()));
+  const canonical=rows=>{
+    const first=rows.reduce((a,b)=>a<b?a:b);
+    let best=null;
+    rows.forEach((row,i)=>{
+      if(row!==first)return;
+      const rotation=rows.slice(i).concat(rows.slice(0,i)).join('|');
+      if(best===null||rotation<best)best=rotation;
+    });
+    return best;
+  };
+  const a=canonical(keys),b=canonical(reverse);
+  return a<b?a:b;
+}
 function removeNearCopies(doc,selection,tol,stats){
   const bins=new Map(),discard=new Set();
+  let previousExact=null;
   const cell=Math.max(1e-7,tol);
   const key=(s,x,y)=>s+'|'+x+':'+y;
   for(let i=0;i<doc.paths.length;i++){
-    if(!selection.has(i)||discard.has(i))continue;
+    if(!selection.has(i)||discard.has(i)){previousExact=null;continue;}
     const p=doc.paths[i],style=styleKey(p);
-    if(!style||cloneCommands(p).length>220)continue;
+    if(!style||cloneCommands(p).length>220){previousExact=null;continue;}
     const parts=nativeParts(p);
-    if(parts.length!==1||!parts[0].closed)continue;
-    const start=shift(parts[0].start,p.offset||[0,0]),
+    if(parts.length!==1||!parts[0].closed){previousExact=null;continue;}
+    const ring=exactFilledRing(p,parts[0]);
+    const exact=ring===null?null:style+'|'+ring;
+    if(exact!==null&&exact===previousExact){discard.add(i);stats.mergedCurves++;continue;}
+    previousExact=exact;
+    const start=parts[0].start,
       x=Math.floor(start[0]/cell),y=Math.floor(start[1]/cell);
     const signature=style+'#'+cloneCommands(p).length;
     const near=[];
@@ -226,9 +253,9 @@ function openPart(p){
   const parts=nativeParts(p);
   if(parts.length!==1||parts[0].closed||parts[0].segments.length<1||
      parts[0].segments.length>100)return null;
-  const seg=parts[0].segments,off=p.offset||[0,0];
-  return {start:shift(seg[0].controls[0],off),
-    end:shift(seg.at(-1).controls.at(-1),off),
+  const seg=parts[0].segments;
+  return {start:seg[0].controls[0],
+    end:seg.at(-1).controls.at(-1),
     count:seg.length};
 }
 function reverseOpen(commands){
