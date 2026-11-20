@@ -1341,7 +1341,8 @@ async function buildLargeUnifiedPreview(indices){
       '\nСамопересечения: обнаружено '+stats.selfIntersections.detected+
       ', исправлено ручками '+stats.selfIntersections.correctedHandles+
       ', удалено петель '+stats.selfIntersections.removedLoops+
-      ', пропущено '+stats.selfIntersections.skipped+'.'+
+      ', пропущено '+stats.selfIntersections.skipped+
+      (stats.selfIntersections.limited?' · сработал лимит проверки или ремонта':'')+'.'+
       '\nCNC: удалено малых замкнутых подконтуров '+stats.micro.removedSubpaths+
       ', узлов '+stats.micro.removedNodes+'; размер '+stats.micro.width+' × '+
       stats.micro.height+' мм'+(stats.micro.enabled?'':' · фильтр отключён')+'.'+

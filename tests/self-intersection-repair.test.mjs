@@ -52,3 +52,20 @@ test('alpha68 settings are staged; both preview pipelines use the same native re
  assert.match(app,/settingSelects.has\(id\)\?\$\(id\)\.value/);
  assert.match(app,/selfIntersectionSettings:|stats.selfIntersectionSettings=/);
 });
+
+test('repair limit applies across all paths, including independent open loops',()=>{
+ const first=make(little),second=make(little.map(([op,x,y])=>[op,x+10,y]));
+ const source={...doc(first),paths:[first,second]};
+ const result=repairSelfIntersections(source,[0,1],.01,{Parser:DOMParser,maxRepairs:1});
+ assert.equal(result.stats.removedLoops,1);
+ assert.equal(result.stats.limited,1);
+ assert.deepEqual(result.document.paths[1],second);
+});
+
+test('simple paths do not exhaust the budget for paths requiring intersection checks',()=>{
+ const simple=make([['M',20,0],['L',21,0]]),loop=make(little);
+ const source={...doc(simple),paths:[simple,loop]};
+ const result=repairSelfIntersections(source,[0,1],.01,{Parser:DOMParser,maxPaths:1});
+ assert.equal(result.stats.removedLoops,1);
+ assert.deepEqual(result.document.paths[0],simple);
+});

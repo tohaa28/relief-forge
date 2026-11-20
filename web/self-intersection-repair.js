@@ -188,15 +188,16 @@ export function repairSelfIntersections(source,indices,tolerance,{
     detected:0,correctedHandles:0,removedLoops:0,skipped:0,limited:0,maxDeviationMm:0
   };
   let checked=0,completed=0;
-  for(const index of new Set(indices)){
-    if(++checked>maxPaths){stats.limited++;break;}
+  paths: for(const index of new Set(indices)){
+    if(completed>=maxRepairs){stats.limited++;break;}
     let path=document.paths[index];
     if(!path||path.kind==='image')continue;
     let ignored=new Set();
     try{
       const parts=nativeParts(path);
-      if(parts.reduce((n,p)=>n+p.segments.length,0)>720){stats.limited++;continue;}
       if(!parts.some(p=>p.segments.length>2||p.segments.some(s=>s.controls.length===4)))continue;
+      if(parts.reduce((n,p)=>n+p.segments.length,0)>720){stats.limited++;continue;}
+      if(++checked>maxPaths){stats.limited++;break;}
       for(let attempts=0;attempts<maxRepairs;attempts++){
         const oldHits=intersections(path);
         const hit=oldHits.filter(relevant).find(h=>{
@@ -225,7 +226,7 @@ export function repairSelfIntersections(source,indices,tolerance,{
         else stats.removedLoops++;
         stats.maxDeviationMm=Math.max(stats.maxDeviationMm,accepted.movedMm);
         ignored=new Set();
-        if(++completed>=maxRepairs){stats.limited++;break;}
+        if(++completed>=maxRepairs){stats.limited++;break paths;}
       }
     }catch{stats.skipped++;} // No ambiguous candidate may replace source.
   }

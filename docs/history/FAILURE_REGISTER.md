@@ -590,3 +590,9 @@ F-051 verified: PR78 and Pages run42985447239 green; live browser regression PAS
 - Note: real original user EPS `8101921_maket_7_121126_163426.eps` is NOT uploaded. Do not claim IoU improvement on it; fresh test journal needed to check import-prepared 600dpi, cacheHit and accuracy.
 - Full entry: `docs/history/ALPHA65_IMPORT_600DPI_MASK.md`, F-065/M-065, `logs/actions.jsonl`.
 
+
+
+### 2026-11-20 · alpha.69: лимит обхода скрыт в отчёте большого макета
+
+При 1975 исходных контурах стадия ремонта сообщает 0 обнаруженных, несмотря на оставшиеся отметки итоговой диагностики. Обход прерывается на бюджете кандидатов, а прежний отчёт большого файла не показывает ограничение. Отдельно воспроизведена утечка общего лимита правок на синтетической паре независимых петель. Нельзя трактовать счётчик ремонта как полную диагностику и увеличивать бюджет вслепую. Подробности и среда проверки в DEVELOPMENT_LOG.md.
+
