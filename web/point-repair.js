@@ -1,12 +1,24 @@
+import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.69';
 import {pruneCoveredRetraces} from './covered-retraces.js?v=0.2.0-alpha.69';
 const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
 const end=c=>c.slice(-2);
+
+function canWeldWithoutNewContacts(before,after,tolerance){
+  const asPath=commands=>({artwork:'<path/>',commands});
+  try{
+    const options={maxCurves:720,maxIssues:300};
+    const previous=nativeIntersections([asPath(before)],options);
+    const next=nativeIntersections([asPath(after)],options);
+    return next.every(hit=>previous.some(old=>old.crossing===hit.crossing&&
+      old.overlap===hit.overlap&&distance(old.point,hit.point)<=tolerance));
+  }catch{return false;}
+}
 
 // Conservative native-command repair. Never flatten C/Q into sampled lines,
 // split intersections, weld different contours, or remove a looping curve
 // merely because its endpoints are close. The control hull must also fit
 // inside the tolerance ball before a whole tiny segment can be removed.
-export function repairVectorPoints(source,indices,tolerance){
+export function repairVectorPoints(source,indices,tolerance,{weldOpen=false}={}){
   if(!Number.isFinite(tolerance)||tolerance<=0||tolerance>1000)throw Error('Неверный допуск исправления точек');
   const document=structuredClone(source),selection=new Set(indices);
   const stats={removedNodes:0,closedGaps:0,maxDeviation:0,skipped:0,removedRetraces:0,removedRetracedNodes:0};
@@ -42,7 +54,15 @@ export function repairVectorPoints(source,indices,tolerance){
       const last=out.at(-1),gap=distance(end(last),first);
       let close=closed;
       const canClose=out.length>2||last[0]==='C'||last[0]==='Q';
-      if(gap>0&&gap<=tolerance&&canClose){
+      if(weldOpen&&!closed&&gap>0&&gap<=tolerance*2&&canClose){
+        const midpoint=first.map((v,k)=>v+(end(last)[k]-v)/2);
+        const start=['M',...midpoint],finish=[...last.slice(0,-2),...midpoint];
+        const candidate=[start,...out.slice(1,-1),finish,['Z']];
+        if(canWeldWithoutNewContacts(out,candidate,tolerance)){
+          out[0]=start;out[out.length-1]=finish;
+          close=true;stats.closedGaps++;error=Math.max(error,gap/2);changed=true;
+        }
+      }else if(gap>0&&gap<=tolerance&&canClose){
         last.splice(last.length-2,2,...first);
         close=true;stats.closedGaps++;error=Math.max(error,gap);changed=true;
       }else if(!closed&&gap===0&&canClose){

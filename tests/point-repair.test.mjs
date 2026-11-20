@@ -73,3 +73,16 @@ test('polyline repairs keep implicit closure canonical without flattening other 
   assert.equal(result.stats.removedNodes,1);
   assert.deepEqual(result.document.paths[0],{closed:true,points:[[0,0],[3,0],[3,3]]});
 });
+
+test('open seam weld meets in the middle without adding a closing segment',()=>{
+ const contour=vector([['M',0,0],['L',2,0],['L',2,2],['L',0,2],['L',0,.016]]);
+ const result=repairVectorPoints(doc([contour]),[0],.01,{weldOpen:true});
+ const commands=result.document.paths[0].commands;
+ assert.equal(result.stats.closedGaps,1);
+ assert.equal(result.stats.maxDeviation,.008);
+ assert.deepEqual(commands[0],['M',0,.008]);
+ assert.deepEqual(commands.at(-2),['L',0,.008]);
+ assert.deepEqual(commands.at(-1),['Z']);
+ const long=vector([['M',0,0],['L',2,0],['L',2,2],['L',0,2],['L',0,.025]]);
+ assert.deepEqual(repairVectorPoints(doc([long]),[0],.01,{weldOpen:true}).document,doc([long]));
+});

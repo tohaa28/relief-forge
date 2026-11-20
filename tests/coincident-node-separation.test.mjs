@@ -77,3 +77,14 @@ test('alpha57 setting applies only through explicit button in both preview flows
  assert.equal(app.match(/settingChecked\('separate-coincident'\)\?/g).length,2);
  assert.match(app,/const next=readSettingsForm\(\),error=validateSettingsDraft\(next\)/);
 });
+
+test('auto separation spreads close nonadjacent branches by less than the full tolerance',()=>{
+ const nearby=points.map((p,i)=>i===5?[0,.006]:p);
+ const original=doc(vector(nearby));
+ const {document,stats}=separateCoincidentNonadjacentNodes(original,[0],.01,{Parser:DOMParser,includeNearby:true});
+ assert.equal(stats.separatedNearby,1);
+ assert.ok(stats.movedMm<.01);
+ const nodes=curveNodes(document.paths[0]);
+ assert.ok(Math.hypot(nodes[1].point[0]-nodes[5].point[0],nodes[1].point[1]-nodes[5].point[1])>.01);
+ assert.equal(nativeIntersections(document.paths).length,0);
+});

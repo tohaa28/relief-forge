@@ -45,3 +45,14 @@ test('native pair markers leave all nonparticipating nodes visible',()=>{
  assert.deepEqual(visibleHealthyAnchors({paths},issues,.01).map(({point})=>point),
   [[6,0],[6,4],[-1,2],[0,.003],[-2,.003]]);
 });
+
+test('open-contour markers use native ends rather than sampled diagnostics',()=>{
+ const closed=vector([['M',0,0],['L',2,0],['L',2,2],['Z']]);
+ const open=vector([['M',5,0],['L',7,0],['L',7,2]]);
+ const raw=[{kind:'open',path:0,other:0,point:[0,0]}];
+ const result=refineNativeDiagnostics({paths:[closed,open]},raw);
+ const markers=result.issues.filter(i=>i.kind==='open');
+ assert.equal(markers.length,1);
+ assert.equal(markers[0].path,1);
+ assert.deepEqual(markers[0].nodePoints,[[5,0],[7,2]]);
+});

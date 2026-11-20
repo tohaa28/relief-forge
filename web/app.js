@@ -888,7 +888,7 @@ async function buildUnifiedPreview(){
     const smoothingAmount=settingNumber('smoothing-amount');
     const optimizationTolerance=settingNumber('optimization-tolerance');
     const diagnosticTolerance=settingNumber('tolerance');
-    const repaired=repairVectorPoints(doc,scope,diagnosticTolerance);
+    const repaired=repairVectorPoints(doc,scope,diagnosticTolerance,{weldOpen:true});
     const gpu=settingChecked('merge-overlaps')
       ?await gpuBroadphase(repaired.document,{tolerance:diagnosticTolerance})
       :{mode:'cpu',pairs:null,reason:'union-disabled'};
@@ -926,7 +926,7 @@ async function buildUnifiedPreview(){
     const untangled=settingChecked('separate-coincident')?
       separateCoincidentNonadjacentNodes(filtered.document,
         budget.reason==='union-fallback-optimized'?merged.safeSelectedIndices:merged.selectedIndices,
-        diagnosticTolerance):{document:filtered.document,stats:{detected:0,separated:0,skipped:0,limited:0,movedMm:0}};
+        diagnosticTolerance,{includeNearby:true}):{document:filtered.document,stats:{detected:0,separated:0,skipped:0,limited:0,movedMm:0}};
     const selfHealed=settingChecked('repair-self-intersections')?
       repairSelfIntersections(untangled.document,
         budget.reason==='union-fallback-optimized'?merged.safeSelectedIndices:merged.selectedIndices,
@@ -971,8 +971,8 @@ async function buildUnifiedPreview(){
       ' мм'+(st.micro.enabled?'':' · фильтр отключён')+'.'+
       (budget.reason?'\n'+previewBudgetMessage(budget)+' Показатели Union ниже относятся к отклонённой попытке.':'')+'\nТочки: убрано коротких/нулевых сегментов '+st.pointRepairs.removedNodes+
       ' · замкнуто близких концов '+st.pointRepairs.closedGaps+' · удалено покрытых повторных проходов '+(st.pointRepairs.removedRetraces||0)+'.'+
-      '\nРазведение несоседних совпадающих узлов: найдено '+st.untangled.detected+
-      ', разнесено '+st.untangled.separated+', пропущено '+st.untangled.skipped+'.'+
+      '\nРазведение несоседних узлов: найдено '+st.untangled.detected+
+      ', разнесено '+st.untangled.separated+' (сближенных: '+(st.untangled.separatedNearby||0)+'), пропущено '+st.untangled.skipped+'.'+
       '\nUnion по независимым группам: принято '+(st.overlaps.acceptedGroups||0)+
       ', отклонено '+(st.overlaps.rejectedGroups||0)+
       '. Объединение исходных Безье: слито объектов '+st.overlaps.mergedObjects+
@@ -1188,7 +1188,7 @@ async function buildLargeUnifiedPreview(indices){
     for(let k=0;k<indices.length;k++){
       if(generation!==previewGeneration)return;
       const index=indices[k],input=source.paths[index];
-      const repaired=repairVectorPoints({paths:[input]},[0],tol);
+      const repaired=repairVectorPoints({paths:[input]},[0],tol,{weldOpen:true});
       qualitySource.paths[index]=clone(repaired.document.paths[0]);
       result.paths[index]=repaired.document.paths[0];
       for(const key of ['removedNodes','closedGaps','removedRetraces','removedRetracedNodes','skipped'])
@@ -1295,7 +1295,7 @@ async function buildLargeUnifiedPreview(indices){
     const untangled=settingChecked('separate-coincident')?
       separateCoincidentNonadjacentNodes(filtered.document,
         budget.reason==='union-fallback-optimized'?merged.safeSelectedIndices:merged.selectedIndices,
-        tol):{document:filtered.document,stats:{detected:0,separated:0,skipped:0,limited:0,movedMm:0}};
+        tol,{includeNearby:true}):{document:filtered.document,stats:{detected:0,separated:0,skipped:0,limited:0,movedMm:0}};
     const selfHealed=settingChecked('repair-self-intersections')?
       repairSelfIntersections(untangled.document,
         budget.reason==='union-fallback-optimized'?merged.safeSelectedIndices:merged.selectedIndices,
@@ -1351,7 +1351,7 @@ async function buildLargeUnifiedPreview(indices){
       (budget.reason?' '+previewBudgetMessage(budget)+' Показатели Union ниже — отклонённая попытка.':'')+'\nБольшой документ: обработано '+indices.length+
       ' контуров; Union принято групп '+(stats.overlaps.acceptedGroups||0)+
       ', отклонено '+(stats.overlaps.rejectedGroups||0)+
-      '; разнесено несоседних узлов '+stats.untangled.separated+
+      '; разнесено несоседних узлов '+stats.untangled.separated+' (сближенных: '+(stats.untangled.separatedNearby||0)+')'+
       ', пропущено '+stats.untangled.skipped+
       '; удалено покрытых повторных проходов '+stats.pointRepairs.removedRetraces+' ('+stats.pointRepairs.removedRetracedNodes+' узлов); сглажено '+stats.smoothedJoints+' стыков, удалено '+stats.removed+
       ' сегментов; слито объектов '+stats.overlaps.mergedObjects+

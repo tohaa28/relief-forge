@@ -257,3 +257,5 @@
 {"at": "2026-11-20T14:35:00+03:00", "action": "local-native-crossing-repair-methods", "base": "cf53325", "js": 396, "rust": 17, "wasm": true, "browserSmoke": true, "privateEpsBaseline": 372, "privateEpsCandidate": 362, "handleRepairs": 10, "trimRepairs": 0, "complete": false, "published": false}
 
 {"at": "2026-11-20T14:42:00+03:00", "action": "preserve-and-separate-microloops", "base": "77f6f1c", "js": 398, "wasm": true, "browserSmoke": true, "privateEpsSeparated": 3, "privateEpsResidual": 369, "complete": false, "published": false}
+
+{"at": "2026-11-20T14:52:00+03:00", "action": "spread-near-anchors-weld-open-seams", "base": "82cac44", "js": 401, "wasm": true, "browserSmoke": true, "privateEpsNearSeparated": 7, "privateEpsResidual": 355, "privateEpsRealOpen": 0, "complete": false, "published": false}

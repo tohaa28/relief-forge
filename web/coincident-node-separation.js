@@ -35,21 +35,36 @@ function adjacentNodes(a,b,partCount,closed){
   const gap=Math.abs(a.ordinal-b.ordinal);
   return gap<=1||(closed&&gap===partCount-1);
 }
-function nextPair(path,tolerance,ignored){
+function nextPair(path,tolerance,ignored,includeNearby){
   const nodes=curveNodes(path),epsilon=Math.max(1e-9,Math.min(1e-6,tolerance*1e-3));
   const bins=new Map(),partCounts=new Map(),closedParts=new Set();
   for(const node of nodes)partCounts.set(node.part,(partCounts.get(node.part)||0)+1);
   const raw=nativeParts(path);
   raw.forEach((p,i)=>{if(p.closed)closedParts.add(i);});
-  const cell=p=>[Math.floor(p[0]/epsilon),Math.floor(p[1]/epsilon)];
+  const width=includeNearby?tolerance:epsilon;
+  const lengths=raw.map(part=>part.segments.reduce((s,{controls})=>{
+    const length=controls.slice(1).reduce((sum,p,i)=>sum+pointDistance(p,controls[i]),0);
+    s.push(s.at(-1)+length);
+    return s;
+  },[0]));
+  const cell=p=>[Math.floor(p[0]/width),Math.floor(p[1]/width)];
   for(const node of nodes){
     const [x,y]=cell(node.point);
     for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){
       for(const other of bins.get((x+dx)+':'+(y+dy))||[]){
-        if(!close(node.point,other.point,epsilon))continue;
+        const gap=pointDistance(node.point,other.point);
+        if(gap>width)continue;
+        const nearby=gap>epsilon;
+        if(nearby){
+          if(!includeNearby||node.part!==other.part)continue;
+          const arc=lengths[node.part],part=raw[node.part];
+          if(!part.closed&&other.ordinal===0&&node.ordinal===part.segments.length)continue;
+          const along=arc[node.ordinal]-arc[other.ordinal];
+          if(Math.min(along,part.closed?arc.at(-1)-along:Infinity)<=tolerance)continue;
+        }
         if(adjacentNodes(node,other,partCounts.get(node.part),closedParts.has(node.part)))continue;
         const key=Math.min(node.index,other.index)+':'+Math.max(node.index,other.index);
-        if(!ignored.has(key))return {first:other,second:node,key};
+        if(!ignored.has(key))return {first:other,second:node,key,gap,nearby};
       }
     }
     const k=x+':'+y;if(!bins.has(k))bins.set(k,[]);bins.get(k).push(node);
@@ -140,13 +155,14 @@ function candidateSafe(geometry,first,second,edits,tolerance){
 function findCorrection(path,pair,tolerance){
   const geometry=segmentsOf(path);
   const candidates=[pair.first,pair.second];
+  const anchors=pair.nearby?curveNodes(path):[];
   const scales=[1.05,1.4,2,3];
   const directions=Array.from({length:16},(_,i)=>{
     const angle=2*Math.PI*i/16;return [Math.cos(angle),Math.sin(angle)];
   });
   let best=null;
   for(const scale of scales){
-    const radius=scale*tolerance;
+    const radius=pair.nearby?Math.min(tolerance,scale*(tolerance-pair.gap+tolerance*.001)):scale*tolerance;
     for(const node of candidates){
       const arms=incident(node,geometry);
       if(!arms.length)continue;
@@ -154,7 +170,16 @@ function findCorrection(path,pair,tolerance){
         .filter(n=>n>1e-9);
       if(!lengths.length||radius>Math.min(...lengths)*0.25)continue;
       for(const direction of directions){
-        const delta=direction.map(v=>v*radius),edits=moveIncident(geometry,node,delta);
+        const delta=direction.map(v=>v*radius);
+        const other=node===pair.first?pair.second:pair.first;
+        const target=shifted(node.point,delta);
+        if(pointDistance(target,other.point)<=tolerance)continue;
+        const part=geometry.parts[node.part],count=part.segments.length+(part.closed?0:1);
+        if(anchors.some(anchor=>anchor.part===node.part&&
+          !adjacentNodes(anchor,node,count,part.closed)&&
+          pointDistance(anchor.point,node.point)>tolerance&&
+          pointDistance(anchor.point,target)<=tolerance))continue;
+        const edits=moveIncident(geometry,node,delta);
         try{
           if(!candidateSafe(geometry,pair.first,pair.second,edits,tolerance))continue;
         }catch{continue;} // Geometry ambiguity never authorizes a repair.
@@ -169,18 +194,18 @@ function findCorrection(path,pair,tolerance){
   return best;
 }
 export function separateCoincidentNonadjacentNodes(source,indices,tolerance,
-  {Parser=globalThis.DOMParser,maxRepairs=64}={}){
+  {Parser=globalThis.DOMParser,maxRepairs=64,includeNearby=false}={}){
   if(!Number.isFinite(tolerance)||tolerance<=0||tolerance>1000)
     throw Error('Неверный допуск разведения несоседних узлов');
   const document=structuredClone(source),stats={detected:0,separated:0,skipped:0,
-    movedMm:0,limited:0};
+    movedMm:0,limited:0,separatedNearby:0};
   for(const index of new Set(indices)){
     const path=document.paths[index];
     if(!path||path.kind==='image'||!path.artwork&&(!path.points||path.points.length<4))continue;
     const ignored=new Set();
     try{
       for(let count=0;count<maxRepairs;count++){
-        const pair=nextPair(document.paths[index],tolerance,ignored);
+        const pair=nextPair(document.paths[index],tolerance,ignored,includeNearby);
         if(!pair)break;
         stats.detected++;
         const candidate=findCorrection(document.paths[index],pair,tolerance);
@@ -190,11 +215,13 @@ export function separateCoincidentNonadjacentNodes(source,indices,tolerance,
         const target=shifted(candidate.node.point,candidate.delta);
         document.paths[index]=moveCurveNode(document.paths[index],
           candidate.node.index,target,{Parser});
-        stats.separated++;stats.movedMm=Math.max(stats.movedMm,
+        stats.separated++;
+        if(pair.nearby)stats.separatedNearby++;
+        stats.movedMm=Math.max(stats.movedMm,
           Math.hypot(...candidate.delta));
         ignored.clear();
       }
-      if(nextPair(document.paths[index],tolerance,ignored))stats.limited++;
+      if(nextPair(document.paths[index],tolerance,ignored,includeNearby))stats.limited++;
     }catch{
       // Keep already validated changes, but never publish a partial failed move.
       stats.skipped++;
