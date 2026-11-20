@@ -94,7 +94,7 @@ const settingChecks=new Set(['selection-only','merge-overlaps','separate-coincid
   'doctortracer-enabled','repair-self-intersections','self-intersection-preserve',
   'merge-nearby','merge-nearby-strict']);
 const settingSelects=new Set(['self-intersection-mode','self-intersection-size']);
-const settingOptions={'self-intersection-mode':['hybrid','handles','loops'],
+const settingOptions={'self-intersection-mode':['hybrid','handles','loops','separate'],
   'self-intersection-size':['micro','small','all']};
 const readSettingsForm=()=>Object.fromEntries(settingIds.map(id=>
   [id,settingChecks.has(id)?$(id).checked:settingSelects.has(id)?$(id).value:Number($(id).value)]));
@@ -962,6 +962,7 @@ async function buildUnifiedPreview(){
       '\nСамопересечения: обнаружено '+st.selfIntersections.detected+
       ', исправлено управляющими точками '+st.selfIntersections.correctedHandles+
       ', удалено петель '+st.selfIntersections.removedLoops+
+      (st.selfIntersections.separatedLoops?' · отделено микропетель '+st.selfIntersections.separatedLoops:'')+
       ', пропущено '+st.selfIntersections.skipped+
       (st.selfIntersections.limited?' · ограничений '+st.selfIntersections.limited:'')+'.'+
       '\nCNC: удалено малых замкнутых подконтуров '+st.micro.removedSubpaths+
@@ -1341,6 +1342,7 @@ async function buildLargeUnifiedPreview(indices){
       '\nСамопересечения: обнаружено '+stats.selfIntersections.detected+
       ', исправлено ручками '+stats.selfIntersections.correctedHandles+
       ', удалено петель '+stats.selfIntersections.removedLoops+
+      (stats.selfIntersections.separatedLoops?' · отделено микропетель '+stats.selfIntersections.separatedLoops:'')+
       ', пропущено '+stats.selfIntersections.skipped+
       (stats.selfIntersections.limited?' · сработал лимит проверки или ремонта':'')+'.'+
       '\nCNC: удалено малых замкнутых подконтуров '+stats.micro.removedSubpaths+

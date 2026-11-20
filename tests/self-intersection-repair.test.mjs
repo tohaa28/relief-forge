@@ -100,3 +100,34 @@ test('tiny open loop is trimmed at its native intersection without a bridge',()=
  assert.ok(document.paths[0].commands.every(c=>c[0]==='M'||c[0]==='L'));
  assert.equal(nativeIntersections(document.paths).filter(h=>h.crossing).length,0);
 });
+
+test('separation preserves the microloop and opens a gap at its former crossing',()=>{
+ const tiny=little.map(([op,x,y])=>[op,x*.1,y*.1]);
+ const source=doc(make(tiny)),original=structuredClone(source);
+ const {document,stats}=run(source,{mode:'separate'});
+ const result=document.paths[0];
+ const starts=result.commands.filter(c=>c[0]==='M');
+ assert.deepEqual(source,original);
+ assert.equal(stats.separatedLoops,1);
+ assert.equal(stats.removedLoops,0);
+ assert.equal(starts.length,2);
+ assert.equal(result.commands.at(-1)[0],'Z');
+ assert.equal(nativeIntersections([result]).length,0);
+ const join=result.commands[1].slice(1),closedStart=starts[1].slice(1);
+ const gap=Math.hypot(join[0]-closedStart[0],join[1]-closedStart[1]);
+ assert.ok(gap>0&&gap<=.01);
+ assert.match(result.artwork,/stroke="#123456"/);
+});
+
+test('separation leaves filled shapes and non-micro loops intact',()=>{
+ const a=make([['M',0,0],['L',.04,.04],['L',0,.04],['L',.04,0],['Z']]);
+ const closed=run(doc(a),{mode:'separate'});
+ assert.equal(closed.stats.separatedLoops,1);
+ assert.equal(closed.document.paths[0].commands.filter(c=>c[0]==='Z').length,2);
+ a.artwork=a.artwork.replace('fill="none"','fill="#000"');
+ for(const source of [doc(a),doc(make(little))]){
+  const result=run(source,{mode:'separate',preserve:false});
+  assert.equal(result.stats.separatedLoops,0);
+  assert.deepEqual(result.document,source);
+ }
+});

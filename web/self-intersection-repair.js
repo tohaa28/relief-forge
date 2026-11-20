@@ -1,6 +1,7 @@
 import {nativeParts,pointDistance,lerpPoint,evaluateBezier,splitBezier,bezierPart,cubicControls,controlsBounds,sampleNativeParts} from './native-bezier.js?v=0.2.0-alpha.69';
 import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.69';
 import {finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.69';
+import {paintFromArtwork} from './eps-paint.js?v=0.2.0-alpha.69';
 
 // Bounded, exact-native surgery. Never called in pointermove or after manual Done.
 // Failure to prove a candidate safe means no change, not an approximate repair.
@@ -81,12 +82,13 @@ function crossObjectSafe(doc,index,before,after,tolerance){
   }
   return true;
 }
-function checkedCandidate(doc,index,before,oldHits,candidate,tolerance,preserve){
+function checkedCandidate(doc,index,before,oldHits,candidate,tolerance,preserve,method){
   if(!candidate||candidate.kind==='image'||candidate.commands?.some(c=>c.slice(1).some(v=>!Number.isFinite(v))))return false;
   const afterHits=intersections(candidate);
   const count=hits=>hits.filter(relevant).length;
   if(count(afterHits)>=count(oldHits)||!noNewContacts(oldHits,afterHits,tolerance))return false;
-  if(!areaSafe(before,candidate,tolerance,preserve))return false;
+  // Separation adds a closed subpath only to explicitly unfilled artwork.
+  if(method!=='separate'&&!areaSafe(before,candidate,tolerance,preserve))return false;
   if(!crossObjectSafe(doc,index,before,candidate,tolerance))return false;
   return true;
 }
@@ -132,6 +134,43 @@ const tangent=(p,t)=>{
   return [0,1].map(j=>3*(u*u*(c[1][j]-c[0][j])+2*u*t*(c[2][j]-c[1][j])+t*t*(c[3][j]-c[2][j])));
 };
 const unit=p=>{const l=Math.hypot(...p);return l>1e-10?p.map(v=>v/l):null;};
+function separationCandidates(path,hit,parts,tolerance,{Parser}){
+  if(parts.length!==1||paintFromArtwork(path.artwork,{Parser}).fill.trim().toLowerCase()!=='none')return [];
+  const segments=parts[0].segments;
+  let [i,j]=hit.segments,[a,b]=hit.times;
+  if(i>j||i===j&&a>b){[i,j]=[j,i];[a,b]=[b,a];}
+  if(!segments[i]||!segments[j]||a<=0||b>=1)return [];
+  const first=segments[i],last=segments[j];
+  const left=bezierPart(first.controls,0,a),right=bezierPart(last.controls,b,1);
+  const junction=left.at(-1);
+  if(dist(junction,right[0])>2e-8)return [];
+  const loop=segments.slice(i,j+1).map((segment,n)=>bezierPart(segment.controls,
+    n===0?a:0,n===j-i?b:1));
+  const [x0,y0,x1,y1]=controlsBounds(loop.flat());
+  if(Math.hypot(x1-x0,y1-y0)>.1)return [];
+  const commands=vectorCommands(path);
+  const remainder=[...commands.slice(0,first.command),asCommand(left),
+    asCommand(right),...commands.slice(last.command+1)];
+  if(parts[0].closed&&remainder.at(-1)[0]!=='Z')remainder.push(['Z']);
+  const candidates=[],maxShift=Math.min(tolerance,.01);
+  for(const fraction of [.1,.25,.5,1]){
+    for(let direction=0;direction<8;direction++){
+      const distance=maxShift*fraction,angle=direction*Math.PI/4;
+      const moved=translate(junction,[distance*Math.cos(angle),distance*Math.sin(angle)]);
+      const pieces=structuredClone(loop);
+      pieces[0][0]=moved;
+      pieces.at(-1)[pieces.at(-1).length-1]=moved;
+      if(dist(moved,right[0])>tolerance)continue;
+      try{
+        const candidate=finishDeferredCurveCommands(path,[...remainder,['M',...moved],
+          ...pieces.map(asCommand),['Z']],{},{Parser});
+        candidates.push({candidate,score:distance*distance,method:'separate',
+          movedMm:Math.max(distance,dist(moved,right[0]))});
+      }catch{/* Unsupported artwork cannot be separated safely. */}
+    }
+  }
+  return candidates;
+}
 function loopCandidates(path,hit,parts,tolerance,{Parser,size,preserve}){
   if(preserve&&(filled(path)||nativeParts(path).some(p=>p.closed)))return [];
   const part=Number(hit.parts.split(':')[0]),segs=parts[part]?.segments||[];
@@ -206,10 +245,10 @@ export function repairSelfIntersections(source,indices,tolerance,{
   maxRepairs=24,maxPaths=300
 }={}){
   if(!(tolerance>0&&Number.isFinite(tolerance)&&tolerance<=1000))throw Error('Неверный допуск самопересечений');
-  if(!['hybrid','handles','loops'].includes(mode)||!['micro','small','all'].includes(size))
+  if(!['hybrid','handles','loops','separate'].includes(mode)||!['micro','small','all'].includes(size))
     throw Error('Неверный режим исправления самопересечений');
   const document=structuredClone(source),stats={
-    detected:0,correctedHandles:0,removedLoops:0,skipped:0,limited:0,maxDeviationMm:0
+    detected:0,correctedHandles:0,removedLoops:0,separatedLoops:0,skipped:0,limited:0,maxDeviationMm:0
   };
   let checked=0,completed=0;
   const order=[...new Set(indices)].filter(index=>
@@ -248,17 +287,19 @@ export function repairSelfIntersections(source,indices,tolerance,{
         const check=items=>{
           for(const item of items.sort((a,b)=>a.score-b.score)){
             try{
-              if(checkedCandidate(document,index,path,oldHits,item.candidate,tolerance,preserve))return item;
+              if(checkedCandidate(document,index,path,oldHits,item.candidate,tolerance,preserve,item.method))return item;
             }catch{/* Exact kernel uncertainty is a veto. */}
           }
           return null;
         };
-        if(mode!=='loops')accepted=check(handleCandidates(path,hit,geometry,tolerance,{Parser}));
-        if(!accepted&&mode!=='handles')
+        if(mode==='separate')accepted=check(separationCandidates(path,hit,geometry,tolerance,{Parser}));
+        if(mode==='hybrid'||mode==='handles')accepted=check(handleCandidates(path,hit,geometry,tolerance,{Parser}));
+        if(!accepted&&(mode==='hybrid'||mode==='loops'))
           accepted=check(loopCandidates(path,hit,geometry,tolerance,{Parser,size,preserve}));
         if(!accepted){ignored.add(key);stats.skipped++;continue;}
         document.paths[index]=path=accepted.candidate;
         if(accepted.method==='handles')stats.correctedHandles++;
+        else if(accepted.method==='separate')stats.separatedLoops++;
         else stats.removedLoops++;
         stats.maxDeviationMm=Math.max(stats.maxDeviationMm,accepted.movedMm);
         ignored=new Set();
