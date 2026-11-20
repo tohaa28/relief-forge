@@ -1,3 +1,11 @@
+## F-069. 2026-11-20 — Alpha69: неудачные промежуточные CI и устранение
+- CI https://github.com/tohaa28/relief-forge/actions/runs/44710159158 FAILED 380/383 JS. Ошибка синтаксиса выражения sweep в новом модуле: Identifier 'tol' has already been declared; плюс устаревший тест const after=selfHealed.document и отсутствие новых полей в тестовом VM. Исправлено без удаления тестов.
+- CI https://github.com/tohaa28/relief-forge/actions/runs/44710457881 FAILED 388/390 JS. Остались неверное ожидание / F$/ в новом EPS тесте (в отличие от Corel EPS стандартный экспорт выдаёт outline-only @c, N) и отсутствие настроек в старом VM.
+- CI https://github.com/tohaa28/relief-forge/actions/runs/44710516992 FAILED 389/390 JS. Исправлен последний неверный regex; стандартное поведение EPS не изменено.
+- CI https://github.com/tohaa28/relief-forge/actions/runs/44710709086 SUCCESS 390/390 JS + Rust/WASM/браузер, в том числе новая проверка alpha69.
+- Итоговый кандидат https://github.com/tohaa28/relief-forge/actions/runs/44711546203 SUCCESS 391/391 JS (добавлен стресс 1975 объектов/20k сегментов), 17/17 Rust, release WASM и полноценный браузерный набор.
+- Реальный пользовательский EPS испытывался отдельным Python/PS прототипом, не совпадающим с production JS, нельзя объявлять экспериментальные 603 удаления подтверждённым результатом браузерного инструмента. Оригинал не выкладывать в публичный GitHub. Точка отката: alpha68 main f428f8ab9f7f73195e944a460de8a3cc95e4fb9d.
+
 ## F-068. 2026-11-20 — Первый CI alpha68: 378/382 JS
 - Workflow https://github.com/tohaa28/relief-forge/actions/runs/44699199391, job 136163186539 — FAILED на npm test; Rust native tests PASS, WASM не выполнялся из-за ранней ошибки.
 - Четыре жёстких устаревших теста: tests/alpha66-doctortracer-optin-zoom.test.mjs ожидал doctortracer-enabled последним элементом settingIds; tests/history-integrity.test.mjs требовал alpha68 в HANDOFF/NEXT_CHAT_START/RELEASE_CHRONICLE; tests/real-after-node-refit.test.mjs требовал const after=untangled.document вместо нового selfHealed.document; tests/unified-point-apply.test.mjs не передавал новые settings/DOM элементы в изолированный VM и preview сбрасывался.
