@@ -95,3 +95,29 @@ test('alpha69: staged option and both normal/large previews use the same distanc
   assert.match(app,/changed\('curve-session-commit',\{skipDiagnostics:true\}\)/,
     'closing manual node editor still must not trigger a background global diagnostic');
 });
+
+test('alpha69: bounded spatial index handles an EPS-scale 1,975-object, 20k-segment scene',()=>{
+  const paths=[];
+  for(let i=0;i<1975;i++){
+    const x=(i%79)*9,y=Math.floor(i/79)*9,commands=[['M',x+3,y]];
+    for(let k=1;k<12;k++){
+      const a=k*2*Math.PI/12;
+      commands.push(['L',x+3*Math.cos(a),y+3*Math.sin(a)]);
+    }
+    if(i<5){
+      // A separate, unequivocally tiny adjacent L edge inserted at one
+      // non-collinear corner. The same tolerance applies regardless of scene
+      // complexity or number of unrelated objects.
+      commands.splice(2,0,['L',commands[1][1]+.01,commands[1][2]+.01]);
+    }
+    commands.push(['Z']);
+    paths.push(path(commands));
+  }
+  const input=doc(paths),before=structuredClone(input),time=performance.now();
+  const outcome=repair(input,.05,{maxWelds:25,mergeCopies:false,connectOpenPaths:false});
+  const duration=performance.now()-time;
+  assert.deepEqual(input,before);
+  assert.equal(outcome.document.paths.length,1975);
+  assert.ok(outcome.stats.weldedNodes>=4,'local surgery must still work on dense documents');
+  assert.ok(duration<25000,'2000-object native spatial scan unexpectedly stalled: '+duration.toFixed(0)+'ms');
+});
