@@ -85,3 +85,11 @@ test('Small geometry filter wired only into AFTER and stale EPS preview guarded 
  assert.match(html,/id="micro-width"[^>]*value="0.1"/);
  assert.match(html,/id="micro-height"[^>]*value="0.1"/);
 });
+
+test('the CNC filter recognizes an exact return without Z and preserves a real open gap',()=>{
+ const ring=path([['M',0,0],['L',.003,0],['L',.003,.004],['L',0,0]]);
+ const trace=path([['M',1,0],['L',1.003,0],['L',1.003,.004],['L',1,.00001]]);
+ const result=removeTinyClosedSubpaths(doc([ring,trace]));
+ assert.equal(result.stats.removedObjects,1);
+ assert.deepEqual(result.document.paths,[trace]);
+});

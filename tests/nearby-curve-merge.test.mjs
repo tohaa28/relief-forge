@@ -130,3 +130,10 @@ test('an exact filled copy with reversed winding and another start is removed',(
  assert.equal(result.stats.mergedCurves,1);
  assert.deepEqual(result.document.paths,[original]);
 });
+
+test('a nanometre closing edge welds at its exact seam without deleting Z',()=>{
+ const closed=path([['M',0,0],['L',2,0],['L',2,2],['L',0,2],['L',0,4e-9],['Z']]);
+ const result=repair(doc([closed]),.01);
+ assert.equal(result.stats.weldedNodes,1);
+ assert.deepEqual(result.document.paths[0].commands.slice(-2),[['L',0,0],['Z']]);
+});

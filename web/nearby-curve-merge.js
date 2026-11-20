@@ -110,9 +110,10 @@ function tinySegmentCandidates(path,tol){
     if(!part.closed&&part.segments.length<=2)continue;
     for(let j=1;j<part.segments.length;j++){
       const s=part.segments[j],prev=part.segments[j-1];
-      if(!['L','C','Q'].includes(source[s.command]?.[0])||
-        !['L','C','Q'].includes(source[prev.command]?.[0]))continue;
       const center=s.controls[0],hull=Math.max(...s.controls.map(p=>D(center,p)));
+      const seam=source[s.command]?.[0]==='Z'&&hull<=Math.min(tol,1e-8);
+      if((!seam&&!['L','C','Q'].includes(source[s.command]?.[0]))||
+        !['L','C','Q'].includes(source[prev.command]?.[0]))continue;
       if(hull>tol||hull<=0&&D(center,s.controls.at(-1))===0&&s.controls.length===4&&
          D(s.controls[1],center)>tol)continue;
       const end=s.controls.at(-1),change=minus(end,center);
@@ -123,7 +124,7 @@ function tinySegmentCandidates(path,tol){
       if(outgoing&&norm(incoming)>1e-9&&norm(outgoing)>1e-9&&
          (incoming[0]*outgoing[0]+incoming[1]*outgoing[1])/
          (norm(incoming)*norm(outgoing))<-.45)continue;
-      found.push({command:s.command,previous:prev.command,controls:s.controls,
+      found.push({command:s.command,previous:prev.command,controls:s.controls,seam,
         prevControls:prev.controls,hull,span:D(prev.controls[0],prev.controls.at(-1)),
         box:bounds([...prev.controls,...s.controls])});
     }
@@ -133,15 +134,16 @@ function tinySegmentCandidates(path,tol){
 function tryWeld(doc,index,proposal,tol,strict,Parser,stats,indexed){
   const path=doc.paths[index],commands=cloneCommands(path);
   const c=commands[proposal.command],prev=commands[proposal.previous];
-  if(!c||!prev||!['L','Q','C'].includes(c[0])||!['L','Q','C'].includes(prev[0]))return false;
-  const end=last(c),p0=last(prev),delta=minus(end,p0);
+  if(!c||!prev||(!proposal.seam&&!['L','Q','C'].includes(c[0]))||
+     !['L','Q','C'].includes(prev[0]))return false;
+  const end=proposal.seam?proposal.controls.at(-1):last(c),p0=last(prev),delta=minus(end,p0);
   if(D(end,p0)>tol)return false;
   const modified=structuredClone(commands);
   const p=modified[proposal.previous];
   p.splice(p.length-2,2,...end);
   if(p[0]==='C'){p[3]+=delta[0];p[4]+=delta[1];}
   else if(p[0]==='Q'){p[1]+=delta[0]*.5;p[2]+=delta[1]*.5;}
-  modified.splice(proposal.command,1);
+  if(!proposal.seam)modified.splice(proposal.command,1);
   let candidate;
   try{candidate=asPath(path,modified,Parser);}
   catch{stats.skipped++;return false;}
