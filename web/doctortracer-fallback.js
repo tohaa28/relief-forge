@@ -1,5 +1,5 @@
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.70';
-import {importRichSvg} from './rich-svg.js?v=0.2.0-alpha.70';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.71';
+import {importRichSvg} from './rich-svg.js?v=0.2.0-alpha.71';
 
 // The linked DoctorTracer 0.21.1 WASM gh-pages site owns its Worker and its GPL
 // dependencies. Nothing from that distribution is copied or relicensed here.
@@ -8,7 +8,7 @@ export const DOCTORTRACER_VERSION='0.21.1';
 export const DOCTORTRACER_THRESHOLD=10;
 export const DOCTORTRACER_WORKER_PATH='/DoctorTracer/worker.js';
 export const DOCTORTRACER_WORKER_MAX_SIDE=5000;
-export const DOCTORTRACER_WORKER_MAX_PIXELS=12000000;
+export const DOCTORTRACER_WORKER_MAX_PIXELS=6000000;
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 const finite=n=>Number.isFinite(n)&&Math.abs(n)<=1e9;
 const point=c=>c.slice(-2);
