@@ -26,3 +26,10 @@ tests/self-intersection-repair.test.mjs проверяет native parameters, л
 
 ## Alpha68 browser regression
 Новый scripts/browser-alpha68-self-intersection.mjs: реальный Chromium+WASM импорт петли из SVG, метрики исправления, сравнение ДО/ПОСЛЕ, проверка default settings, staging без фонового перерасчёта и явная кнопка Apply. Подключён в scripts/check-wasm.mjs (обязательный CI). Предыдущий CI #44699733206 SUCCESS 382/382 JS, Rust/WASM и прежние браузерные тесты. Проверка нового браузерного сценария ожидается.
+
+## Подтверждённое завершение и публикация
+- PR #100 merged main: 83582f9e81de1edd129529a2470ff2185c5ff9b3; проверенный кандидат 0df07a5f880bf33ce83af301e810b2024487c6b1.
+- PR CI 44700104863 SUCCESS: 382/382 JS, 17/17 Rust, release WASM, все браузерные сценарии, в том числе новый alpha68 реальный SVG.
+- Pages CI 44700396158 SUCCESS build + deploy: https://tohaa28.github.io/relief-forge/?v=alpha68
+- Первый CI 44699199391 failed 378/382; промежуточный 44699450272 failed; исправлено без удаления регрессий. Отменённые прогоны 44699587185 и 44699654542 сменены новыми кандидатами. Последний успешно проверен.
+- Обязательное ограничение: нет пользовательского оригинала gerb2.pdf; нельзя объявить приёмку на настоящем гербе. Откат к main 2cd4afbf4db611c49ae8076d5f1bbe121e54764e.
