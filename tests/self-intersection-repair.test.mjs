@@ -69,3 +69,34 @@ test('simple paths do not exhaust the budget for paths requiring intersection ch
  assert.equal(result.stats.removedLoops,1);
  assert.deepEqual(result.document.paths[0],simple);
 });
+
+test('a single handle removes a tiny cubic crossing inside tolerance',()=>{
+ const source=doc(make([['M',0,0],['C',.015,.015,-.015,.015,.005,0]]));
+ assert.equal(nativeIntersections(source.paths).filter(h=>h.crossing).length,1);
+ const {document,stats}=run(source,{mode:'handles'});
+ const [before,after]=[source.paths[0],document.paths[0]].map(p=>p.commands[1]);
+ assert.equal(stats.correctedHandles,1);
+ assert.ok(stats.maxDeviationMm<=.01);
+ assert.notDeepEqual(after.slice(1,3),before.slice(1,3));
+ assert.deepEqual(after.slice(3),before.slice(3),'other handle and endpoint are preserved');
+ assert.equal(nativeIntersections(document.paths).filter(h=>h.crossing).length,0);
+});
+
+test('witnessed crossings are prioritized when eligible paths outnumber repair slots',()=>{
+ const ordinary=make([['M',20,0],['L',21,0],['L',21,1],['L',22,1]]);
+ const loop=make(little),source={...doc(ordinary),paths:[ordinary,loop]};
+ const {document,stats}=repairSelfIntersections(source,[0,1],.01,{Parser:DOMParser,maxPaths:1});
+ assert.equal(stats.removedLoops,1);
+ assert.deepEqual(document.paths[0],ordinary);
+ assert.equal(nativeIntersections([document.paths[1]]).filter(h=>h.crossing).length,0);
+});
+
+test('tiny open loop is trimmed at its native intersection without a bridge',()=>{
+ const tiny=little.map(([op,x,y])=>[op,x*.01,y*.01]);
+ const source=doc(make(tiny));
+ const {document,stats}=run(source,{mode:'loops'});
+ assert.equal(stats.removedLoops,1);
+ assert.ok(stats.maxDeviationMm<=.01);
+ assert.ok(document.paths[0].commands.every(c=>c[0]==='M'||c[0]==='L'));
+ assert.equal(nativeIntersections(document.paths).filter(h=>h.crossing).length,0);
+});

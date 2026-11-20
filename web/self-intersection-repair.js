@@ -104,15 +104,24 @@ function handleCandidates(path,hit,parts,tolerance,{Parser}){
     const maxShift=Math.min(2.5,Math.max(tolerance*6,extent*.40));
     for(const weight of [.10,.20,.35,.50,.70,1]){
       const q1=lerpPoint(c[1],line(1/3),weight),q2=lerpPoint(c[2],line(2/3),weight);
-      const changed=Math.max(dist(c[1],q1),dist(c[2],q2));
-      if(changed>maxShift||changed<1e-9)continue;
-      const commands=structuredClone(base),command=commands[segment.command];
-      if(command?.[0]!=='C')continue;
-      command.splice(1,4,...q1,...q2);
-      try{
-        const candidate=finishDeferredCurveCommands(path,commands,path.nodeKinds||{},{Parser});
-        out.push({candidate,score:changed*changed,method:'handles',movedMm:changed});
-      }catch{/* Unserializable artwork cannot be changed safely. */}
+      const candidates=[[q1,q2],[q1,c[2]],[c[1],q2]];
+      for(const [first,second] of candidates){
+        const moveIn=dist(c[1],first),moveOut=dist(c[2],second);
+        const changed=Math.max(moveIn,moveOut);
+        if(changed>maxShift||changed<1e-9)continue;
+        const singleHandle=moveIn===0||moveOut===0;
+        // A single cubic Bernstein handle weight is at most 4/9.
+        // Keep the new local method inside the actual diagnostic tolerance.
+        const deviation=changed*(singleHandle?4/9:3/4);
+        if(singleHandle&&deviation>tolerance)continue;
+        const commands=structuredClone(base),command=commands[segment.command];
+        if(command?.[0]!=='C')continue;
+        command.splice(1,4,...first,...second);
+        try{
+          const candidate=finishDeferredCurveCommands(path,commands,path.nodeKinds||{},{Parser});
+          out.push({candidate,score:deviation*deviation,method:'handles',movedMm:deviation});
+        }catch{/* Unserializable artwork cannot be changed safely. */}
+      }
     }
   }
   return out;
@@ -141,6 +150,21 @@ function loopCandidates(path,hit,parts,tolerance,{Parser,size,preserve}){
   const maxSize=size==='micro'?.1:size==='small'?.5:Infinity;
   if(loopDiameter>maxSize||loopDiameter<1e-9)return [];
   const commands=vectorCommands(path),candidates=[];
+  // For a tiny open loop, retain both native arcs up to the intersection.
+  // The discarded control hull bounds its distance from the shared endpoint.
+  const removedControls=affected.flatMap((segment,n)=>
+    bezierPart(segment.controls,n===0?t1:0,n===affected.length-1?t2:1));
+  const left=bezierPart(a.controls,0,t1),right=bezierPart(b.controls,t2,1);
+  const junction=left.at(-1),gap=dist(junction,right[0]);
+  const trimBound=Math.max(gap,...removedControls.map(point=>dist(point,junction)));
+  if(gap<=2e-8&&trimBound<=Math.min(maxSize,tolerance)&&t1>0&&t2<1){
+    const edit=[...commands.slice(0,a.command),asCommand(left),asCommand(right),
+      ...commands.slice(b.command+1)];
+    try{
+      const candidate=finishDeferredCurveCommands(path,edit,path.nodeKinds||{},{Parser});
+      candidates.push({candidate,score:0,method:'loops',movedMm:trimBound});
+    }catch{/* Unsupported artwork is never rewritten without its paint. */}
+  }
   for(const window of [.04,.10,.18]){
     const leftT=Math.max(0,t1-window),rightT=Math.min(1,t2+window);
     if(i===j&&rightT<=leftT+1e-5)continue;
@@ -159,7 +183,7 @@ function loopCandidates(path,hit,parts,tolerance,{Parser,size,preserve}){
       if(edit.length>=commands.length+4)continue;
       try{
         const candidate=finishDeferredCurveCommands(path,edit,path.nodeKinds||{},{Parser});
-        // True local deviation bound for the removed arc, including a loop.
+        // Sampled deviation estimate for the legacy bridge.
         const kept=Array.from({length:23},(_,n)=>evaluateBezier(cubicControls([start,p1,p2,end]),n/22));
         let deviation=0;
         for(const s of affected){
@@ -188,7 +212,19 @@ export function repairSelfIntersections(source,indices,tolerance,{
     detected:0,correctedHandles:0,removedLoops:0,skipped:0,limited:0,maxDeviationMm:0
   };
   let checked=0,completed=0;
-  paths: for(const index of new Set(indices)){
+  const order=[...new Set(indices)].filter(index=>
+    document.paths[index]&&document.paths[index].kind!=='image');
+  if(order.length>maxPaths&&maxPaths>0&&maxRepairs>0){
+    // A witnessed crossing gets a repair slot before paths with no evidence.
+    // Incomplete results only affect ordering; each edit is verified again.
+    try{
+      const hits=nativeIntersections(order.map(index=>document.paths[index]),{allowPartial:true});
+      const priority=new Set(hits.filter(relevant).map(hit=>order[hit.path]));
+      order.sort((a,b)=>Number(priority.has(b))-Number(priority.has(a)));
+      if(!hits.complete)stats.limited++;
+    }catch{stats.limited++;} // Fall back to the bounded sequential pass.
+  }
+  paths: for(const index of order){
     if(completed>=maxRepairs){stats.limited++;break;}
     let path=document.paths[index];
     if(!path||path.kind==='image')continue;

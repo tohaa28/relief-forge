@@ -11,7 +11,12 @@ export function prepareNativeIntersections(){
 // The page itself loads the kernel only when vector processing actually starts.
 if(typeof document==='undefined')await prepareNativeIntersections();
 import {nativeParts,evaluateBezier,pointDistance,cubicControls} from './native-bezier.js?v=0.2.0-alpha.69';
-const controls=loc=>cubicControls(loc.path.data.controls[loc.curve.index]);
+const controls=loc=>loc.path.data.controls[loc.curve.index];
+function sourceTime(loc,points){
+ const t=loc.time;
+ // Paper uses a cubic with repeated endpoints for a native line.
+ return points.length===2?t*t*(3-2*t):t;
+}
 export function nativeIntersections(paths,{maxCurves=30000,maxIssues=10000,allowPartial=false}={}){
  if(!paper)throw Error('native-kernel-not-ready');
  const scope=new paper.PaperScope();scope.setup([1,1]);
@@ -37,11 +42,13 @@ export function nativeIntersections(paths,{maxCurves=30000,maxIssues=10000,allow
   const found=[];found.complete=true;found.unresolved=0;
   for(const loc of compound.getIntersections(null)){
    const other=loc.intersection;if(!other)continue;
-   const a=evaluateBezier(controls(loc),loc.time),b=evaluateBezier(controls(other),other.time);
+   const first=controls(loc),second=controls(other);
+   const t=sourceTime(loc,first),u=sourceTime(other,second);
+   const a=evaluateBezier(first,t),b=evaluateBezier(second,u);
    // A numerical kernel location must have witnesses on both native curves.
    if(pointDistance(a,b)>2e-8){if(!allowPartial)throw Error('native-topology-unresolved-contact');found.complete=false;found.unresolved++;continue;}
    const x=loc.path.data,y=other.path.data;
-   found.push({parts:[x.part,y.part].sort((a,b)=>a-b).join(':'),point:[(a[0]+b[0])/2,(a[1]+b[1])/2],path:x.owner,other:y.owner,kind:x.owner===y.owner?'self_intersection':'intersection',overlap:loc.hasOverlap(),crossing:loc.isCrossing(),segments:[loc.curve.index,other.curve.index],times:[loc.time,other.time]});
+   found.push({parts:[x.part,y.part].sort((a,b)=>a-b).join(':'),point:[(a[0]+b[0])/2,(a[1]+b[1])/2],path:x.owner,other:y.owner,kind:x.owner===y.owner?'self_intersection':'intersection',overlap:loc.hasOverlap(),crossing:loc.isCrossing(),segments:[loc.curve.index,other.curve.index],times:[t,u]});
    if(found.length>=maxIssues){if(!allowPartial)throw Error('native-topology-issue-budget');found.complete=false;break;}
   }
   return found;
