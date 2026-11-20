@@ -1,4 +1,4 @@
-import {curveNodesTyped} from './curve-edit.js?v=0.2.0-alpha.72';
+import {curveNodesTyped} from './curve-edit.js?v=0.2.0-alpha.73';
 
 // A command-buffer transaction for one compound vector. During manual mode the
 // full document, original SVG artwork and EPS geometry are immutable. All
@@ -262,9 +262,11 @@ export function createDeferredCurveEditor(path){
   // Index conservative control-polygon bounding boxes once on entry.
   // Dragging one node updates at most its incident control hulls.
   let segmentCell=1,segmentBins=new Map(),segmentMembership=new Map(),
-    globalSegments=new Set(),lastNearestCandidates=0;
+    globalSegments=new Set(),lastNearestCandidates=0,
+    segmentBounds=new Map(),segmentSvg=new Map(),lastVisibleCandidates=0,lastVisibleSerialized=0;
   const binKey=(x,y)=>x+':'+y;
   function removeIndexedSegment(index){
+    segmentBounds.delete(index);segmentSvg.delete(index);
     for(const key of segmentMembership.get(index)||[]){
       const group=segmentBins.get(key);
       if(group){group.delete(index);if(!group.size)segmentBins.delete(key);}
@@ -277,6 +279,7 @@ export function createDeferredCurveEditor(path){
     if(!points)return;
     const x0=Math.min(...points.map(p=>p[0])),x1=Math.max(...points.map(p=>p[0])),
       y0=Math.min(...points.map(p=>p[1])),y1=Math.max(...points.map(p=>p[1]));
+    segmentBounds.set(index,{x0,x1,y0,y1});
     const xa=Math.floor(x0/segmentCell),xb=Math.floor(x1/segmentCell),
       ya=Math.floor(y0/segmentCell),yb=Math.floor(y1/segmentCell),
       count=(xb-xa+1)*(yb-ya+1);
@@ -291,6 +294,7 @@ export function createDeferredCurveEditor(path){
   }
   function rebuildSegmentIndex(){
     segmentBins=new Map();segmentMembership=new Map();globalSegments=new Set();
+    segmentBounds=new Map();segmentSvg=new Map();
     let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
     for(const node of nodes){
       const p=node.point;
@@ -324,29 +328,47 @@ export function createDeferredCurveEditor(path){
   // at most maxSegments small SVG subpaths. Safe to call on wheel / pan.
   function visibleSegmentSVG(center,radius,{limit=600}={}){
     if(!finite(center)||!Number.isFinite(radius)||radius<=0)return [];
-    const found=[];
+    // Keep only the nearest K hulls. Building d strings for every visible
+    // candidate, then dropping all but 600, used to allocate thousands of
+    // Bézier arrays/strings on each viewport rebuild of a compound drawing.
+    const found=[],capacity=Math.max(1,Math.min(1000,Math.floor(limit)||600));
+    const worse=(a,b)=>a.proximity>b.proximity||a.proximity===b.proximity&&a.index>b.index;
+    const retain=entry=>{
+      if(found.length<capacity){
+        found.push(entry);let k=found.length-1;
+        while(k){const parent=(k-1)>>1;if(!worse(found[k],found[parent]))break;
+          [found[k],found[parent]]=[found[parent],found[k]];k=parent;}
+      }else if(worse(found[0],entry)){
+        found[0]=entry;let k=0;
+        for(;;){let next=k,left=k*2+1,right=left+1;
+          if(left<found.length&&worse(found[left],found[next]))next=left;
+          if(right<found.length&&worse(found[right],found[next]))next=right;
+          if(next===k)break;
+          [found[k],found[next]]=[found[next],found[k]];k=next;
+        }
+      }
+    };
     const xmin=center[0]-radius,xmax=center[0]+radius,
       ymin=center[1]-radius,ymax=center[1]+radius;
-    for(const index of localSegmentCandidates(center,radius)){
-      const part=segment(index);
-      if(!part)continue;
-      const pts=part.controls;
-      let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
-      for(const p of pts){
-        x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);
-        x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1]);
-      }
+    const candidates=localSegmentCandidates(center,radius);
+    lastVisibleCandidates=candidates.length;lastVisibleSerialized=0;
+    for(const index of candidates){
+      const box=segmentBounds.get(index);if(!box)continue;
+      const {x0,x1,y0,y1}=box;
       if(x1<xmin||x0>xmax||y1<ymin||y0>ymax)continue;
       const dx=Math.max(x0-center[0],0,center[0]-x1),
         dy=Math.max(y0-center[1],0,center[1]-y1);
-      found.push({index,proximity:dx*dx+dy*dy,
-        d:svgSegment(pts)});
+      retain({index,proximity:dx*dx+dy*dy});
     }
     found.sort((a,b)=>a.proximity-b.proximity||a.index-b.index);
-    return found.slice(0,Math.max(1,Math.min(1000,limit))).map(({index,d})=>({index,d}));
+    return found.map(({index})=>{
+      let d=segmentSvg.get(index);
+      if(d===undefined){d=svgSegment(segment(index).controls);segmentSvg.set(index,d);lastVisibleSerialized++;}
+      return {index,d};
+    });
   }
   function segmentIndexStats(){return {segments:segmentPart.size,bins:segmentBins.size,
-    global:globalSegments.size,lastNearestCandidates};}
+    global:globalSegments.size,lastNearestCandidates,lastVisibleCandidates,lastVisibleSerialized};}
   function nearestSegment(point,threshold=Infinity){
     if(!finite(point))return null;
     let best=null;

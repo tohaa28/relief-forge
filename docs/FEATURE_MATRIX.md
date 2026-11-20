@@ -640,3 +640,15 @@ Next: if user still sees discrepancy, obtain same file/marked location and ArtCA
 ### Alpha.72 — подтверждение выпуска
 
 PR #104 merged main 147298ad35821bdd2ee4b5b4f52f0875845c6365. PR CI 44786123198 и main Pages 44786577224 SUCCESS (build+deploy). 416 JS/17 Rust/WASM/14 browser gates; публичный Chromium alpha72 normal/filled/151-object, prepared defects, full original underlay, Apply/Undo PASS. Пользовательский EPS не проверялся. Подробные ссылки и дальнейшая проверка в NEXT_CHAT_START.md.
+
+## 0.2.0-alpha.73 — кандидат
+
+| Изменение | Проверка |
+|---|---|
+| RAF-coalesced manual zoom без full source DOM rebuild | implemented; real Chromium 20k C / CPU4 / 60 burst events, одна запись viewBox |
+| Nearest-K hull cache / SVG strings / локальная инвалидация | unit source immutability, nearest subset, cache reuse, move and Undo PASS |
+| World-space bounds соседей с C/Q handles | unit shifted-arch PASS |
+| Bézier smoothing translated objects | reproduced FAIL then PASS; native world anchors preserved |
+| UI smoothing + Apply/EPS/Undo/Redo + large 151 joins | Chromium PASS |
+| Пользовательский файл/GPU | не проверено, исходник не предоставлен |
+| PR CI / Pages | ожидаются, последующие записи уточняют |

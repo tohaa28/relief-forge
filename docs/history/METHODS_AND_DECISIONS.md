@@ -476,3 +476,9 @@ First edit script missed marker import token due to named import order and stopp
 Защита бюджета ремонта использует диагностированную копию как baseline, иначе необходимые подтверждённые узлы пересечения будут ошибочно считаться ростом от оптимизации. После изменения количества объектов нельзя откатить геометрию к старой индексации и продолжить применять новые indices.
 
 Проверки новой схемы: tests/after-preparation.test.mjs и обязательный scripts/browser-alpha72-pipeline.mjs. Реальный пользовательский файл в этой сессии не предоставлен. Полная история решений/неудач/проверок: history/ALPHA72_UNION_DIAGNOSE_REPAIR.md.
+
+## M-073. Зум без синхронного SVG-перестроения; проверка сглаживания в мировых координатах
+
+Manual zoom накапливает manualPendingView относительно курсора каждого события и применяет его одним RAF. Не изменять doc, команды Безье, Undo или диагностику на wheel. Ограниченный heap выбирает nearest K по закешированным world hulls; SVG сериализуется лениво только для выбранных сегментов. Move/Undo инвалидирует incident segments; структурные изменения штатно перестраивают индекс. Кеш с truncated/limited покрытием нельзя повторно использовать неограниченно при увеличении. Границы соседей включают controls и translation, а не только local anchors. Оригинал и источники EPS остаются точными.
+
+curve-quality сравнивает geometryCommands (world M/L/C/Q/Z) у source и candidate. Сглаживание вправе записать offset в commands, сохранив мировые якоря. Не прибавлять offset снова в combine/bounds и не принимать offset-only translation как unchanged. Защита native intersections, закрытых площадей и sharp corners сохраняется. UI-проверка доказывает изменение handles и EPS, а не только текста/счётчика. Измерения 20k синтетической сцены/CPU4 отделены от пользовательской производительности. Детали, failed tests и лимиты: history/ALPHA73_EDITOR_ZOOM_SMOOTHING.md.

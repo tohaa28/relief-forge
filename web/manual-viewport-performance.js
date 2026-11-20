@@ -1,3 +1,16 @@
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.73';
+
+// Conservative world-space hull, computed once per editor session. Endpoint
+// bounds alone miss handles beyond the anchors and translated neighbours.
+export function manualVectorBounds(path){
+  if(!path||path.kind==='image')return null;
+  let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  for(const c of geometryCommands(path))for(let i=1;i<c.length;i+=2){
+    x0=Math.min(x0,c[i]);x1=Math.max(x1,c[i]);
+    y0=Math.min(y0,c[i+1]);y1=Math.max(y1,c[i+1]);
+  }
+  return [x0,y0,x1,y1].every(Number.isFinite)?{x0,y0,x1,y1}:null;
+}
 // Pure, DOM-free policy for interactive editing of high-complexity SVG paths.
 // Count actual native commands: a single giant compound curve must not bypass
 // viewport culling simply because document.paths.length is small.

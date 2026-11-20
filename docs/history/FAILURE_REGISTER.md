@@ -620,3 +620,9 @@ F-051 verified: PR78 and Pages run42985447239 green; live browser regression PAS
 Новая вкладка увеличила высоту панели сравнения; обязательный browser-manual-node-issues воспроизвёл перехват клика верхнего якоря central-compare. Панель теперь скрыта в body.curve-editing, регрессия PASS. Никакого force-click для обхода дефекта интерфейса.
 
 Перенос подготовки ядра до диагностики также потребовал сохранить Cancel/restart contract: preview cancel перезапускает Rust Worker. Startup retry выявил cached rejected dynamic import Paper на странице; bounded retry URL восстанавливает загрузку без перезагрузки исходника. Полный startup/browser regression PASS. Не ослаблять native geometry checks для обхода сетевой ошибки.
+
+## F-071. Зум сериализовал все кандидаты, сглаживание смещённых объектов отклонялось по локальным якорям
+
+Alpha.72 synthetic 20k C/CPU4: серия 60 wheel 294ms, geometry updates total289.3ms, p95glyph166.2ms. visibleSegmentSVG строил strings всем кандидатам до slice600; первый wheel синхронно строил слой. Alpha.73: RAF pending view, cached hulls/nearestK/lazy strings, local invalidation; первые после-прогоны 5.3–6.1ms burst /22.8–31.5ms total geometry. Это не FPS/GPU измерение. Truncated-cache coverage и world handle bounds проверены, исходник неизменен.
+
+Независимые smoothing regressions на offset(10,20) упали: реальная правка ручек отвергалась new-or-moved-anchor, а offset-only movement ошибочно принимался unchanged. Исправлено единой world-coordinate геометрией quality без повторного offset в document combine/bounds. UI: 0→0.05mm меняет handles, угол5.7106→3.8834°, anchor/EPS/Undo/Redo/151joins PASS. Не ослаблять геометрические guards. Первые старые zoom source assertions и focused-input shortcut harness исправлены без отключения реальных проверок.

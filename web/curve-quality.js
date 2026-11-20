@@ -1,9 +1,13 @@
-import {sampleNativeParts} from './native-bezier.js?v=0.2.0-alpha.72';
-import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.72';
+import {sampleNativeParts} from './native-bezier.js?v=0.2.0-alpha.73';
+import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.73';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.73';
 const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
 const cross=(a,b)=>a[0]*b[1]-a[1]*b[0];
 const sub=(a,b)=>[a[0]-b[0],a[1]-b[1]];
-const commands=p=>p.artwork?p.commands:(p.points||[]).map((q,i)=>[i?'L':'M',...q]).concat(p.closed?[['Z']]:[]);
+// All comparisons must use the same world coordinate frame. Smoothing bakes
+// an imported offset into its output commands; comparing local anchors to
+// those world anchors falsely rejected valid smoothing on moved objects.
+const commands=p=>p.kind==='image'?[]:geometryCommands(p);
 function realSegments(path){
   const out=[];let start,pen,part=-1;
   for(const c of commands(path)){
@@ -34,6 +38,11 @@ export function validateCurveChange(before,after,{tolerance=.01,nodeTolerance=.0
     if(JSON.stringify(commands(before))===JSON.stringify(commands(after))){report.accepted=true;report.unchanged=true;return report;}
     const anchors=p=>{let part=-1;return commands(p).filter(c=>c[0]!=='Z').map(c=>{if(c[0]==='M')part++;return {part,point:c.slice(-2)};});};
     const sourceAnchors=anchors(before);
+    // Smoothing keeps anchor coordinates exactly; avoid an O(N²) search
+    // across a large combined path. Preserve the original distance fallback
+    // for numerically equivalent encodings within the existing tolerance.
+    const anchorKey=p=>p.part+':'+p.point[0]+':'+p.point[1];
+    const exactAnchors=new Set(sourceAnchors.map(anchorKey));
 
     const oldShort=a.filter(s=>s.extent<=nodeTolerance);
     if(b.some(s=>s.extent<=nodeTolerance&&!oldShort.some(o=>o.part===s.part&&distance(o.point,s.point)<=tolerance+nodeTolerance))){report.reason='new-short-segment';return report;}
@@ -47,7 +56,8 @@ export function validateCurveChange(before,after,{tolerance=.01,nodeTolerance=.0
     const old=nativeIntersections([before]),next=nativeIntersections([after]);
     report.beforeIntersections=old.length;report.afterIntersections=next.length;
     if(next.some(n=>!old.some(o=>o.parts===n.parts&&o.overlap===n.overlap&&distance(o.point,n.point)<=2*tolerance+report.samplingMm))){report.reason='new-intersection';return report;}
-    if(anchors(after).some(p=>!sourceAnchors.some(q=>q.part===p.part&&distance(q.point,p.point)<=1e-9))){report.reason='new-or-moved-anchor';return report;}
+    if(anchors(after).some(p=>!exactAnchors.has(anchorKey(p))&&
+      !sourceAnchors.some(q=>q.part===p.part&&distance(q.point,p.point)<=1e-9))){report.reason='new-or-moved-anchor';return report;}
     report.accepted=true;return report;
   }catch(error){report.reason=String(error.message);return report;}
 }
@@ -59,8 +69,7 @@ export function validateCurveChange(before,after,{tolerance=.01,nodeTolerance=.0
 export function validateDocumentCurveChange(before,after,options={}){
   const combine=paths=>({
     kind:'vector',artwork:'<path/>',offset:[0,0],
-    commands:paths.filter(p=>p.kind!=='image').flatMap(p=>commands(p).map(c=>
-      [c[0],...c.slice(1).map((v,i)=>v+(p.offset?.[i%2]||0))]))
+    commands:paths.filter(p=>p.kind!=='image').flatMap(p=>commands(p))
   });
   const all=validateCurveChange(combine(before.paths),combine(after.paths),options);
   if(all.accepted||!/(too complex|слишком сложна|quality-budget|quality-intersections-limit|native-topology-curve-budget|native-topology-issue-budget|native-verification-budget)/i.test(all.reason||''))return all;
@@ -75,10 +84,10 @@ export function validateDocumentCurveChange(before,after,options={}){
   if(!changed.length)return {...all,accepted:true,reason:null,scoped:true,checkedPairs:0};
   const t=Math.max(.0001,Number(options.tolerance)||.01);
   const bounds=p=>{
-    const values=commands(p).flatMap(c=>c.slice(1)),off=p.offset||[0,0];
+    const values=commands(p).flatMap(c=>c.slice(1));
     if(!values.length)return null;
-    const xx=values.filter((_,i)=>i%2===0).map(x=>x+off[0]),
-      yy=values.filter((_,i)=>i%2===1).map(y=>y+off[1]);
+    const xx=values.filter((_,i)=>i%2===0),
+      yy=values.filter((_,i)=>i%2===1);
     return [Math.min(...xx),Math.min(...yy),Math.max(...xx),Math.max(...yy)];
   };
   const boxes=before.paths.map((p,i)=>{

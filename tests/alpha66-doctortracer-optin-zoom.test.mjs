@@ -20,7 +20,8 @@ test('manual viewport isolation depends on total commands even with one path',()
  assert.equal(heavyManualScene([{kind:'image',points:Array(8000)}]),false);
  assert.match(app,/manualSceneHeavy=heavyManualScene\(doc\.paths\)/);
  assert.doesNotMatch(app,/curveEditing\(\)\&\&doc\.paths\.length>25/);
- assert.match(app,/if\(!document\.body\.classList\.contains\('manual-local-zoom'\)\)refreshLocalZoomGeometry\(\)/);
+ assert.match(app,/manualPendingView=view;\s+scheduleManualZoomRefresh\(\)/);
+ assert.match(app,/if\(manualPendingView\)\{[\s\S]*?setAttribute\('viewBox'/);
 });
 test('manual cursor mapping accounts for xMidYMid letterboxing and zoom without SVG matrix',()=>{
  const rect={left:100,top:200,width:1000,height:500},view={x:10,y:20,width:100,height:100};
