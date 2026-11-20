@@ -66,17 +66,19 @@ function segmentPath(controls){
     [controls.length===4?'C':controls.length===3?'Q':'L',...controls.slice(1).flat()]
   ]};
 }
-function localCurves(doc,index,replacement,box,maxLocal=104){
+const geometryRecord=p=>{
+  if(!supported(p))return null;
+  const off=p.offset||[0,0],rows=segs(p).map(s=>s.controls.map(q=>shift(q,off)));
+  return {bounds:rows.length?bounds(rows.flat()):null,rows};
+};
+function localCurves(doc,index,replacement,box,indexed,maxLocal=104){
   const rows=[];
   for(let j=0;j<doc.paths.length;j++){
-    const p=j===index?replacement:doc.paths[j];
-    if(!supported(p))continue;
-    const off=p.offset||[0,0],b=bboxPath(p);
-    if(!b||!overlaps(b,box))continue;
-    for(const s of segs(p)){
-      const points=s.controls.map(q=>shift(q,off));
-      if(overlaps(controlsBounds(points),box)){
-        rows.push(points);
+    const record=j===index?geometryRecord(replacement):indexed[j];
+    if(!record?.bounds||!overlaps(record.bounds,box))continue;
+    for(const controls of record.rows){
+      if(overlaps(controlsBounds(controls),box)){
+        rows.push(controls);
         if(rows.length>maxLocal)throw Error('merge-near-local-budget');
       }
     }
@@ -95,9 +97,9 @@ function contactPreserved(before,after,tol){
     old.crossing===hit.crossing&&old.overlap===hit.overlap&&
     D(old.point,hit.point)<=Math.max(1e-7,tol*.9)));
 }
-function localTopologySafe(doc,index,source,candidate,box,tol){
-  const oldRows=localCurves(doc,index,source,box);
-  const newRows=localCurves(doc,index,candidate,box);
+function localTopologySafe(doc,index,source,candidate,box,tol,indexed){
+  const oldRows=localCurves(doc,index,source,box,indexed);
+  const newRows=localCurves(doc,index,candidate,box,indexed);
   return contactPreserved(strictContacts(oldRows),strictContacts(newRows),tol);
 }
 const norm=p=>Math.hypot(...p);
@@ -128,7 +130,7 @@ function tinySegmentCandidates(path,tol){
   }
   return found.sort((a,b)=>a.hull-b.hull);
 }
-function tryWeld(doc,index,proposal,tol,strict,Parser,stats){
+function tryWeld(doc,index,proposal,tol,strict,Parser,stats,indexed){
   const path=doc.paths[index],commands=cloneCommands(path);
   const c=commands[proposal.command],prev=commands[proposal.previous];
   if(!c||!prev||!['L','Q','C'].includes(c[0])||!['L','Q','C'].includes(prev[0]))return false;
@@ -149,9 +151,10 @@ function tryWeld(doc,index,proposal,tol,strict,Parser,stats){
     ...segs(candidate).flatMap(s=>s.controls).filter(p=>overlaps(
       [p[0],p[1],p[0],p[1]],expand(proposal.box,tol)))]).map(p=>shift(p,offset))),tol*1.5);
   try{
-    if(!localTopologySafe(doc,index,path,candidate,sweep,tol)){stats.skipped++;return false;}
+    if(!localTopologySafe(doc,index,path,candidate,sweep,tol,indexed)){stats.skipped++;return false;}
   }catch{stats.limited++;return false;}
   doc.paths[index]=candidate;
+  indexed[index]=geometryRecord(candidate);
   stats.weldedNodes++;stats.maxMovementMm=Math.max(stats.maxMovementMm,Math.max(proposal.hull,D(end,p0)));
   return true;
 }
@@ -268,6 +271,7 @@ function connectOpen(doc,selected,tol,Parser,stats){
   for(const c of candidates.sort((a,b)=>a.gap-b.gap)){
     if(rank.get(c.a)!==1||rank.get(c.b)!==1||used.has(c.a)||used.has(c.b))continue;
     const pa=doc.paths[c.a],pb=doc.paths[c.b];
+    if(JSON.stringify(pa.offset||[0,0])!==JSON.stringify(pb.offset||[0,0]))continue;
     const originalA=cloneCommands(pa),originalB=cloneCommands(pb);
     const a=c.sideA==='end'?originalA:reverseOpen(originalA);
     const b=c.sideB==='start'?originalB:reverseOpen(originalB);
@@ -307,6 +311,7 @@ export function mergeNearbyGeometry(source,indices,tolerance,{
   const document=structuredClone(source),selected=new Set(indices);
   const stats={candidates:0,weldedNodes:0,mergedCurves:0,connectedOpen:0,
     skipped:0,limited:0,maxMovementMm:0};
+  const indexed=document.paths.map(geometryRecord);
   let total=0;
   for(const index of selected){
     const path=document.paths[index];if(!supported(path))continue;
@@ -317,7 +322,7 @@ export function mergeNearbyGeometry(source,indices,tolerance,{
       if(!candidates.length)break;
       const selected=candidates[0];
       stats.candidates++;
-      if(tryWeld(document,index,selected,tolerance,strict,Parser,stats)){
+      if(tryWeld(document,index,selected,tolerance,strict,Parser,stats,indexed)){
         ignored.clear();total++;
         if(total>=maxWelds){stats.limited++;break;}
       }else ignored.add(selected.command+':'+selected.previous);
@@ -326,7 +331,9 @@ export function mergeNearbyGeometry(source,indices,tolerance,{
   }
   // Cross-object changes take place only after local node surgery; do not
   // remap source indices until no more index-based edits remain.
-  if(mergeCopies)removeNearCopies(document,selected,tolerance,stats);
   if(connectOpenPaths)connectOpen(document,selected,tolerance,Parser,stats);
+  // Remap by source identities: closed-copy pass only inspects original selected
+  // paths left after the open connection pass, avoiding stale array indices.
+  if(mergeCopies)removeNearCopies(document,new Set(document.paths.map((_,i)=>i)),tolerance,stats);
   return {document,stats};
 }
