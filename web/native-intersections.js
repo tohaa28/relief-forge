@@ -41,7 +41,7 @@ export function nativeIntersections(paths,{maxCurves=30000,maxIssues=10000,allow
    // A numerical kernel location must have witnesses on both native curves.
    if(pointDistance(a,b)>2e-8){if(!allowPartial)throw Error('native-topology-unresolved-contact');found.complete=false;found.unresolved++;continue;}
    const x=loc.path.data,y=other.path.data;
-   found.push({parts:[x.part,y.part].sort((a,b)=>a-b).join(':'),point:[(a[0]+b[0])/2,(a[1]+b[1])/2],path:x.owner,other:y.owner,kind:x.owner===y.owner?'self_intersection':'intersection',overlap:loc.hasOverlap(),crossing:loc.isCrossing()});
+   found.push({parts:[x.part,y.part].sort((a,b)=>a-b).join(':'),point:[(a[0]+b[0])/2,(a[1]+b[1])/2],path:x.owner,other:y.owner,kind:x.owner===y.owner?'self_intersection':'intersection',overlap:loc.hasOverlap(),crossing:loc.isCrossing(),segments:[loc.curve.index,other.curve.index],times:[loc.time,other.time]});
    if(found.length>=maxIssues){if(!allowPartial)throw Error('native-topology-issue-budget');found.complete=false;break;}
   }
   return found;
