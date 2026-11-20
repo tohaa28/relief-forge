@@ -37,3 +37,6 @@
 - CI 44710709086 SUCCESS: 390/390 JS, 17/17 Rust, WASM release, real Chromium alpha69.
 - CI 44711546203 SUCCESS: 391/391 JS, включая стрессовый набор из 1975 независимых объектов и приблизительно 20k сегментов; 17/17 Rust, WASM release/ABI, все браузерные сценарии включая alpha69 (реально меняется SVG ПОСЛЕ, настройки staged, явный Apply, нет скана после ручного Done).
 - Версия остаётся PR #101 до merge; alpha68 main f428f8ab9f7f73195e944a460de8a3cc95e4fb9d сохранена как точка отката.
+
+## Подтверждённая публикация
+PR #101 merged main 2e6a2e7a09a86c8b65731f40db412e70ef97c499; CI #44712420243 SUCCESS 391/391 JS, 17/17 Rust, реальный WASM и браузер; main Pages build+deploy #44712763739 SUCCESS. Сайт: https://tohaa28.github.io/relief-forge/?v=alpha69. Rollback alpha68 f428f8ab9f7f73195e944a460de8a3cc95e4fb9d. Прямой браузерный прогон с приложенным EPS ещё не подтверждён.
