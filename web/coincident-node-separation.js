@@ -1,6 +1,6 @@
-import {curveNodes,moveCurveNode} from './curve-edit.js?v=0.2.0-alpha.69';
-import {nativeParts,controlsBounds,pointDistance} from './native-bezier.js?v=0.2.0-alpha.69';
-import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.69';
+import {curveNodes,moveCurveNode} from './curve-edit.js?v=0.2.0-alpha.70';
+import {nativeParts,controlsBounds,pointDistance} from './native-bezier.js?v=0.2.0-alpha.70';
+import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.70';
 
 // Automatic surgery only, never invoked from pointermove/pointerup.
 // No flattening, no added anchors, no global retracing. The exact native
@@ -35,21 +35,36 @@ function adjacentNodes(a,b,partCount,closed){
   const gap=Math.abs(a.ordinal-b.ordinal);
   return gap<=1||(closed&&gap===partCount-1);
 }
-function nextPair(path,tolerance,ignored){
+function nextPair(path,tolerance,ignored,includeNearby){
   const nodes=curveNodes(path),epsilon=Math.max(1e-9,Math.min(1e-6,tolerance*1e-3));
   const bins=new Map(),partCounts=new Map(),closedParts=new Set();
   for(const node of nodes)partCounts.set(node.part,(partCounts.get(node.part)||0)+1);
   const raw=nativeParts(path);
   raw.forEach((p,i)=>{if(p.closed)closedParts.add(i);});
-  const cell=p=>[Math.floor(p[0]/epsilon),Math.floor(p[1]/epsilon)];
+  const width=includeNearby?tolerance:epsilon;
+  const lengths=raw.map(part=>part.segments.reduce((s,{controls})=>{
+    const length=controls.slice(1).reduce((sum,p,i)=>sum+pointDistance(p,controls[i]),0);
+    s.push(s.at(-1)+length);
+    return s;
+  },[0]));
+  const cell=p=>[Math.floor(p[0]/width),Math.floor(p[1]/width)];
   for(const node of nodes){
     const [x,y]=cell(node.point);
     for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){
       for(const other of bins.get((x+dx)+':'+(y+dy))||[]){
-        if(!close(node.point,other.point,epsilon))continue;
+        const gap=pointDistance(node.point,other.point);
+        if(gap>width)continue;
+        const nearby=gap>epsilon;
+        if(nearby){
+          if(!includeNearby||node.part!==other.part)continue;
+          const arc=lengths[node.part],part=raw[node.part];
+          if(!part.closed&&other.ordinal===0&&node.ordinal===part.segments.length)continue;
+          const along=arc[node.ordinal]-arc[other.ordinal];
+          if(Math.min(along,part.closed?arc.at(-1)-along:Infinity)<=tolerance)continue;
+        }
         if(adjacentNodes(node,other,partCounts.get(node.part),closedParts.has(node.part)))continue;
         const key=Math.min(node.index,other.index)+':'+Math.max(node.index,other.index);
-        if(!ignored.has(key))return {first:other,second:node,key};
+        if(!ignored.has(key))return {first:other,second:node,key,gap,nearby};
       }
     }
     const k=x+':'+y;if(!bins.has(k))bins.set(k,[]);bins.get(k).push(node);
@@ -98,7 +113,8 @@ function localIssues(rows){
   const raw=nativeIntersections(rows.map(nativeSegmentPath),
     {maxCurves:128,maxIssues:1500});
   if(!raw.complete)throw Error('incomplete-local-native-intersections');
-  return raw.filter(issue=>issue.path!==issue.other).map(issue=>({
+  // Include loops born inside a single changed cubic, not just pairs.
+  return raw.map(issue=>({
     a:rows[issue.path],b:rows[issue.other],point:issue.point,overlap:issue.overlap
   }));
 }
@@ -137,16 +153,52 @@ function candidateSafe(geometry,first,second,edits,tolerance){
   }
   return true;
 }
-function findCorrection(path,pair,tolerance){
+function balancedCorrection(path,pair,tolerance,geometry,directions){
+  const nodes=[pair.first,pair.second],anchors=curveNodes(path);
+  const arms=nodes.map(node=>incident(node,geometry));
+  const minLengths=arms.map(rows=>Math.min(...rows.map(s=>pointDistance(s.controls[0],s.controls.at(-1)))));
+  if(arms.some(rows=>!rows.length)||minLengths.some(n=>n<=1e-9))return null;
+  const required=tolerance-pair.gap+tolerance*.001;
+  const heading=pair.gap>0?Math.atan2(pair.second.point[1]-pair.first.point[1],
+    pair.second.point[0]-pair.first.point[0]):0;
+  const directionAt=d=>[d[0]*Math.cos(heading)-d[1]*Math.sin(heading),
+    d[0]*Math.sin(heading)+d[1]*Math.cos(heading)];
+  for(const factor of [.53,.7,1]){
+    const radius=required*factor;
+    if(radius>tolerance||minLengths.some(n=>radius>n*.25))continue;
+    for(const direction of directions){
+      const vector=directionAt(direction).map(v=>v*radius);
+      const moves=nodes.map((node,i)=>({node,delta:vector.map(v=>i?v:-v)}));
+      const targets=moves.map(({node,delta})=>shifted(node.point,delta));
+      if(pointDistance(...targets)<=tolerance)continue;
+      if(moves.some(({node},i)=>anchors.some(anchor=>{
+        const part=geometry.parts[node.part],count=part.segments.length+(part.closed?0:1);
+        return anchor.part===node.part&&!nodes.some(n=>n.index===anchor.index)&&
+          !adjacentNodes(anchor,node,count,part.closed)&&
+          pointDistance(anchor.point,node.point)>tolerance&&
+          pointDistance(anchor.point,targets[i])<=tolerance;
+      })))continue;
+      const edits=moves.map(({node,delta})=>moveIncident(geometry,node,delta));
+      if(edits.some(edit=>!edit)||[...edits[0].keys()].some(id=>edits[1].has(id)))continue;
+      try{
+        if(candidateSafe(geometry,pair.first,pair.second,new Map(edits.flatMap(edit=>[...edit])),tolerance))
+          return {moves,radius};
+      }catch{continue;}
+    }
+  }
+  return null;
+}
+function findCorrection(path,pair,tolerance,allowBalanced){
   const geometry=segmentsOf(path);
   const candidates=[pair.first,pair.second];
+  const anchors=pair.nearby?curveNodes(path):[];
   const scales=[1.05,1.4,2,3];
   const directions=Array.from({length:16},(_,i)=>{
     const angle=2*Math.PI*i/16;return [Math.cos(angle),Math.sin(angle)];
   });
   let best=null;
   for(const scale of scales){
-    const radius=scale*tolerance;
+    const radius=pair.nearby?Math.min(tolerance,scale*(tolerance-pair.gap+tolerance*.001)):scale*tolerance;
     for(const node of candidates){
       const arms=incident(node,geometry);
       if(!arms.length)continue;
@@ -154,7 +206,16 @@ function findCorrection(path,pair,tolerance){
         .filter(n=>n>1e-9);
       if(!lengths.length||radius>Math.min(...lengths)*0.25)continue;
       for(const direction of directions){
-        const delta=direction.map(v=>v*radius),edits=moveIncident(geometry,node,delta);
+        const delta=direction.map(v=>v*radius);
+        const other=node===pair.first?pair.second:pair.first;
+        const target=shifted(node.point,delta);
+        if(pointDistance(target,other.point)<=tolerance)continue;
+        const part=geometry.parts[node.part],count=part.segments.length+(part.closed?0:1);
+        if(anchors.some(anchor=>anchor.part===node.part&&
+          !adjacentNodes(anchor,node,count,part.closed)&&
+          pointDistance(anchor.point,node.point)>tolerance&&
+          pointDistance(anchor.point,target)<=tolerance))continue;
+        const edits=moveIncident(geometry,node,delta);
         try{
           if(!candidateSafe(geometry,pair.first,pair.second,edits,tolerance))continue;
         }catch{continue;} // Geometry ambiguity never authorizes a repair.
@@ -166,35 +227,38 @@ function findCorrection(path,pair,tolerance){
     }
     if(best)break; // Never choose a larger displacement than necessary.
   }
-  return best;
+  if(best)return {moves:[best],radius:Math.hypot(...best.delta)};
+  return allowBalanced?balancedCorrection(path,pair,tolerance,geometry,directions):null;
 }
 export function separateCoincidentNonadjacentNodes(source,indices,tolerance,
-  {Parser=globalThis.DOMParser,maxRepairs=64}={}){
+  {Parser=globalThis.DOMParser,maxRepairs=64,includeNearby=false}={}){
   if(!Number.isFinite(tolerance)||tolerance<=0||tolerance>1000)
     throw Error('Неверный допуск разведения несоседних узлов');
   const document=structuredClone(source),stats={detected:0,separated:0,skipped:0,
-    movedMm:0,limited:0};
+    movedMm:0,limited:0,separatedNearby:0,balanced:0};
   for(const index of new Set(indices)){
     const path=document.paths[index];
     if(!path||path.kind==='image'||!path.artwork&&(!path.points||path.points.length<4))continue;
     const ignored=new Set();
     try{
       for(let count=0;count<maxRepairs;count++){
-        const pair=nextPair(document.paths[index],tolerance,ignored);
+        const pair=nextPair(document.paths[index],tolerance,ignored,includeNearby);
         if(!pair)break;
         stats.detected++;
-        const candidate=findCorrection(document.paths[index],pair,tolerance);
+        const candidate=findCorrection(document.paths[index],pair,tolerance,includeNearby);
         if(!candidate){
           ignored.add(pair.key);stats.skipped++;continue;
         }
-        const target=shifted(candidate.node.point,candidate.delta);
-        document.paths[index]=moveCurveNode(document.paths[index],
-          candidate.node.index,target,{Parser});
-        stats.separated++;stats.movedMm=Math.max(stats.movedMm,
-          Math.hypot(...candidate.delta));
+        document.paths[index]=candidate.moves.reduce((path,{node,delta})=>
+          moveCurveNode(path,node.index,shifted(node.point,delta),{Parser}),document.paths[index]);
+        stats.separated++;
+        if(candidate.moves.length===2)stats.balanced++;
+        if(pair.nearby)stats.separatedNearby++;
+        stats.movedMm=Math.max(stats.movedMm,
+          candidate.radius);
         ignored.clear();
       }
-      if(nextPair(document.paths[index],tolerance,ignored))stats.limited++;
+      if(nextPair(document.paths[index],tolerance,ignored,includeNearby))stats.limited++;
     }catch{
       // Keep already validated changes, but never publish a partial failed move.
       stats.skipped++;

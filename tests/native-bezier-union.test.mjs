@@ -62,12 +62,13 @@ test('native geometry rejects an invented sampling-chord crossing',()=>{
  a.closed=b.closed=false;
  assert.equal(nativeIntersections([a,b]).length,0);
  const r=refineNativeDiagnostics(doc([a,b]),[{kind:'intersection',path:0,other:1,point:[.5,0]}]);
- assert.equal(r.complete,true);assert.equal(r.issues.length,0);
+ assert.equal(r.complete,true);assert.equal(r.issues.some(i=>i.kind==='intersection'),false);
 });
 test('native intersection markers use the actual cubic point',()=>{
  const a=path([['M',0,0],['C',0,1,1,1,1,0]]),b=path([['M',.5,-1],['L',.5,1]]);
  a.closed=b.closed=false;const r=refineNativeDiagnostics(doc([a,b]),[]);
- assert.equal(r.issues.length,1);assert.ok(Math.abs(r.issues[0].point[1]-.75)<1e-12);
+ const crossings=r.issues.filter(i=>i.kind==='intersection');
+ assert.equal(crossings.length,1);assert.ok(Math.abs(crossings[0].point[1]-.75)<1e-12);
 });
 test('sampling points never become coincident native anchors or short cubic spans',()=>{
  const a=path([['M',0,0],['C',0,1,1,1,1,0]]),b=path([['M',.5,.751],['L',.5,2]]);a.closed=b.closed=false;

@@ -1120,3 +1120,9 @@ Added a2-million native segment-comparison budget per compound path; if full int
 - Note: real original user EPS `8101921_maket_7_121126_163426.eps` is NOT uploaded. Do not claim IoU improvement on it; fresh test journal needed to check import-prepared 600dpi, cacheHit and accuracy.
 - Full entry: `docs/history/ALPHA65_IMPORT_600DPI_MASK.md`, F-065/M-065, `logs/actions.jsonl`.
 
+
+## 0.2.0-alpha.70 — кандидат к выпуску, 2026-11-20
+
+- База опубликованной alpha.69: main 934a99a94cb8e9b7603ed4e16a594742af1493f0, Pages #44713201875. Откат выпуска к этому коммиту.
+- Состав: бюджеты ремонта, нативные параметры прямых, локальный ремонт ручками и обрезка, разделение микропетли, разведение близких узлов, сварка настоящих концов, фильтр геометрически замкнутых микроэлементов, проверенные пары Union. Приватный EPS в локальном Chrome: 355 → 321 остаточных замечаний, короткие 12 → 0. Межблочная диагностика остаётся неполной. Отчёт узких зазоров не запускает ремонт.
+- Код и версия подготовлены в release/alpha70-repair. Для публикации требуется подтверждение сборки и Pages. Подробные этапы и методы в DEVELOPMENT_LOG.md.

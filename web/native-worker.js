@@ -1,5 +1,5 @@
-import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.69';
-import {refineNativeDiagnostics} from './native-diagnostic-refinement.js?v=0.2.0-alpha.69';
+import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.70';
+import {refineNativeDiagnostics} from './native-diagnostic-refinement.js?v=0.2.0-alpha.70';
 self.postMessage({ready:true});
 self.onmessage=({data})=>{
  try{

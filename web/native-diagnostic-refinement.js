@@ -1,5 +1,5 @@
-import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.69';
-import {nativeParts,evaluateBezier,pointDistance} from './native-bezier.js?v=0.2.0-alpha.69';
+import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.70';
+import {nativeParts,evaluateBezier,pointDistance} from './native-bezier.js?v=0.2.0-alpha.70';
 // The Rust polyline engine remains useful for its other diagnostic classes.
 // Crossings/overlaps are replaced by witnessed native-curve locations across
 // the selected document, eliminating invented sampling-chord intersections.
@@ -7,13 +7,17 @@ export function refineNativeDiagnostics(document,issues,indices=null,tolerance=.
  if(!Number.isFinite(tolerance)||tolerance<=0)throw Error('invalid-native-diagnostic-tolerance');
  const scope=indices||document.paths.map((_,i)=>i),paths=scope.map(i=>document.paths[i]);
  const native=nativeIntersections(paths,{allowPartial:true});
- const result=issues.filter(i=>!['intersection','self_intersection','overlap','coincident','short'].includes(i.kind));
+ const result=issues.filter(i=>!['intersection','self_intersection','overlap','coincident','short','open'].includes(i.kind));
  const cells=new Map();let partId=0,work=0;
  paths.forEach((path,owner)=>nativeParts(path).forEach(part=>{
   const points=part.segments.map(s=>s.controls[0]);
   if(!part.closed&&part.segments.length)points.push(part.segments.at(-1).controls.at(-1));
   const id=partId++,n=points.length;
   const push=i=>{if(result.length<10000)result.push({...i,nativeWitness:true});else native.complete=false;};
+  if(!part.closed&&part.segments.length){
+   push({kind:'open',path:scope[owner],other:scope[owner],segment:0,
+    point:[...part.start],nodePoints:[[...part.start],[...points.at(-1)]]});
+  }
   // The control polygon bounds the arc length from above. A short run
   // along the contour is not a second branch, even with intervening anchors.
   const forward=[0],reverse=[0];

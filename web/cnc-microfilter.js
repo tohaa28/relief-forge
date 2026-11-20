@@ -1,5 +1,5 @@
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.69';
-import {paintFromArtwork} from './eps-paint.js?v=0.2.0-alpha.69';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.70';
+import {paintFromArtwork} from './eps-paint.js?v=0.2.0-alpha.70';
 
 // CNC micro-detail filter. Use analytic Bézier extrema, NOT sampled preview
 // or a polygonal bounding box. The two width/height tests are independent:
@@ -29,8 +29,14 @@ function evalBezier(p,t){
   return p.length===3?u*u*p[0]+2*u*t*p[1]+t*t*p[2]:
     u*u*u*p[0]+3*u*u*t*p[1]+3*u*t*t*p[2]+t*t*t*p[3];
 }
+function returnsToStart(commands){
+  if(!commands||commands.length<2)return false;
+  const first=commands[0],last=commands.at(-1);
+  return first[0]==='M'&&first[1]===last.at(-2)&&first[2]===last.at(-1);
+}
 export function closedSubpathBounds(commands){
-  if(!commands?.length||commands[0][0]!=='M'||commands.at(-1)?.[0]!=='Z')return null;
+  if(!commands?.length||commands[0][0]!=='M'||
+     (commands.at(-1)[0]!=='Z'&&!returnsToStart(commands)))return null;
   let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity,previous=null,start=null;
   const add=(x,y)=>{
     if(!Number.isFinite(x)||!Number.isFinite(y))throw Error('Нечисловые координаты CNC');
@@ -71,7 +77,7 @@ export function splitNativeSubpaths(commands){
   const pieces=[];let piece=null;
   for(const c of commands){
     if(c[0]==='M'){
-      if(piece?.length)pieces.push({commands:piece,closed:false});
+      if(piece?.length)pieces.push({commands:piece,closed:returnsToStart(piece)});
       piece=[c];
     }else if(c[0]==='Z'){
       if(!piece)return null;
@@ -79,7 +85,7 @@ export function splitNativeSubpaths(commands){
     }else if(['L','Q','C'].includes(c[0])&&piece)piece.push(c);
     else return null; // refuse ambiguous data, never silently discard geometry
   }
-  if(piece?.length)pieces.push({commands:piece,closed:false});
+  if(piece?.length)pieces.push({commands:piece,closed:returnsToStart(piece)});
   return pieces;
 }
 function escapeAttr(v){return String(v).replace(/[&"<>]/g,ch=>({'&':'&amp;','"':'&quot;','<':'&lt;','>':'&gt;'}[ch]));}

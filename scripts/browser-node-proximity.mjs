@@ -12,9 +12,10 @@ try{
  await page.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
  await page.evaluate(()=>{
   document.querySelector('#merge-overlaps').checked=false;
+  document.querySelector('#separate-coincident').checked=false;
   document.querySelector('#smoothing-amount').value='0';
   document.querySelector('#optimization-tolerance').value='.00001';
-  for(const id of ['merge-overlaps','smoothing-amount','optimization-tolerance'])
+  for(const id of ['merge-overlaps','separate-coincident','smoothing-amount','optimization-tolerance'])
     document.querySelector('#'+id).dispatchEvent(new Event('change',{bubbles:true}));
  });
  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="20mm" height="20mm" viewBox="0 0 20 20"><g fill="none" stroke="black"><path d="M1 2L12 2"/><path d="M1 2.006L11 2.006"/><path d="M1 8.2L3 8L9 8L10 9L9 10L3 8.006L1 9"/></g></svg>';
@@ -36,6 +37,14 @@ try{
   assert.ok(Math.abs(Math.abs(dots[0][1]-dots[1][1])-.006)<1e-10);
   assert.doesNotMatch(await page.locator('#summary').getAttribute('title'),/Совпадающие узлы/);
  }
+ await page.locator('#separate-coincident').check();
+ await page.locator('#apply-changes').click();
+ await page.waitForFunction(()=>document.querySelector('#busy').hidden&&
+  !document.querySelector('#settings-pending').textContent.includes('Выполняется'));
+ await page.locator('#compare-after').click();
+ assert.equal(await page.locator('.problem-marker[aria-label*="Сближенные узлы"]').count(),0);
+ await page.locator('#compare-before').click();
+ assert.equal(await page.locator('.problem-marker[aria-label*="Сближенные узлы"]').count(),1);
  assert.deepEqual(errors,[]);
- console.log('PASS native node proximity: parallel contours excluded, exact 0.006 mm branch pair on both original anchors in BEFORE and AFTER');
+ console.log('PASS native node proximity: parallel contours excluded, exact 0.006 mm branch pair on both original anchors when repair is disabled, then automatically separated only in AFTER');
 }finally{await browser?.close();server.kill();}

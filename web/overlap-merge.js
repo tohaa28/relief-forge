@@ -1,12 +1,12 @@
-import {nativeUnionPaths} from './native-boolean.js?v=0.2.0-alpha.69';
-import {nativeParts} from './native-bezier.js?v=0.2.0-alpha.69';
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.69';
-import {sampledContours} from './rich-svg.js?v=0.2.0-alpha.69';
-import {createFilledOverlapTester,findUnionEquivalentSource} from './polygon-union.js?v=0.2.0-alpha.69';
-import {isUnchangedUnion} from './union-refit.js?v=0.2.0-alpha.69';
-import {deduplicateExactVectors} from './exact-native-dedup.js?v=0.2.0-alpha.69';
-import {assessUnionGroup} from './union-group-budget.js?v=0.2.0-alpha.69';
-import {realNodeCount} from './preview-node-budget.js?v=0.2.0-alpha.69';
+import {nativeUnionPaths} from './native-boolean.js?v=0.2.0-alpha.70';
+import {nativeParts} from './native-bezier.js?v=0.2.0-alpha.70';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.70';
+import {sampledContours} from './rich-svg.js?v=0.2.0-alpha.70';
+import {createFilledOverlapTester,findUnionEquivalentSource} from './polygon-union.js?v=0.2.0-alpha.70';
+import {isUnchangedUnion} from './union-refit.js?v=0.2.0-alpha.70';
+import {deduplicateExactVectors} from './exact-native-dedup.js?v=0.2.0-alpha.70';
+import {assessUnionGroup} from './union-group-budget.js?v=0.2.0-alpha.70';
+import {realNodeCount} from './preview-node-budget.js?v=0.2.0-alpha.70';
 // Candidate Union retains native Bézier source subcurves; sampled polygons
 // only verify fill/holes. Unfilled strokes retain original cubic path data.
 // No paint-mode conversion or joining unlike-colored artwork.
@@ -179,6 +179,7 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
   function root(i){while(parent[i]!==i){parent[i]=parent[parent[i]];i=parent[i];}return i;}
   const join=(i,j)=>{const a=root(i),b=root(j);if(a!==b)parent[b]=a;};
   let candidatePairs=0;const filledOverlap=createFilledOverlapTester(tolerance);
+  const adjacentFilled=new Set();
   for(let i=0;i<pathCount;i++)for(let j=i+1;j<pathCount;j++){
     if(!geometry[i]||!geometry[j]||styleKey(doc.paths[i])!==styleKey(doc.paths[j]))continue;
     if(gpuKeys&&!gpuKeys.has(i+':'+j))continue;
@@ -187,7 +188,10 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
     if(++candidatePairs>25000)throw Error('Очень много сочетаний наложенных объектов');
     if(filledEligible(doc.paths[i])&&filledEligible(doc.paths[j])){
       try{
-        if(filledOverlap(doc.paths[i],doc.paths[j]))join(i,j);
+        if(filledOverlap(doc.paths[i],doc.paths[j])){
+          join(i,j);
+          if(j===i+1)adjacentFilled.add(i);
+        }
       }catch{
         // A failed polygon evaluation never licenses an unsafe merge.
       }
@@ -203,7 +207,20 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
   const cleanupStats={coincident:0,collinear:0,short:0,shortEdgesRemaining:0,reverted:0,before:0,after:0};
   const addCleanup=stats=>{if(!stats)return;for(const k of ['coincident','collinear','short','before','after'])cleanupStats[k]+=stats[k]||0;cleanupStats.shortEdgesRemaining+=stats.shortEdgesRemaining||0;cleanupStats.reverted+=Number(stats.reverted);};
   const replacements=new Map(),drop=new Set();
-  for(const ids of groups.values()){
+  const queue=[...groups.values()];
+  let retryCount=0,recoveredPairs=0;
+  const retryAdjacentPairs=ids=>{
+    if(ids.length<3)return;
+    for(let k=0;k+1<ids.length&&retryCount<12;k++){
+      const i=ids[k],j=ids[k+1];
+      if(j!==i+1||!adjacentFilled.has(i))continue;
+      queue.push([i,j]);
+      retryCount++;
+      k++; // Retry a disjoint set; no accepted replacement is consumed twice.
+    }
+  };
+  const initialGroupCount=queue.length;
+  for(const [groupIndex,ids] of queue.entries()){
     if(ids.length<2)continue;
     try{
       const group=ids.map(i=>doc.paths[i]);
@@ -241,14 +258,15 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
       }else out=asCompound(group);
       const gate=assessUnionGroup(group,out.path,{
         tolerance:cleanupTolerance,globalLimit:globalLimit+nativeAllowance,currentNodes});
-      if(!gate.accepted){reject(gate.reason);continue;}
+      if(!gate.accepted){reject(gate.reason);retryAdjacentPairs(ids);continue;}
       out.path=gate.path;currentNodes=gate.after;nativeAllowance+=gate.nativeCuts||0;acceptedGroups++;
       replacements.set(ids[0],out.path);
+      if(groupIndex>=initialGroupCount)recoveredPairs++;
       // This group was normalized and refitted already; do not flatten again.
       for(const i of ids.slice(1))drop.add(i);
       mergedObjects+=ids.length-1;removedExact+=out.removedExact;
       if(out.welded){weldedGroups++;holes+=out.holes||0;flattenedVertices+=out.vertices||0;}
-    }catch(error){reject(/исходной кривой Безье|разрыв|неподтверждённое/.test(error.message)?'native-source-provenance':'union-evaluation-error');}
+    }catch(error){reject(/исходной кривой Безье|разрыв|неподтверждённое/.test(error.message)?'native-source-provenance':'union-evaluation-error');retryAdjacentPairs(ids);}
   }
   const surviving=doc.paths.map((_,i)=>i).filter(i=>!drop.has(i));
   const selectedIndices=surviving.flatMap((old,i)=>!selected||selected.has(old)?[i]:[]);
@@ -286,7 +304,7 @@ export function mergeOverlappingObjects(document,{tolerance=.01,cleanupTolerance
     mergedObjects:mergedObjects+exact.stats.removed,
     removedExact:removedExact+exact.stats.removed,exactRemoved:exact.stats.removed,
     weldedGroups,compoundGroups:replacements.size-weldedGroups,normalizedObjects,
-    skipped,acceptedGroups,rejectedGroups,rejectionReasons,
+    skipped,acceptedGroups,rejectedGroups,rejectionReasons,recoveredPairs,retryCount,
     gpuMode:gpuKeys?'webgpu':'cpu',gpuCandidates:gpuKeys?.size??0,
     nodesBefore:globalLimit,nodesAfterUnion:currentNodes,
     holes,flattenedVertices,cleanup:cleanupStats,
