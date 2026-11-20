@@ -87,7 +87,7 @@ test('unified autoheal has one Apply action, problems and both smoothing/optimiz
  assert.match(app,/async function buildUnifiedPreview\(\)/);
  assert.match(app,/function applyUnifiedChanges\(\)/);
  assert.match(app,/repairVectorPoints\(prepared.document,prepared.indices,diagnosticTolerance,\{weldOpen:true\}\)/);
- assert.match(app,/smoothAndOptimizePaths\(refitted.document,merged.selectedIndices,smoothingAmount,optimizationTolerance,diagnosticTolerance\)/);
+ assert.match(app,/smoothAndOptimizePaths\(refitted.document,merged.selectedIndices,smoothingAmount\*\.3,optimizationTolerance,diagnosticTolerance\)/);
  assert.match(app,/const different=JSON\.stringify\(doc\.paths\.map\(worldData\)\)/);
  assert.match(app,/task\.action===0\)buildUnifiedPreview\(\)/);
  assert.match(app,/if\(!action\.startsWith\('import-'\)&&action!=='unified-apply'\)requestRecalculation\(\)/);
