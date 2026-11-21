@@ -630,3 +630,7 @@ Alpha.72 synthetic 20k C/CPU4: серия 60 wheel 294ms, geometry updates total
 ## F-072. Острые углы ошибочно защищались самим сглаживанием
 
 Подтверждено: smoothSegments пропускал линии и dot<.90, поэтому требуемого пользователем скругления не было. Исправление: отдельный последний Worker-stage roundBezierCorners, exact de Casteljau + G1 cubic, локальное ограничение геометрического отклонения, строгая topology проверка. Новый рост узлов разрешён только этой конструкцией; общий quality gate не ослаблен. Старая проверка covered-retrace7→4 изолирована от нового сглаживания (0 через Apply). Полный контекст и исходные FAIL/PASS: ALPHA74_SHARP_CORNER_SMOOTHING.md.
+
+## F-073. Зум просмотра заново строил весь SVG и списки
+
+Подтверждено baseline60wheel:60render,60viewBox,237120 mutations на1975 объектах с подложкой. Исправление alpha75: отдельный viewer pending-camera RAF, DOM reuse, кеш экранных декораций и чистое screen→world с virtual view. Не переносить editor-only обрезку600сегментов на заливки/подложку viewer. Сохранять marker sizes, source geometry/history и отменять pending camera при новом жесте/Fit/focus/mode switch. Детали/неудачные harness/метрики: ALPHA75_VIEW_ZOOM_DEFAULTS.md.
