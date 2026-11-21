@@ -1,5 +1,5 @@
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.77';
-import {nativeParts,bezierPart,pointDistance,createNativeIndex} from './native-bezier.js?v=0.2.0-alpha.77';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.78';
+import {nativeParts,bezierPart,pointDistance,createNativeIndex} from './native-bezier.js?v=0.2.0-alpha.78';
 const EPS=2e-8;
 export function commandsFromNativeRings(rings){
  const commands=[];

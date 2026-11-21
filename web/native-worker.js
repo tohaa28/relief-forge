@@ -1,8 +1,8 @@
-import {roundBezierCorners} from './corner-rounding.js?v=0.2.0-alpha.77';
-import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.77';
-import {refineNativeDiagnostics} from './native-diagnostic-refinement.js?v=0.2.0-alpha.77';
-import {combineWorkingCopy} from './after-preparation.js?v=0.2.0-alpha.77';
-import {nativeUnionPaths} from './native-boolean.js?v=0.2.0-alpha.77';
+import {roundBezierCorners} from './corner-rounding.js?v=0.2.0-alpha.78';
+import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.78';
+import {refineNativeDiagnostics} from './native-diagnostic-refinement.js?v=0.2.0-alpha.78';
+import {combineWorkingCopy} from './after-preparation.js?v=0.2.0-alpha.78';
+import {nativeUnionPaths} from './native-boolean.js?v=0.2.0-alpha.78';
 self.postMessage({ready:true});
 self.onmessage=({data})=>{
  try{

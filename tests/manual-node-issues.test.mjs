@@ -41,7 +41,7 @@ test('editor renders diagnostic rings without hiding or intercepting Bézier han
  assert.match(app,/const marked=markersVisible\?renderIssueMarkers/);
  assert.match(app,/interactive:!curveEditing\(\)/);
  assert.match(app,/retainsIssuesDuringManualChange\(mode,action\)/);
- assert.match(app,/issues=curveEditing\(\)\?resolveManualIssues/);
+ assert.match(app,/issues=preserveUnverified\|\|curveEditing\(\)\?resolveManualIssues/);
  assert.match(css,/\.curve-editing #markers,\.curve-editing #markers \*\{pointer-events:none!important\}/);
  assert.match(markers,/interactive\s*\?\s*\{/);
  assert.match(markers,/class:'problem-marker','aria-hidden':'true'/);
