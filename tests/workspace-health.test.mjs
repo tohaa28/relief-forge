@@ -87,7 +87,7 @@ test('UI checks workspace after opening and can switch to unstyled real path geo
  const css=readFileSync(new URL('../web/style.css',import.meta.url),'utf8');
  assert.match(app,/function workspaceScan\(\{attemptRepair=false,manual=false\}/);
  assert.match(app,/scheduleWorkspaceCheck\(\);updateFileHistory/);
- assert.match(app,/if\(p\.artwork&&!forceWireframe\)/);
+ assert.match(app,/if\(p\.artwork&&\(!forceWireframe\|\|p\.kind==='image'\)\)/);
  assert.match(app,/forceWireframe=!forceWireframe/);
  assert.match(app,/render\(\);/);
  assert.match(html,/id="workspace-check"/);

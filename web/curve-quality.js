@@ -1,6 +1,6 @@
-import {sampleNativeParts} from './native-bezier.js?v=0.2.0-alpha.78';
-import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.78';
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.78';
+import {sampleNativeParts} from './native-bezier.js?v=0.2.0-alpha.79';
+import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.79';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.79';
 const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
 const cross=(a,b)=>a[0]*b[1]-a[1]*b[0];
 const sub=(a,b)=>[a[0]-b[0],a[1]-b[1]];
