@@ -1594,6 +1594,7 @@ async function sendToDoctorTracer(){
     const plan=appearanceRasterPlan(source,{maxSide:2400,maxPixels:5760000});
     await yieldForUi();
     const raster=await rasterizeImportedAppearance(source,plan,{signal:abort.signal});
+    showStage('Открытие DoctorTracer…');
     const {svg}=await traceInDoctorTracerInterface(raster,{
       frame:$('doctortracer-frame'),returnButton:$('doctortracer-return'),
       status:showStage,signal:abort.signal

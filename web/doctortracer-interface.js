@@ -21,13 +21,15 @@ export async function traceInDoctorTracerInterface(raster,{frame,returnButton,st
   const png=await rasterPng(raster);
   if(signal?.aborted)throw Error('Трассировка отменена.');
   return new Promise((resolve,reject)=>{
-    let observer,settled=false,returning=false;
-    const timer=setTimeout(()=>finish(Error('Интерфейс DoctorTracer не загрузился.')),20000);
+    let observer,settled=false,returning=false,connected=false;
+    const timer=setTimeout(()=>finish(Error('Интерфейс DoctorTracer не загрузился.')),30000);
+    const readiness=setInterval(()=>connect(),150);
     const abort=()=>finish(Error('Трассировка отменена.'));
     const finish=(error,result)=>{
       if(settled)return;
       settled=true;
       clearTimeout(timer);
+      clearInterval(readiness);
       observer?.disconnect();
       frame.removeEventListener('load',load);
       signal?.removeEventListener('abort',abort);
@@ -36,14 +38,21 @@ export async function traceInDoctorTracerInterface(raster,{frame,returnButton,st
       frame.removeAttribute('src');
       error?reject(error):resolve(result);
     };
-    function load(){
+    const load=()=>connect(true);
+    function connect(loaded=false){
+      if(connected||settled)return;
       try{
         const win=frame.contentWindow,ui=frame.contentDocument;
-        if(!ui||win.location.origin!==location.origin||win.location.pathname!==target.pathname)
-          throw Error('Открыт неожиданный адрес DoctorTracer.');
+        if(!ui||win.location.origin!==location.origin||win.location.pathname!==target.pathname)return;
         const input=ui.getElementById('file'),vector=ui.getElementById('vector');
-        if(!input?.onchange||!vector)throw Error('Интерфейс DoctorTracer изменился. Передача изображения недоступна.');
+        if(!input?.onchange||!vector){
+          if(loaded)throw Error('Интерфейс DoctorTracer изменился. Передача изображения недоступна.');
+          return;
+        }
+        // Images and other decorative resources must not delay the handoff.
+        connected=true;
         clearTimeout(timer);
+        clearInterval(readiness);
         const transfer=new win.DataTransfer();
         transfer.items.add(new win.File([png],'Импортированный макет.png',{type:'image/png'}));
         input.files=transfer.files;

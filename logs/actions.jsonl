@@ -320,3 +320,4 @@
 {"at": "2026-11-21", "action": "doctortracer-imported-artwork-raster", "status": "implemented", "base_sha": "bd0923c"}
 {"at": "2026-11-21", "action": "doctortracer-original-grouped-raster", "status": "deployed", "merge_sha": "371a009f6fae7357aabb9819887f09e7cda35cc3", "workflow": "44930235455", "pr": 119}
 {"at": "2026-11-21", "action": "doctortracer-manual-source-replacement", "status": "candidate", "base": "9bab9e3"}
+{"at":"2026-11-21","action":"doctortracer-frame-readiness","status":"candidate","issue":"F-078"}

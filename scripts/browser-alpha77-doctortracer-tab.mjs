@@ -24,7 +24,13 @@ try{
     });
   }
   let requests=0;
+  let finishDecoration;
   if(!real){
+    const decoration=new Promise(resolve=>{finishDecoration=resolve;});
+    await page.route('**/DoctorTracer/decoration.svg',async route=>{
+      await decoration;
+      await route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg"/>'});
+    });
     await page.route('**/doctortracer-fallback.js*',async route=>{
       const response=await route.fetch();
       await route.fulfill({response,body:(await response.text()).replace(
@@ -33,7 +39,7 @@ try{
     await page.route('**/DoctorTracer/',route=>{
       requests++;
       return route.fulfill({contentType:'text/html',body:`<!doctype html>
-        <input id="file" type="file"><button id="vector" disabled>Вектор</button>
+        <img src="decoration.svg" alt=""><input id="file" type="file"><button id="vector" disabled>Вектор</button>
         <button id="trace" disabled>Трассировать</button><input id="detail" type="number" value="2">
         <script>
         const file=document.querySelector('#file'),vector=document.querySelector('#vector'),trace=document.querySelector('#trace');
@@ -93,6 +99,7 @@ try{
   await send.click();
   const tracer=page.frameLocator('#doctortracer-frame');
   await page.waitForFunction(()=>document.querySelector('#doctortracer-stage').textContent.includes('Настройте параметры'));
+  finishDecoration?.();
   assert.equal(await page.locator('main').isHidden(),true);
   assert.ok(await page.locator('header').isHidden());
   assert.ok(await page.locator('footer').isHidden());
