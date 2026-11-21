@@ -1,5 +1,5 @@
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.80';
-import {nativeParts} from './native-bezier.js?v=0.2.0-alpha.80';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.81';
+import {nativeParts} from './native-bezier.js?v=0.2.0-alpha.81';
 
 // Combining paths is distinct from Boolean Union: disconnected subpaths must
 // also belong to one editable object. Never merge incompatible paint or a

@@ -86,7 +86,7 @@ try{
  await failed.locator('#file').setInputFiles({name:'unavailable-engine.eps',mimeType:'application/postscript',buffer:eps});
  try{
    await failed.waitForFunction(()=>
-     document.querySelector('#import-report').textContent.includes('503'),
+     document.querySelector('#status').textContent.includes('HTTP 503'),
      {},{timeout:90000});
  }catch(error){
    console.error('cold failure-test diagnostic',
