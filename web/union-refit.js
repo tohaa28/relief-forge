@@ -1,6 +1,6 @@
-import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.91';
-import {optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.91';
-import {verifyNativeUnionProof} from './native-union-proof.js?v=0.2.0-alpha.91';
+import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.92';
+import {optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.92';
+import {verifyNativeUnionProof} from './native-union-proof.js?v=0.2.0-alpha.92';
 
 // Refit actual Boolean Union AFTER Clipper removes overlaps.
 // Previous flow optimized source C curves then replaced them with many L
