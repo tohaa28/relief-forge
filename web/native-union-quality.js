@@ -1,5 +1,5 @@
-import './vendor/clipper.js?v=0.2.0-alpha.83';
-import {sampleNativeParts,pointDistance} from './native-bezier.js?v=0.2.0-alpha.83';
+import './vendor/clipper.js?v=0.2.0-alpha.84';
+import {sampleNativeParts,pointDistance} from './native-bezier.js?v=0.2.0-alpha.84';
 const C=globalThis.ClipperLib,SCALE=1000000,SAMPLE=.0005;
 function union(rings,rule=C.PolyFillType.pftNonZero){
  const clip=new C.Clipper(C.Clipper.ioStrictlySimple),tree=new C.PolyTree();

@@ -1,7 +1,7 @@
 const jobs=new Map();
 export function runNativeJob(data,{startupTimeoutMs=20000,executionTimeoutMs=null}={}){
  return new Promise((resolve,reject)=>{
-  const worker=new Worker(new URL('./native-worker.js?v=0.2.0-alpha.83',import.meta.url),{type:'module'});
+  const worker=new Worker(new URL('./native-worker.js?v=0.2.0-alpha.84',import.meta.url),{type:'module'});
   let settled=false;
   const deadline=executionTimeoutMs===null?null:performance.now()+executionTimeoutMs;
   let executionTimer;
