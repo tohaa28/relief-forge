@@ -94,7 +94,7 @@ test('PDF accepted via dialog and drop, and CSS makes mascot invisible regardles
  assert.match(css,/#mascot-welcome\[hidden\][^{]*\{[^}]*display:none!important/);
  assert.match(css,/\.workspace\[data-content-loaded="true"\] #mascot-welcome/);
  assert.match(app,/openingFile=true;updateMascot\(\)/);
- assert.match(app,/function render\(\)\{[^]*?updateMascot\(\)/);
+ assert.match(app,/function render\(\{reuseGeometry=false\}=\{\}\)\{[^]*?updateMascot\(\)/);
  assert.match(app,/if\(data.type==='pages'\)/);
  assert.match(app,/pdfImport=\{name/);
  assert.match(app,/\\\.\(eps\|epsf\|epsi\|ps\|pdf\)/);

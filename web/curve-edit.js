@@ -1,13 +1,13 @@
-import svgpath from './vendor/svgpath.mjs?v=0.2.0-alpha.81';
+import svgpath from './vendor/svgpath.mjs?v=0.2.0-alpha.82';
 
 const end=c=>c.slice(-2),same=(a,b)=>a[0]===b[0]&&a[1]===b[1];
 const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
 const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
 const offset=p=>p.offset||[0,0];
 const data=commands=>commands.map(c=>c.join(' ')).join(' ');
-function read(path){
+function read(path,{copy=true}={}){
   if(path.kind==='image')throw Error('Изображение не содержит редактируемых узлов');
-  const commands=path.artwork?structuredClone(path.commands):
+  const commands=path.artwork?(copy?structuredClone(path.commands):path.commands):
     path.points.map((p,i)=>[i?'L':'M',...p]).concat(path.closed?[['Z']]:[]);
   const parts=[];let part,pen;
   commands.forEach((c,index)=>{
@@ -54,7 +54,18 @@ function replaceArtwork(path,commands,Parser){
   const determinant=a*d-b*c;
   if(!Number.isFinite(determinant)||Math.abs(determinant)<1e-20)throw Error('Вырожденное преобразование SVG');
   const inverse=[d/determinant,-b/determinant,-c/determinant,a/determinant,(c*y-d*x)/determinant,(b*x-a*y)/determinant];
-  const local=svgpath(data(commands)).matrix(inverse).toString();
+  // Native commands contain absolute point pairs. Apply the affine matrix
+  // directly instead of emitting an intermediate SVG string and parsing it.
+  const [ia,ib,ic,id,ie,iff]=inverse;
+  const local=commands.every(c=>['M','L','C','Q','Z'].includes(c[0]))?
+    commands.map(command=>{
+      const points=[];
+      for(let i=1;i<command.length;i+=2){
+        const x=command[i],y=command[i+1];
+        points.push(ia*x+ic*y+ie,ib*x+id*y+iff);
+      }
+      return command[0]+points.join(' ');
+    }).join(''):svgpath(data(commands)).matrix(inverse).toString();
   const replacement=root.ownerDocument.createElementNS('http://www.w3.org/2000/svg','path');
   const geometry=new Set(['d','x','y','x1','y1','x2','y2','width','height','cx','cy','r','rx','ry','points']);
   for(const attr of Array.from(leaf.attributes))if(!geometry.has(attr.name))replacement.setAttribute(attr.name,attr.value);
@@ -64,8 +75,10 @@ function replaceArtwork(path,commands,Parser){
   return Array.from(root.childNodes).map(serialize).join('');
 }
 function write(path,commands,{Parser=globalThis.DOMParser}={}){
-  const out=structuredClone(path);
+  const {commands:previousCommands,points:previousPoints,...metadata}=path;
+  const out=structuredClone(metadata);
   if(path.artwork){out.artwork=replaceArtwork(path,commands,Parser);out.commands=commands;}
+  else if(previousCommands)out.commands=structuredClone(previousCommands);
   out.points=commands.filter(c=>c[0]!=='Z').map(end);out.closed=commands.at(-1)?.[0]==='Z';
   if(!path.artwork&&out.closed&&out.points.length>2&&same(out.points[0],out.points.at(-1)))out.points.pop();
   return out;
@@ -194,7 +207,7 @@ export function curveNodeType(path,index){return getKind(nodeContext(path,index)
 // Resolve all anchor types in one parse. The old UI called curveNodeType()
 // for every visible anchor, reparsing the whole path O(n²) during dragging.
 export function curveNodesTyped(path){
-  const {parts}=read(path),shift=offset(path),nodes=[];
+  const {parts}=read(path,{copy:false}),shift=offset(path),nodes=[];
   parts.forEach((part,partIndex)=>{
     const points=[{index:part.startIndex,point:part.start,ordinal:0}];
     part.segments.forEach((s,i)=>{

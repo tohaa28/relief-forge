@@ -1,4 +1,4 @@
-import {curveNodesTyped} from './curve-edit.js?v=0.2.0-alpha.81';
+import {curveNodesTyped} from './curve-edit.js?v=0.2.0-alpha.82';
 
 // A command-buffer transaction for one compound vector. During manual mode the
 // full document, original SVG artwork and EPS geometry are immutable. All
@@ -275,10 +275,16 @@ export function createDeferredCurveEditor(path){
   }
   function indexSegment(index){
     removeIndexedSegment(index);
-    const points=segment(index)?.controls;
-    if(!points)return;
-    const x0=Math.min(...points.map(p=>p[0])),x1=Math.max(...points.map(p=>p[0])),
-      y0=Math.min(...points.map(p=>p[1])),y1=Math.max(...points.map(p=>p[1]));
+    const metadata=segmentPart.get(index),c=command(index);
+    if(!metadata||!c)return;
+    const {part,ordinal}=metadata;
+    const previous=command(ordinal?part.segments[ordinal-1]:part.start);
+    let x0=previous.at(-2),x1=x0,y0=previous.at(-1),y1=y0;
+    for(let i=1;i<c.length;i+=2){
+      x0=Math.min(x0,c[i]);x1=Math.max(x1,c[i]);
+      y0=Math.min(y0,c[i+1]);y1=Math.max(y1,c[i+1]);
+    }
+    x0+=offset[0];x1+=offset[0];y0+=offset[1];y1+=offset[1];
     segmentBounds.set(index,{x0,x1,y0,y1});
     const xa=Math.floor(x0/segmentCell),xb=Math.floor(x1/segmentCell),
       ya=Math.floor(y0/segmentCell),yb=Math.floor(y1/segmentCell),
