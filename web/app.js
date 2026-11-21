@@ -1,4 +1,5 @@
 import {appearanceRasterPlan,doctorTracerHandoffPlan,rasterizeImportedAppearance} from './doctortracer-appearance.js?v=0.2.0-alpha.91';
+import {captureRasterSource,requireRasterSource,rasterizeGhostscript} from './ghostscript-raster.js?v=0.2.0-alpha.91';
 import {traceInDoctorTracerInterface} from './doctortracer-interface.js?v=0.2.0-alpha.91';
 import {nativeParts} from './native-bezier.js?v=0.2.0-alpha.91';
 import {cacheViewDecorations} from './view-zoom.js?v=0.2.0-alpha.91';
@@ -492,6 +493,8 @@ function editorAnchorCache(path){
   return indexed;
 }
 let importedBefore=null;
+// Original EPS/PDF bytes are session-only, not attached to project/history.
+let originalRasterInput=null;
 let comparisonSelectionExplicit=false; // user choice wins over automated re-diagnosis
 let doc={format:'relief-forge',version:1,width:300,height:200,paths:[]},selected=new Set(),issues=[],metrics=[],past=[],future=[],mode='select',draft=[],drag=null,pan=null,worker,ready=false,pending=null,sequence=0,busy=false;
 let epsWorker=null,epsTimer=null,epsImportActive=false;let importFonts=[];
@@ -1592,12 +1595,21 @@ async function sendToDoctorTracer(){
   showDoctorTracerTab(true);
   try{
     const requested=appearanceRasterPlan(source,Number($('doctortracer-dpi').value));
-    const plan=doctorTracerHandoffPlan(requested);
+    let plan=doctorTracerHandoffPlan(requested);
+    const entry=requireRasterSource(source,originalRasterInput);
     const notices=[];
-    notices.push('Исходный растр '+plan.width+'×'+plan.height+' · '+plan.dpi+' dpi');
     await yieldForUi();
-    const png=await rasterizeImportedAppearance(source,plan,{signal:abort.signal,
-      onWarning:message=>notices.push(message)});
+    let png;
+    if(entry){
+      const native=await rasterizeGhostscript(entry,plan,{signal:abort.signal,onProgress:showStage});
+      png=native.png;plan=native.plan;
+      notices.push('Ghostscript · без AA');
+    }else{
+      // Other formats keep their existing SVG-specific route, explicitly named.
+      png=await rasterizeImportedAppearance(source,plan,{signal:abort.signal,onWarning:message=>notices.push(message)});
+      notices.push('SVG · браузерный растр');
+    }
+    notices.push('Исходный растр '+plan.width+'×'+plan.height+' · '+plan.dpi+' dpi');
     const prefix=notices.length?notices.join(' · ')+' · ':'';
     showStage(prefix+'Открытие DoctorTracer…');
     const {svg}=await traceInDoctorTracerInterface(png,{
@@ -2322,7 +2334,7 @@ $('save').onclick=()=>{
     JSON.stringify({...doc,journal,history:{past,future}},null,2));
 };
 function stopEps({destroy=false}={}){const picker=$('pdf-page-picker');if(picker?.open)picker.close();epsImportActive=false;clearTimeout(epsTimer);epsTimer=null;if(epsWorker){epsWorker.onmessage=null;epsWorker.onerror=null;}if(destroy){epsWorker?.terminate();epsWorker=null;}}
-function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);resetLocalEditors();openingFile=false;lastImportFailure=null;lastImportAttempt={source:name,status:'opened',objects:next.paths.length};forceWireframe=false;syncWireframeControl();if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);clearTimeout(manualLocalTimer);++manualLocalGeneration;manualFocus=null;mode='select';doc=next;selected.clear();changed('import-'+name);importedBefore=beginImportBefore(doc);comparisonSelectionExplicit=false;compareStage='before';fit();scheduleWorkspaceCheck();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров'});
+function openValue(value,name,historyStarted=false){const next=validate(value),old=clone(doc);originalRasterInput=null;resetLocalEditors();openingFile=false;lastImportFailure=null;lastImportAttempt={source:name,status:'opened',objects:next.paths.length};forceWireframe=false;syncWireframeControl();if(!historyStarted)beginFileHistory(name);next.sourceFileName=basename(next.sourceFileName||next.epsImport?.name||name);const restoredPast=Array.isArray(value.history?.past)?value.history.past.slice(-100).map(validate):null;const restoredFuture=Array.isArray(value.history?.future)?value.history.future.slice(-100).map(validate):[];const restoredJournal=Array.isArray(value.journal)?value.journal.slice(-100000):[];checkpoint();if(restoredPast){past=[old,...restoredPast].slice(-100);future=restoredFuture;}journal.push(...restoredJournal);clearTimeout(manualLocalTimer);++manualLocalGeneration;manualFocus=null;mode='select';doc=next;selected.clear();changed('import-'+name);importedBefore=beginImportBefore(doc);comparisonSelectionExplicit=false;compareStage='before';fit();scheduleWorkspaceCheck();updateFileHistory({status:'Открыт · '+doc.paths.length+' контуров'});
   if(ready&&doc.paths.some(p=>p.kind!=='image'))calculate(0);
 }
 function importEps(bytes,name,historyStarted=false){
@@ -2383,7 +2395,8 @@ function importEps(bytes,name,historyStarted=false){
           ...data.result.metadata,warnings:data.result.warnings,logs:data.result.logs,
           outlineRecovery:data.result.outlineRecovery||null,engines:{ghostscript:'10.08.0',mupdf:'1.28.1'}};
       }
-      const durationMs=performance.now()-started;stopEps();lock(false);openValue(next,name,true);record(data.format==='pdf'?'pdf-import-time':'eps-import-time',{name,format:data.format||'eps',bytes:bytes.length,ms:Math.round(durationMs),workerMs:data.durationMs||0,fastPath:Boolean(data.fastPath),warm:Boolean(data.warm)});
+      const rasterInput=captureRasterSource(next,bytes,data.format==='pdf'?'pdf':'eps',data.format==='pdf'?[]:importFonts);
+      const durationMs=performance.now()-started;stopEps();lock(false);openValue(next,name,true);originalRasterInput=rasterInput;record(data.format==='pdf'?'pdf-import-time':'eps-import-time',{name,format:data.format||'eps',bytes:bytes.length,ms:Math.round(durationMs),workerMs:data.durationMs||0,fastPath:Boolean(data.fastPath),warm:Boolean(data.warm)});
       if(data.format==='pdf'){
         status('PDF импортирован: страница '+data.result.metadata.pageNumber+'/'+data.result.metadata.pageCount+
           ' · '+next.paths.length+' объектов. Векторные кривые доступны для редактирования.');
