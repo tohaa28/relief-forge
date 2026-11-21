@@ -633,3 +633,9 @@ aside.right #recheck-defects{width:100%;padding:6px 8px;margin:2px 0 8px;font-si
 
 /* Alpha69: proximity join distance follows existing compact right panel. */
 #merge-nearby-distance{font-variant-numeric:tabular-nums}
+
+body.doctortracer-active main {display:none}
+#doctortracer-tab[hidden], #doctortracer-image[hidden] {display:none}
+#doctortracer-tab {flex:1;min-height:0;overflow:auto;padding:20px}
+.tracer-heading {display:flex;align-items:center;justify-content:space-between;gap:12px}
+#doctortracer-image {display:block;max-width:100%;max-height:60vh;object-fit:contain;margin:12px auto;background:#fff}

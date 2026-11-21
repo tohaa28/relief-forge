@@ -209,7 +209,7 @@ test('AFTER integration takes source, rechecks candidate and keeps undo; does no
   assert.match(app,/preparedRasterPlan\(source\)/);
   assert.match(app,/doctorMaskCache\.get\(preview\.doctorMaskToken\)/);
   assert.match(app,/traceDocumentWithNodeBudget\(source,plan,/);
-  assert.match(app,/acceptRetracing\(originalCount,checked,similarity\)/);
+  assert.match(app,/acceptRetracing\(originalCount,checked,similarity,\{threshold:0\}\)/);
   assert.match(app,/preview\.result=candidate/);
   assert.match(app,/preview\.comparisonData\.afterDoc=candidate/);
   assert.match(app,/checkpoint\(baseline\);doc=clone\(pv\.result\)/);

@@ -506,3 +506,7 @@ Anchor glyph → existing moveAnchor; data-curve-handle → existing moveHandle 
 ## M-075 · Open resets before file selection, keeps previous document in Undo
 
 Shared resetWorkspace for New/Open commits valid local edits first, checkpoints nonempty previous model, clears stale generations/timers/overlays/comparison/report, creates300×200 empty doc and Fit before file.click. Cancel remains empty per explicit user request; settings and file history are retained. Failed import after Open stays empty; direct drop error recovery is preserved. Caption must not call export basename fallback for a missing source. Full browser picker/cancel/same-name/Undo tests required before publication.
+
+## 0.2.0-alpha.77 · Вкладка DoctorTracer
+
+База 6bd106f, опубликованная alpha.76 (PR #108, Pages 44881094487). При включении и применении настройки вся векторная работа получает вкладку DoctorTracer с подготовленным силуэтом, прогрессом и отменой. Вкладка использует существующий Worker DoctorTracer 0.21.1 с передачей RGBA. Порог 11 больше не препятствует запуску. Обработка выделенной части не заменяет весь документ. Полученный SVG возвращается в основную область и проходит проверку силуэта, Rust и нативную диагностику. Требуется полная проверка и строго меньше дефектов, поэтому чистый исходник не заменяется только ради трассировки. При отмене и сбое остаётся результат векторной обработки. Первые тесты выявили CRLF в app.js и устаревшее ожидание вызова проверки без аргумента threshold. Исправлены окончания строк и ожидание. Кандидат, публикация ожидается.
