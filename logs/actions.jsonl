@@ -323,3 +323,4 @@
 {"at":"2026-11-21","action":"doctortracer-frame-readiness","status":"candidate","issue":"F-078"}
 {"at": "2026-11-21", "action": "doctortracer-manual-source-replacement", "status": "deployed", "merge_sha": "719c6f2919469c2a33476227b3dd300aecd3b0c8", "workflow": "44932088585", "pr": 120}
 {"at": "2026-11-21", "action": "doctortracer-crisp-raster-dpi", "status": "candidate", "base": "b7a76a7"}
+{"at": "2026-11-21", "action": "doctortracer-crisp-raster-dpi", "status": "deployed", "merge_sha": "ef6f0e62d32c9270abaf4e55e71baf69fb01cb31", "workflow": "44933857318", "pr": 121}
