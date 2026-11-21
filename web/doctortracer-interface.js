@@ -1,24 +1,12 @@
-import {DOCTORTRACER_URL,validateDoctorTracerRgba} from './doctortracer-fallback.js?v=0.2.0-alpha.88';
+import {DOCTORTRACER_URL} from './doctortracer-fallback.js?v=0.2.0-alpha.89';
 
-function rasterPng(raster){
-  validateDoctorTracerRgba(raster);
-  const canvas=document.createElement('canvas');
-  canvas.width=raster.width;
-  canvas.height=raster.height;
-  const context=canvas.getContext('2d');
-  context.putImageData(new ImageData(new Uint8ClampedArray(raster.pixels.buffer,
-    raster.pixels.byteOffset,raster.pixels.byteLength),raster.width,raster.height),0,0);
-  return new Promise((resolve,reject)=>canvas.toBlob(blob=>
-    blob?resolve(blob):reject(Error('Не удалось подготовить PNG для DoctorTracer'))));
-}
 
 // Drive the published wizard through its file input and SVG export controls.
 // The frame is restricted to the common Pages origin. No document is uploaded.
-export async function traceInDoctorTracerInterface(raster,{frame,returnButton,status,signal,
+export async function traceInDoctorTracerInterface(png,{frame,returnButton,status,signal,
   url=DOCTORTRACER_URL}={}){
   const target=new URL(url);
   if(target.origin!==location.origin)throw Error('Интерфейс DoctorTracer доступен в опубликованной версии на GitHub Pages.');
-  const png=await rasterPng(raster);
   if(signal?.aborted)throw Error('Трассировка отменена.');
   return new Promise((resolve,reject)=>{
     let observer,settled=false,returning=false,connected=false;

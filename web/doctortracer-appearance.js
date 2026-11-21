@@ -1,11 +1,13 @@
-import {exportDocument,importRichSvg,safeFragment} from './rich-svg.js?v=0.2.0-alpha.88';
+import {exportDocument,importRichSvg,safeFragment} from './rich-svg.js?v=0.2.0-alpha.89';
 
-export function appearanceRasterPlan(document,{dpi=600,maxSide=9000,maxPixels=36000000}={}){
+export function appearanceRasterPlan(document,dpi){
+  if(![300,600,1200].includes(dpi))throw Error('Выберите 300, 600 или 1200 dpi.');
   const {width:widthMm,height:heightMm}=document;
-  const scale=Math.min(dpi/25.4,maxSide/Math.max(widthMm,heightMm),
-    Math.sqrt(maxPixels/(widthMm*heightMm)));
-  return {x:0,y:0,widthMm,heightMm,width:Math.max(1,Math.floor(widthMm*scale)),
-    height:Math.max(1,Math.floor(heightMm*scale)),dpi:scale*25.4};
+  const width=Math.max(1,Math.round(widthMm*dpi/25.4));
+  const height=Math.max(1,Math.round(heightMm*dpi/25.4));
+  if(Math.max(width,height)>16384||width*height>160000000)
+    throw Error('Растр '+width+'×'+height+' слишком велик для браузера. Выберите меньшее dpi.');
+  return {x:0,y:0,widthMm,heightMm,width,height,dpi};
 }
 
 function originalArtwork(document){
@@ -41,38 +43,61 @@ export function appearanceRasterSvg(document,plan){
     artwork=new XMLSerializer().serializeToString(root);
   }
   const safe=safeFragment(artwork.replace(/^\s*<\?xml[^?]*\?>/i,''),DOMParser);
-  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${plan.width}" height="${plan.height}" viewBox="${plan.x} ${plan.y} ${plan.widthMm} ${plan.heightMm}" preserveAspectRatio="none">${safe}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${plan.width}" height="${plan.height}" viewBox="${plan.x} ${plan.y} ${plan.widthMm} ${plan.heightMm}" preserveAspectRatio="none"><style>
+    path,rect,circle,ellipse,line,polygon,polyline,use {shape-rendering:crispEdges!important}
+    image {image-rendering:pixelated!important}
+    </style>${safe}</svg>`;
 }
 
-export async function rasterizeImportedAppearance(document,plan,{
-  signal,alphaOnly=false,yieldUi=()=>Promise.resolve(),onProgress=()=>{}
-}={}){
-  if(signal?.aborted)throw Error('Трассировка отменена.');
+// Canvas encoders use their own DPI. Replace any pHYs chunk so the file
+// records the physical scale used to produce its pixel dimensions.
+async function pngWithDpi(png,dpi){
+  const chunk=new Uint8Array(21);
+  const data=new DataView(chunk.buffer);
+  data.setUint32(0,9);
+  data.setUint32(4,0x70485973); // pHYs
+  const ppm=Math.round(dpi/0.0254);
+  data.setUint32(8,ppm);
+  data.setUint32(12,ppm);
+  data.setUint8(16,1);
+  let crc=0xffffffff;
+  for(const byte of chunk.subarray(4,17)){
+    crc^=byte;
+    for(let bit=0;bit<8;bit++)crc=(crc>>>1)^((crc&1)?0xedb88320:0);
+  }
+  data.setUint32(17,crc^0xffffffff);
+  let offset=33; // PNG signature and IHDR
+  while(offset+8<=png.size){
+    const header=new DataView(await png.slice(offset,offset+8).arrayBuffer());
+    const type=header.getUint32(4);
+    if(type===0x49444154)break; // IDAT
+    const end=offset+header.getUint32(0)+12;
+    if(type===0x70485973)
+      return new Blob([png.slice(0,offset),chunk,png.slice(end)],{type:'image/png'});
+    offset=end;
+  }
+  return new Blob([png.slice(0,33),chunk,png.slice(33)],{type:'image/png'});
+}
+
+export async function rasterizeImportedAppearance(document,plan,{signal}={}){
+  signal?.throwIfAborted();
   const url=URL.createObjectURL(new Blob([appearanceRasterSvg(document,plan)],{type:'image/svg+xml'}));
   const canvas=globalThis.document.createElement('canvas');
   try{
     const image=new Image();
     image.src=url;
     await image.decode();
-    if(signal?.aborted)throw Error('Трассировка отменена.');
-    canvas.width=plan.width;canvas.height=plan.height;
-    const context=canvas.getContext('2d',{willReadFrequently:true});
+    signal?.throwIfAborted();
+    canvas.width=plan.width;
+    canvas.height=plan.height;
+    const context=canvas.getContext('2d');
     if(!context)throw Error('Canvas 2D недоступен.');
+    context.imageSmoothingEnabled=false;
     context.drawImage(image,0,0);
-    if(!alphaOnly)return {width:plan.width,height:plan.height,
-      pixels:new Uint8Array(context.getImageData(0,0,plan.width,plan.height).data.buffer),
-      backend:'svg-artwork-rgba'};
-    const alpha=new Uint8Array(plan.width*plan.height);
-    const rows=Math.max(1,Math.floor(262144/plan.width));
-    for(let y=0;y<plan.height;y+=rows){
-      if(signal?.aborted)throw Error('Трассировка отменена.');
-      const height=Math.min(rows,plan.height-y);
-      const rgba=context.getImageData(0,y,plan.width,height).data;
-      for(let p=0;p<rgba.length/4;p++)alpha[y*plan.width+p]=rgba[p*4+3];
-      onProgress((y+height)/plan.height);
-      if(y+height<plan.height)await yieldUi();
-    }
-    return {width:plan.width,height:plan.height,alpha,backend:'svg-artwork-alpha'};
+    const png=await new Promise((resolve,reject)=>canvas.toBlob(blob=>
+      blob?resolve(blob):reject(Error('Не удалось создать PNG. Выберите меньшее dpi.'))));
+    signal?.throwIfAborted();
+    return pngWithDpi(png,plan.dpi);
   }finally{
     URL.revokeObjectURL(url);
     canvas.width=canvas.height=0;

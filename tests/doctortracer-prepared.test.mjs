@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {appearanceRasterPlan} from '../web/doctortracer-appearance.js';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {rasterizeDocumentAlpha,maskSimilarity,validateDoctorTracerRgba} from '../web/doctortracer-fallback.js';
@@ -141,9 +142,14 @@ test('alpha65: 600dpi Canvas only reads alpha strips; no full RGBA image is cach
  assert.deepEqual(src,input());
 });
 
-test('manual handoff rasterizes imported artwork on demand at bounded size',()=>{
- const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
- assert.match(app,/const plan=appearanceRasterPlan\(source,\{maxSide:2400,maxPixels:5760000\}\)/);
- assert.match(app,/const raster=await rasterizeImportedAppearance\(source,plan/);
- assert.doesNotMatch(app,/prepareImportArtworkMask\(/);
+
+test('manual handoff supports exact 300, 600 and 1200 dpi without silent resizing',()=>{
+ const page={width:210,height:297};
+ for(const dpi of [300,600,1200]){
+   const plan=appearanceRasterPlan(page,dpi);
+   assert.deepEqual([plan.width,plan.height,plan.dpi],
+     [Math.round(210*dpi/25.4),Math.round(297*dpi/25.4),dpi]);
+ }
+ assert.throws(()=>appearanceRasterPlan(page,450),/300, 600 или 1200/);
+ assert.throws(()=>appearanceRasterPlan({width:420,height:297},1200),/слишком велик/);
 });
