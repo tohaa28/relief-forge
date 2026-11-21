@@ -321,3 +321,4 @@
 {"at": "2026-11-21", "action": "doctortracer-original-grouped-raster", "status": "deployed", "merge_sha": "371a009f6fae7357aabb9819887f09e7cda35cc3", "workflow": "44930235455", "pr": 119}
 {"at": "2026-11-21", "action": "doctortracer-manual-source-replacement", "status": "candidate", "base": "9bab9e3"}
 {"at":"2026-11-21","action":"doctortracer-frame-readiness","status":"candidate","issue":"F-078"}
+{"at": "2026-11-21", "action": "doctortracer-manual-source-replacement", "status": "deployed", "merge_sha": "719c6f2919469c2a33476227b3dd300aecd3b0c8", "workflow": "44932088585", "pr": 120}
