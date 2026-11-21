@@ -150,3 +150,25 @@ test('a normal handle shift resolves a crossing that chord straightening cannot'
  assert.ok(stats.maxDeviationMm<=.01);
  assert.equal(nativeIntersections(document.paths).filter(h=>h.crossing).length,0);
 });
+
+test('large compound: isolated cubic crossing can be repaired without rewriting unrelated commands',()=>{
+ const tiny=[['M',0,0],['C',.015,.015,-.015,.015,.005,0]];
+ const rest=Array.from({length:725},(_,i)=>[['M',10+2*i,10],['L',11+2*i,10]]).flat();
+ const original=make([...tiny,...rest]),source=doc(original),snapshot=structuredClone(source);
+ const {document,stats}=run(source,{mode:'handles'});
+ assert.deepEqual(source,snapshot);
+ assert.equal(stats.correctedHandles,1);
+ assert.ok(stats.limited>0,'the remaining compound remains explicitly partial');
+ assert.equal(document.paths[0].commands.length,original.commands.length);
+ assert.deepEqual(document.paths[0].commands.slice(2),rest);
+ assert.deepEqual(document.paths[0].commands[1].slice(-2),tiny[1].slice(-2));
+ assert.equal(nativeIntersections([make(document.paths[0].commands.slice(0,2))]).filter(h=>h.crossing).length,0);
+});
+test('large compound: overlapping control hull forbids isolated repair',()=>{
+ const tiny=[['M',0,0],['C',.015,.015,-.015,.015,.005,0]];
+ const rest=Array.from({length:725},(_,i)=>[['M',10+2*i,10],['L',11+2*i,10]]).flat();
+ const source=doc(make([...tiny,['M',-.02,.007],['L',.02,.007],...rest]));
+ const {document,stats}=run(source,{mode:'handles'});
+ assert.equal(stats.correctedHandles,0);
+ assert.deepEqual(document,source);
+});
