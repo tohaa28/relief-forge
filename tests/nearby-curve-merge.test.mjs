@@ -92,7 +92,7 @@ test('alpha69: staged option and both normal/large previews use the same distanc
   assert.match(app,/const next=readSettingsForm\(\),error=validateSettingsDraft\(next\)/);
   assert.match(app,/const after=rounded.document/);
   assert.match(app,/nearbyOptions:\{enabled:settingChecked\('merge-nearby'\)/);
-  assert.match(app,/changed\('curve-session-commit',\{skipDiagnostics:true\}\)/,
+  assert.match(app,/changed\('curve-session-commit',\{skipDiagnostics:true,preserveIssues:true\}\)/,
     'closing manual node editor still must not trigger a background global diagnostic');
 });
 
