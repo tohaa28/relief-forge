@@ -31,6 +31,10 @@ try{
  await page.waitForFunction(()=>document.querySelector('#clearance-markers circle'));
  await page.locator('#compare-after').click();await page.waitForFunction(()=>document.querySelector('#clearance-status').textContent.includes('проверка завершена'));
  assert.equal(await page.locator('#clearance-markers circle').count(),1);
+ assert.equal(await page.locator('#geometry').evaluate(geometry=>geometry.nextElementSibling.id),'clearance-markers',
+  'AFTER clearance marks are painted above all result paths and the original contour underlay');
+ assert.ok(Math.abs(Number(await page.locator('#clearance-markers circle').getAttribute('data-distance-mm'))-.05)<1e-7);
+
  await page.locator('#compare-before').click();await page.waitForFunction(()=>document.querySelector('#clearance-status').textContent.includes('проверка завершена'));
  const pending=page.waitForEvent('download');await page.locator('#export-eps').click();await page.locator('#eps-color-confirm').click();
  if(await page.locator('#eps-save-warning').isVisible())await page.locator('#eps-save-anyway').click();
