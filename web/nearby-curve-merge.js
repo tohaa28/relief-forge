@@ -1,6 +1,6 @@
-import {nativeParts,pointDistance,cubicControls,controlsBounds,evaluateBezier} from './native-bezier.js?v=0.2.0-alpha.82';
-import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.82';
-import {finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.82';
+import {nativeParts,pointDistance,cubicControls,controlsBounds,evaluateBezier} from './native-bezier.js?v=0.2.0-alpha.83';
+import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.83';
+import {finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.83';
 
 // Local tolerance welding; never invoked by pointermove, manual Done, or Undo.
 // A proposed change is written ONLY after exact-native topology and paint checks.

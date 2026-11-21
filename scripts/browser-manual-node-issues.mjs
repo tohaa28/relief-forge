@@ -67,16 +67,37 @@ try{
   const openCount=()=>page.locator('#issues').getByText(/Открытый контур/).count();
   assert.equal(await openCount(),2,'fixture has two independent open contours');
   await page.evaluate(()=>{
-    const button=document.querySelector('#node-done');
+    document.querySelector('#curve-edit').click();
+    document.querySelector('#cancel').click();
+  });
+  assert.equal(await page.locator('body').evaluate(body=>body.classList.contains('curve-editing')),true);
+  assert.match(await page.locator('#status').textContent(),/Выход отменён/);
+  await page.evaluate(()=>{
+    const button=document.querySelector('#curve-edit');
     button.addEventListener('click',()=>{
+      window.exitProgressVisible=!document.querySelector('#task-status').hidden&&
+        document.body.classList.contains('curve-editing');
+      requestAnimationFrame(()=>{
+        window.exitProgressBeforePaint=!document.querySelector('#task-status').hidden&&
+          !document.querySelector('#task-progress').hasAttribute('value')&&
+          document.body.classList.contains('curve-editing');
+      });
+    },{once:true});
+    const observer=new MutationObserver(()=>{
+      if(document.body.classList.contains('curve-editing'))return;
+      observer.disconnect();
       window.committedFirstPath=document.querySelector('#geometry [data-path]');
       window.markerPassLocked=!document.querySelector('#busy').hidden;
-    },{once:true});
+    });
+    observer.observe(document.body,{attributes:true,attributeFilter:['class']});
   });
-  await page.locator('#node-done').click();
+  await page.locator('#curve-edit').click();
+  assert.equal(await page.evaluate(()=>window.exitProgressVisible),true,
+    'repeated Editor click displays progress before leaving the editor');
   await page.waitForFunction(()=>!document.body.classList.contains('curve-editing')&&
     document.querySelector('#busy').hidden&&
     document.querySelector('#status').textContent.startsWith('Маркеры изменённых контуров обновлены'));
+  assert.equal(await page.evaluate(()=>window.exitProgressBeforePaint),true);
   assert.ok(await page.evaluate(()=>window.committedFirstPath===document.querySelector('#geometry [data-path]')),
     'refreshing markers must reuse the committed vector DOM');
   assert.equal(await page.evaluate(()=>window.markerPassLocked),false);
