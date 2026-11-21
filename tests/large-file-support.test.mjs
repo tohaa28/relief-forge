@@ -55,7 +55,7 @@ test('Large EPS has visible stage, percent, cancellation, user-facing partial no
   for(const id of ['task-status','task-stage','task-progress','task-percent','task-count','drop-overlay'])
     assert.match(html,new RegExp('id="'+id+'"'));
   assert.match(app,/function progressStage\(stage,percent,detail=''\)/);
-  assert.match(app,/async function runProgressiveDiagnostics\(indices,tolerance,\{diagnosticsOnly=false,preserveUnverified=false\}=\{\}\)/);
+  assert.match(app,/async function runProgressiveDiagnostics\(indices,tolerance,\{diagnosticsOnly=false,preserveUnverified=false,editedIndices=\[\]\}=\{\}\)/);
   assert.match(app,/async function buildLargeUnifiedPreview\(indices\)/);
   assert.match(app,/function saveExistingAfterResult\(\)/);
   assert.match(app,/diagnoseAfterDocument\(preview.result,/);

@@ -8,7 +8,7 @@ test('manual editor exit commits with a deferred diagnostics-only refresh of kno
  assert.ok(code);
  assert.match(code,/changed\('curve-session-commit',\{skipDiagnostics:true,preserveIssues:true\}\)/);
  assert.doesNotMatch(code,/requestRecalculation\(\)|calculate\(0\)|scheduleManualLocalRecheck\(\)/);
- assert.match(code,/if\(issues.length\)scheduleManualMarkerCheck\(\)/);
+ assert.match(code,/if\(previous.length\)scheduleManualMarkerCheck/);
  assert.match(code,/\}else render\(\);/,'unchanged exit must not schedule scan');
  assert.match(app,/if\(skipDiagnostics\)return;\n  if\(retainsIssuesDuringManualChange/);
  assert.match(app,/clearTimeout\(settingsTimeout\);clearTimeout\(clearanceTimer\)/);

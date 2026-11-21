@@ -18,7 +18,7 @@ try{
   await page.goto(process.env.MARKERS_URL||'http://localhost:'+port);
   await page.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
   // Use real committed defaults; changing fields without Apply is intentionally inert.
-  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="30mm" height="30mm" viewBox="0 0 30 30"><path fill="none" stroke="black" d="M 2 2 L 12 2 L 12 12"/><path fill="none" stroke="blue" d="M 16 21 L 25 21 L 25 27"/></svg>';
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="30mm" height="30mm" viewBox="0 0 30 30"><path fill="none" stroke="black" d="M 2 2 L 12 2 L 12 12"/><path fill="none" stroke="blue" d="M 16 21 L 25 21 L 25 27"/><path fill="#b42318" d="M19 3H26V9H19Z"/></svg>';
   await page.locator('#file').setInputFiles({
     name:'manual-open-curve.svg',mimeType:'image/svg+xml',buffer:Buffer.from(svg)
   });
@@ -69,6 +69,13 @@ try{
     document.querySelector('#status').textContent.startsWith('Пройдено'));
   assert.equal(await openCount(),1,'the fixed open contour disappears and the other stays marked');
   assert.equal(await page.locator('.problem-marker').count(),1);
+  const display=await page.locator('#geometry').evaluate(layer=>({
+    outlines:[...layer.querySelectorAll('.wireframe-override')].map(path=>getComputedStyle(path).fill),
+    artwork:layer.querySelectorAll('.svg-artwork').length
+  }));
+  assert.equal(display.outlines.length,3,'edited and unedited vectors use one display mode');
+  assert.ok(display.outlines.every(fill=>fill==='none'));
+  assert.equal(display.artwork,0);
   assert.ok(await page.locator('#compare-after').isDisabled(),'diagnostics must not launch automatic repair');
   // Exit without edits must also avoid a new clearance/diagnostic Worker.
   await page.locator('#curve-edit').click();
