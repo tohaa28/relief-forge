@@ -1,5 +1,5 @@
-import {nativeParts,bezierPart,evaluateBezier,pointDistance} from './native-bezier.js?v=0.2.0-alpha.86';
-import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.86';
+import {nativeParts,bezierPart,evaluateBezier,pointDistance} from './native-bezier.js?v=0.2.0-alpha.87';
+import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.87';
 const sub=(a,b)=>[a[0]-b[0],a[1]-b[1]];
 const add=(a,b,k=1)=>[a[0]+b[0]*k,a[1]+b[1]*k];
 const unit=v=>{const n=Math.hypot(...v);return n>1e-12?v.map(x=>x/n):null;};

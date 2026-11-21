@@ -2,7 +2,7 @@
 // It is never stored in history, downloads, localStorage or EPS. Only the
 // 8-bit alpha channel is retained; all reconstructed RGB values are zero.
 import {rasterPlan,rasterizeDocumentAlpha,validateDoctorTracerRgba,
-  DOCTORTRACER_WORKER_MAX_SIDE,DOCTORTRACER_WORKER_MAX_PIXELS} from './doctortracer-fallback.js?v=0.2.0-alpha.86';
+  DOCTORTRACER_WORKER_MAX_SIDE,DOCTORTRACER_WORKER_MAX_PIXELS} from './doctortracer-fallback.js?v=0.2.0-alpha.87';
 export const PREPARED_RASTER_DPI=600;
 export const PREPARED_RASTER_MAX_SIDE=9000;
 export const PREPARED_RASTER_MAX_PIXELS=36000000;
@@ -65,7 +65,7 @@ export function workerRasterFromPreparedMask(prepared,plan=boundedWorkerRasterPl
   validateDoctorTracerRgba(raster);
   return raster;
 }
-export function createDoctorTracerMaskCache({rasterize=rasterizeDocumentAlpha}={}){
+export function createDoctorTracerMaskCache({rasterize=rasterizeDocumentAlpha,planFor=preparedRasterPlan}={}){
   let generation=0,entry=null;
   return {
     get generation(){return generation;},
@@ -73,7 +73,7 @@ export function createDoctorTracerMaskCache({rasterize=rasterizeDocumentAlpha}={
     get(token){return entry?.generation===token?entry:null;},
     async prepare(source,{signal,yieldUi,onProgress}={}){
       const ticket=generation;
-      const plan=preparedRasterPlan(source);
+      const plan=planFor(source);
       const raster=await rasterize(source,plan,{signal,yieldUi,onProgress});
       if(signal?.aborted||ticket!==generation)return null;
       if(!(raster?.alpha instanceof Uint8Array)||

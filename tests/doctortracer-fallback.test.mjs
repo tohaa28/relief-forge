@@ -206,7 +206,7 @@ test('AFTER integration takes source, rechecks candidate and keeps undo; does no
   const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
   const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
   assert.match(app,/retryUnfixableWithDoctorTracer\(preview,report,callRust,generation\)/);
-  assert.match(app,/preparedRasterPlan\(source\)/);
+  assert.match(app,/appearanceRasterPlan\(source\)/);
   assert.match(app,/doctorMaskCache\.get\(preview\.doctorMaskToken\)/);
   assert.match(app,/traceDocumentWithNodeBudget\(source,plan,/);
   assert.match(app,/acceptRetracing\(originalCount,checked,similarity,\{threshold:0\}\)/);
@@ -327,7 +327,7 @@ test('alpha62: production integration normalizes BOTH initial and retry rasters 
  assert.match(source,/const pixels=blackTransparentRgba8\(/);
  assert.match(source,/worker\.postMessage\(\{pixels:pixels\.buffer/);
  assert.match(source,/alpha:true,willReadFrequently:true/);
- assert.match(app,/firstRaster:raster,referenceRaster:originalMask,scales:\[1\],signal:abort\.signal/);
+ assert.match(app,/firstRaster:raster,scales:\[1\],signal:abort\.signal/);
  assert.match(source,/downsampleBlackTransparentRgba8\(referenceRaster,current\.width,current\.height\)/);
  assert.match(source,/await rasterize\(source,current,\{signal\}\)/);
 });

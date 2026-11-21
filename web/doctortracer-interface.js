@@ -1,4 +1,4 @@
-import {DOCTORTRACER_URL,validateDoctorTracerRgba} from './doctortracer-fallback.js?v=0.2.0-alpha.86';
+import {DOCTORTRACER_URL,validateDoctorTracerRgba} from './doctortracer-fallback.js?v=0.2.0-alpha.87';
 
 function rasterPng(raster){
   validateDoctorTracerRgba(raster);
@@ -45,7 +45,7 @@ export async function traceInDoctorTracerInterface(raster,{frame,returnButton,st
         if(!input?.onchange||!vector)throw Error('Интерфейс DoctorTracer изменился. Передача изображения недоступна.');
         clearTimeout(timer);
         const transfer=new win.DataTransfer();
-        transfer.items.add(new win.File([png],'Силуэт.png',{type:'image/png'}));
+        transfer.items.add(new win.File([png],'Импортированный макет.png',{type:'image/png'}));
         input.files=transfer.files;
         input.dispatchEvent(new win.Event('change',{bubbles:true}));
         status('Настройте параметры и запустите трассировку в DoctorTracer.');
