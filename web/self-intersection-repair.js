@@ -266,6 +266,51 @@ function loopCandidates(path,hit,parts,tolerance,{Parser,size,preserve}){
   }
   return candidates;
 }
+// A very large compound may contain spatially isolated subpaths. Repair only
+// handles in those subpaths, never flatten, split the object, or move anchors.
+// A control hull contains the entire Bezier. Disjoint hull boxes before AND
+// after the edit prove that no new contact with untouched geometry is possible.
+function repairIsolatedCompound(doc,index,path,tolerance,{mode,Parser,maxRepairs,maxPaths}){
+  if(!['hybrid','handles'].includes(mode)||!path.artwork||
+    /clip-path|mask=|filter=|url\(|<image\b/i.test(path.artwork))return null;
+  const commands=vectorCommands(path),parts=nativeParts(path);
+  const starts=commands.flatMap((c,i)=>c[0]==='M'?[i]:[]);
+  if(parts.length<2||parts.length!==starts.length||segmentCount(path)>30000)return null;
+  const boxes=parts.map(p=>bbox([p.start,...p.segments.flatMap(s=>s.controls)]));
+  const others=doc.paths.flatMap((p,j)=>j===index||p.kind==='image'?[]:[worldBounds(p)]);
+  const isolated=(box,i)=>!boxes.some((b,j)=>j!==i&&intersect(box,b,tolerance))&&
+    !others.some(b=>intersect(box,b,tolerance));
+  let checked=0,corrected=0,normal=0,detected=0,skipped=0,maxDeviationMm=0;
+  for(let i=0;i<parts.length&&checked<Math.min(12,maxPaths)&&corrected<maxRepairs;i++){
+    const p=parts[i];
+    if(!p.segments.some(s=>s.controls.length===4)||p.segments.length>720||!isolated(boxes[i],i))continue;
+    const start=starts[i],end=starts[i+1]??commands.length;
+    const original=commands.slice(start,end);
+    checked++;
+    try{
+      const single=finishDeferredCurveCommands(path,structuredClone(original),{},{Parser});
+      const result=repairSelfIntersections({...doc,paths:[single]},[0],tolerance,
+        {mode:'handles',preserve:true,Parser,maxRepairs:1,maxPaths:1});
+      detected+=result.stats.detected;skipped+=result.stats.skipped;
+      if(!result.stats.correctedHandles)continue;
+      const next=result.document.paths[0],replacement=next.commands;
+      // Even a future change in the local repair algorithm cannot add anchors
+      // or alter the original command structure through this route.
+      if(replacement.length!==original.length||replacement.some((c,j)=>
+        c[0]!==original[j][0]||c.length!==original[j].length||
+        (c[0]==='C'?c.slice(-2).some((v,k)=>v!==original[j].slice(-2)[k]):
+          c.some((v,k)=>v!==original[j][k])))){skipped++;continue;}
+      const nextBox=worldBounds(next);
+      if(!isolated(nextBox,i)){skipped++;continue;}
+      commands.splice(start,original.length,...replacement);boxes[i]=nextBox;
+      corrected+=result.stats.correctedHandles;normal+=result.stats.correctedNormal;
+      maxDeviationMm=Math.max(maxDeviationMm,result.stats.maxDeviationMm);
+    }catch{skipped++;}
+  }
+  const output=corrected?finishDeferredCurveCommands(path,commands,path.nodeKinds||{},{Parser}):path;
+  return {path:output,checked,corrected,normal,detected,skipped,maxDeviationMm};
+}
+
 export function repairSelfIntersections(source,indices,tolerance,{
   mode='hybrid',size='all',preserve=true,Parser=globalThis.DOMParser,
   maxRepairs=24,maxPaths=300
@@ -297,7 +342,19 @@ export function repairSelfIntersections(source,indices,tolerance,{
     try{
       const parts=nativeParts(path);
       if(!parts.some(p=>p.segments.length>2||p.segments.some(s=>s.controls.length===4)))continue;
-      if(parts.reduce((n,p)=>n+p.segments.length,0)>720){stats.limited++;continue;}
+      if(parts.reduce((n,p)=>n+p.segments.length,0)>720){
+        stats.limited++; // Remaining non-isolated geometry is not certified.
+        const local=repairIsolatedCompound(document,index,path,tolerance,{
+          mode,Parser,maxRepairs:maxRepairs-completed,maxPaths:Math.max(0,maxPaths-checked)});
+        if(local){
+          checked+=local.checked;completed+=local.corrected;
+          stats.detected+=local.detected;stats.skipped+=local.skipped;
+          stats.correctedHandles+=local.corrected;stats.correctedNormal+=local.normal;
+          stats.maxDeviationMm=Math.max(stats.maxDeviationMm,local.maxDeviationMm);
+          document.paths[index]=local.path;
+        }
+        continue;
+      }
       if(++checked>maxPaths){stats.limited++;break;}
       for(let attempts=0;attempts<maxRepairs;attempts++){
         const oldHits=intersections(path);
