@@ -1,7 +1,7 @@
 // Keyboard routing is intentionally separate from UI handlers so collisions
 // with input editing and browser shortcuts can be regression-tested.
 export const nodeShortcuts=Object.freeze({
-  v:{tool:'move'},'+':{tool:'add'},'=':{tool:'add'},h:{tool:'handles'},
+  v:{tool:'move'},'+':{tool:'add'},'=':{tool:'add'},h:{tool:'move'},
   c:{operation:'cusp'},s:{operation:'smooth'},'shift+s':{operation:'symmetric'},
   l:{operation:'line'},q:{operation:'curve'},b:{operation:'break'},
   x:{operation:'close'},r:{operation:'reverse'},delete:{operation:'remove'},

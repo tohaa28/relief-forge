@@ -96,7 +96,7 @@ test('UI provides active toolbar, handle drags, shortcuts, and Corel-style right
   const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
   const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
   const css=readFileSync(new URL('../web/style.css',import.meta.url),'utf8');
-  for(const id of ['node-move','node-add','node-remove','node-handles','node-cusp',
+  for(const id of ['node-move','node-add','node-remove','node-cusp',
     'node-smooth','node-symmetric','node-line','node-curve','node-break','node-reverse','node-close','node-context'])
     assert.ok(html.includes('id="'+id+'"'),id);
   assert.match(app,/moveCurveHandle\(drag.before.paths\[drag.path\]/);

@@ -1,3 +1,26 @@
+## 0.2.0-alpha.76 — кандидат: единый инструмент узлов/ручек и пустая область перед Open, 2026-11-21
+
+Запросы пользователя: «объедини инструмент переместить и ручки углов»; во время работы добавлено «нажатие на кнопку открыть должно сбрасывать рабочую область до пустой и масщтаб». База main34fb2d8 (alpha75), observed main build+Pages44879380891 SUCCESS. Ветка feature/alpha76-unified-node-handles. Чужие PR не затрагиваются.
+
+## Единый инструмент
+
+Удалена отдельная toolbar кнопка node-handles. node-move сохраняет утверждённую иконку и название «Переместить»; title/hint объясняют работу с узлами и ручками. В трёх toolbar loops остались move/add/remove. Pointerdown маршрутизирует data-curve-handle к существующему editor.moveHandle при nodeTool=move, а узлы — к moveAnchor. Структурные операции/типы cusp/smooth/symmetric и математические инварианты ручек не менялись. H — совместимый alias того же move, V тоже move; отдельного режима handles больше нет. Не изменён self-intersection-mode handles — это другой инструмент ремонта. Add/remove не начинают drag ручки. Показ ручек по выбору узла сохранён.
+
+Успешный dedicated uninstrumented Chromium: выбор узла1 у2C, move узла перемещает обе ручки вместе; incoming/outgoing ручки cusp двигаются независимо при неподвижном узле; local Undo/Redo, V/H alias, pointercancel, исходный DOM не пересоздаётся, один commit на «Готово», native2C/endpoints, EPS==AFTER, global Undo/Redo PASS. Первый harness упал на сравнении state после local Undo: тот намеренно снимает activeCurveNode и скрывает ручки. Тест теперь повторно выбирает узел перед чтением позиции, не меняя прежнюю геометрию или поведение Undo. npm429/429 PASS до version bump.
+
+## Открыть: сброс до показа выбора
+
+Выделен общий resetWorkspace для New/Open. Busy блокирует действие; открытый local editor сначала завершается штатным commit, при ошибке завершения сброс и file picker не выполняются. Старый непустой документ получает checkpoint; повторное открытие уже пустой стандартной области не добавляет пустые Undo-ступени. Отменяются старые settings/local/clearance/workspace-check timers и clearance Worker, инвалидируются поколения диагностики/preview; сбрасываются draft/drag/pan/local overlays, source comparison/markers, wireframe, имя файла, остаточный отчёт. Создаётся настоящий пустой документ300×200мм, fit camera[-21,-21,342,242] с обычным floating-point округлением; pending zoom сбрасывается. Настройки обработки и постоянная история файлов сохраняются.
+
+Только после сброса вызывается file input click, его value заранее очищен для повторного выбора того же файла. Ctrl+O использует тот же путь. Отмена picker оставляет область пустой, Ctrl+Z возвращает предыдущий документ (включая завершённые local edits). Невалидный выбранный файл не воскрешает старую рабочую область; обычный прямой drop/fileinput не получил безусловного сброса и сохраняет свой прежний error recovery.
+
+Подтверждён существовавший дефект: basename('') возвращает экспортный fallback relief-forge, поэтому пустой workspace показывал фиктивное имя. Исправлено только syncWorkspaceFileLabel: basename вызывается при настоящем sourceName; экспортный fallback не менялся. Static filename test обновлён для отсутствующего источника. Первый Open browser отказал на видимой подписи, это исправление приложения, не ослабление assertion. Следующий harness ожидал exact -21, но300*.07 даёт -21.000000000000004; camera проверяется с1e-10. Следующая попытка ожидала click скрытого глобального Undo в свёрнутой панели — переведена на пользовательский Ctrl+Z, который доступен без открытия панели. Последний targeted Open ещё выполняется на момент этой записи.
+
+## Область проверки и следующий шаг
+
+Основные файлы: web/app.js, web/index.html, web/doctor-shortcuts.js; tests/approved-artwork,corel-node-tools,doctor-brand-speed,toolbar-filename обновлены под объединённый UI/alias. Новые реальные browser-alpha76-unified-move.mjs и browser-alpha76-open-reset.mjs добавлены в обязательный check-wasm (всего19 Chromium gates). Версии Cargo/lock/npm и все module cache keys синхронизированы на alpha76. ДО/paint/holes/M-L-C-Q/Undo/точный EPS не должны меняться кроме явных пользовательских правок. Private EPS не предоставлен, fixtures синтетические. Следующие шаги: targeted Open,429JS/Rust/freshWASM/full19Chromium, PR/CI/main Pages/public оба сценария. Пока НЕ опубликовано, user-confirmed нет. Откат runtime —34fb2d8.
+
+
 ## 0.2.0-alpha.75 — ОПУБЛИКОВАНО, 2026-11-21
 
 - **Сначала выполнена документация по запросу:** [сводка изменений alpha72–74](https://github.com/tohaa28/relief-forge/blob/main/docs/history/CHANGES_ALPHA72_ALPHA74.md), отдельный checkpoint `0a79676` опубликован перед runtime-правками. Новый релиз: viewer zoom и reset defaults.

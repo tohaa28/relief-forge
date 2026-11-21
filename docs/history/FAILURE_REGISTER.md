@@ -634,3 +634,11 @@ Alpha.72 synthetic 20k C/CPU4: серия 60 wheel 294ms, geometry updates total
 ## F-073. Зум просмотра заново строил весь SVG и списки
 
 Подтверждено baseline60wheel:60render,60viewBox,237120 mutations на1975 объектах с подложкой. Исправление alpha75: отдельный viewer pending-camera RAF, DOM reuse, кеш экранных декораций и чистое screen→world с virtual view. Не переносить editor-only обрезку600сегментов на заливки/подложку viewer. Сохранять marker sizes, source geometry/history и отменять pending camera при новом жесте/Fit/focus/mode switch. Детали/неудачные harness/метрики: ALPHA75_VIEW_ZOOM_DEFAULTS.md.
+
+## F-074. Ручки Безье требовали переключения с перемещения узла
+
+Пользователь потребовал объединить Move/Handles. Проверено, что data-curve-handle обрабатывался только при nodeTool=handles. Alpha76 маршрутизирует ручки и узлы внутри move, H/V вызывают один режим; separate toolbar button удалена. Математика moveHandle/типы узлов не менялись. Dedicated browser проверяет обе ручки, узлы, local/global Undo/Redo, pointercancel и EPS. Local Undo снимает выделение: harness должен повторно выбрать узел перед чтением ручек, а не менять этот UI-инвариант.
+
+## F-075. Open не сбрасывал область до picker; пустой caption получал fallback-имя
+
+Прежний Open только вызывал file.click. Alpha76 перед выбором очищает рабочий документ/стадии/overlays/camera, предыдущая геометрия доступна в Undo. Cancel оставляет пусто. Подтверждён дополнительный дефект basename('')→relief-forge в caption; исправлен только условный вызов caption, экспортное имя не менялось. Физический размер300×200/fit342×242 проверять с floating tolerance. Не кликать скрытый Undo в свёрнутой панели harness: Ctrl+Z есть у пользователя. Полные попытки и доказательства: ALPHA76_UNIFIED_MOVE_OPEN_RESET.md.
