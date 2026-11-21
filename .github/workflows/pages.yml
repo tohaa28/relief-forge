@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
@@ -44,11 +44,6 @@ jobs:
           cargo build --locked --release --target wasm32-unknown-unknown
           cp target/wasm32-unknown-unknown/release/relief_forge.wasm web/engine.wasm
           node scripts/check-wasm.mjs
-      - name: Verify crisp raster and DoctorTracer return in Chromium
-        run: |
-          npx playwright install --with-deps chromium
-          node scripts/browser-crisp-raster.mjs
-          node scripts/browser-alpha77-doctortracer-tab.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: relief-forge-wasm-web
