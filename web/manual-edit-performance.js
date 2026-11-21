@@ -1,10 +1,11 @@
-import {nativeParts,pointDistance} from './native-bezier.js?v=0.2.0-alpha.79';
+import {nativeParts,pointDistance} from './native-bezier.js?v=0.2.0-alpha.80';
 
 // Bound SVG anchor elements to a small cursor-centred screen neighbourhood.
 // The index is computed once for a path snapshot; mousemove never traverses
 // 7000+ nodes, rebuilds a compound path, or creates thousands of DOM elements.
 export function buildAnchorIndex(nodes){
-  const valid=nodes.filter(n=>Array.isArray(n.point)&&n.point.every(Number.isFinite));
+  const valid=nodes.filter(n=>Array.isArray(n.point)&&n.point.every(Number.isFinite))
+    .map(node=>({...node,point:[...node.point]}));
   if(!valid.length)return {nodes:[],cell:1,buckets:new Map()};
   let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
   for(const n of valid){
@@ -18,9 +19,23 @@ export function buildAnchorIndex(nodes){
     if(!buckets.has(key))buckets.set(key,[]);
     buckets.get(key).push(n);
   }
-  return {nodes:valid,cell,buckets};
+  return {nodes:valid,cell,buckets,byIndex:new Map(valid.map(node=>[node.index,node]))};
 }
-export function nearbyAnchors(index,point,radius,{limit=240,includeIndex=null}={}){
+export function updateAnchorPosition(index,nodeIndex,point){
+  const node=index?.byIndex?.get(nodeIndex);
+  if(!node)return;
+  const key=position=>position.map(value=>Math.floor(value/index.cell)).join(':');
+  const oldKey=key(node.point),newKey=key(point);
+  node.point=[...point];
+  if(oldKey===newKey)return;
+  const bucket=index.buckets.get(oldKey);
+  bucket.splice(bucket.indexOf(node),1);
+  if(!bucket.length)index.buckets.delete(oldKey);
+  if(!index.buckets.has(newKey))index.buckets.set(newKey,[]);
+  index.buckets.get(newKey).push(node);
+}
+
+export function nearbyAnchors(index,point,radius,{limit=240,includeIndex=null,viewport=null}={}){
   if(!index||!Array.isArray(point)||!Number.isFinite(radius)||radius<=0)return [];
   const cell=index.cell,minX=Math.floor((point[0]-radius)/cell),maxX=Math.floor((point[0]+radius)/cell),
     minY=Math.floor((point[1]-radius)/cell),maxY=Math.floor((point[1]+radius)/cell);
@@ -31,7 +46,8 @@ export function nearbyAnchors(index,point,radius,{limit=240,includeIndex=null}={
   const checkBucket=bucket=>{
     for(const n of bucket){
       const d=pointDistance(n.point,point);
-      if(d<=radius||n.index===includeIndex)close.push({n,d});
+      if(d<=radius||n.index===includeIndex)close.push({n,d,visible:viewport&&n.point[0]>=viewport.x&&n.point[0]<=viewport.x+viewport.width&&
+        n.point[1]>=viewport.y&&n.point[1]<=viewport.y+viewport.height});
     }
   };
   const cells=(maxX-minX+1)*(maxY-minY+1);
@@ -42,7 +58,7 @@ export function nearbyAnchors(index,point,radius,{limit=240,includeIndex=null}={
     }
   }else for(let x=minX;x<=maxX;x++)for(let y=minY;y<=maxY;y++)
     checkBucket(index.buckets.get(x+':'+y)||[]);
-  close.sort((a,b)=>a.d-b.d||a.n.index-b.n.index);
+  close.sort((a,b)=>Number(b.visible||false)-Number(a.visible||false)||a.d-b.d||a.n.index-b.n.index);
   const output=close.slice(0,Math.max(1,limit)).map(v=>v.n);
   if(includeIndex!==null&&!output.some(n=>n.index===includeIndex)){
     const pinned=index.nodes.find(n=>n.index===includeIndex);

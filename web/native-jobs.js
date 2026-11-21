@@ -1,12 +1,19 @@
 const jobs=new Map();
-export function runNativeJob(data,{startupTimeoutMs=20000}={}){
+export function runNativeJob(data,{startupTimeoutMs=20000,executionTimeoutMs=null}={}){
  return new Promise((resolve,reject)=>{
-  const worker=new Worker(new URL('./native-worker.js?v=0.2.0-alpha.79',import.meta.url),{type:'module'});
+  const worker=new Worker(new URL('./native-worker.js?v=0.2.0-alpha.80',import.meta.url),{type:'module'});
   let settled=false;
+  const deadline=executionTimeoutMs===null?null:performance.now()+executionTimeoutMs;
+  let executionTimer;
   const timer=setTimeout(()=>finish(null,'Не удалось загрузить модуль геометрии за 20 секунд. Исходный документ сохранён.'),startupTimeoutMs);
-  const finish=(value,error)=>{if(settled)return;settled=true;clearTimeout(timer);jobs.delete(worker);worker.terminate();error?reject(Error(error)):resolve(value);};
+  const finish=(value,error)=>{if(settled)return;settled=true;clearTimeout(timer);clearTimeout(executionTimer);jobs.delete(worker);worker.terminate();error?reject(Error(error)):resolve(value);};
   jobs.set(worker,()=>finish(null,'Расчёт отменён'));
-  worker.onmessage=({data})=>{if(data.ready){clearTimeout(timer);return;}finish(data.output,data.error);};
+  worker.onmessage=({data})=>{if(data.ready){
+    clearTimeout(timer);
+    if(executionTimeoutMs!==null&&executionTimer===undefined)
+      executionTimer=setTimeout(()=>finish(null,'Истекло время проверки маркеров.'),Math.max(0,deadline-performance.now()));
+    return;
+  }finish(data.output,data.error);};
   worker.onerror=e=>finish(null,e.message||'Ошибка нативной геометрии');
   try{worker.postMessage(data);}catch(error){finish(null,error.message);}
  });
