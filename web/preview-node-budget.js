@@ -1,5 +1,5 @@
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.85';
-import {verifyNativeUnionProof} from './native-union-proof.js?v=0.2.0-alpha.85';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.86';
+import {verifyNativeUnionProof} from './native-union-proof.js?v=0.2.0-alpha.86';
 // Bound final editable nodes by the original document. Valid Union may need
 // more intersection anchors than the intermediate optimized curves.
 export function realNodeCount(document){
