@@ -29,7 +29,7 @@ test('file caption is safe, bounded, and bound to confirmed document state',()=>
  assert.match(app,/const sourceName=doc\.sourceFileName\|\|doc\.epsImport\?\.name\|\|doc\.pdfImport\?\.name/);
  assert.match(app,/const name=sourceName\?basename\(sourceName\):''/);
  assert.match(app,/\$\('workspace-filename'\)\.textContent=name/);
- assert.match(app,/function render\(\)\{\s*syncWorkspaceFileLabel\(\)/);
+ assert.match(app,/function render\(\{reuseGeometry=false\}=\{\}\)\{\s*syncWorkspaceFileLabel\(\)/);
  assert.match(app,/doc=\{format:'relief-forge',version:1,width:300,height:200,paths:\[\]\}/);
 });
 test('narrow controls can wrap rather than paint over SVG icons',()=>{

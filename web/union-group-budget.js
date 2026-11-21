@@ -1,7 +1,7 @@
-import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.81';
-import {realNodeCount} from './preview-node-budget.js?v=0.2.0-alpha.81';
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.81';
-import {verifyNativeUnionProof} from './native-union-proof.js?v=0.2.0-alpha.81';
+import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.82';
+import {realNodeCount} from './preview-node-budget.js?v=0.2.0-alpha.82';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.82';
+import {verifyNativeUnionProof} from './native-union-proof.js?v=0.2.0-alpha.82';
 
 // A separate, fail-closed commit gate for every independent Boolean group.
 // A rejected group keeps its native curves and never rolls back other groups.

@@ -66,10 +66,20 @@ try{
   assert.equal(await page.locator('#geometry').innerHTML(),before);
   const openCount=()=>page.locator('#issues').getByText(/Открытый контур/).count();
   assert.equal(await openCount(),2,'fixture has two independent open contours');
+  await page.evaluate(()=>{
+    const button=document.querySelector('#node-done');
+    button.addEventListener('click',()=>{
+      window.committedFirstPath=document.querySelector('#geometry [data-path]');
+      window.markerPassLocked=!document.querySelector('#busy').hidden;
+    },{once:true});
+  });
   await page.locator('#node-done').click();
   await page.waitForFunction(()=>!document.body.classList.contains('curve-editing')&&
     document.querySelector('#busy').hidden&&
     document.querySelector('#status').textContent.startsWith('Маркеры изменённых контуров обновлены'));
+  assert.ok(await page.evaluate(()=>window.committedFirstPath===document.querySelector('#geometry [data-path]')),
+    'refreshing markers must reuse the committed vector DOM');
+  assert.equal(await page.evaluate(()=>window.markerPassLocked),false);
   assert.equal(await openCount(),1,'the fixed open contour disappears and the other stays marked');
   assert.equal(await page.locator('.problem-marker').count(),1);
   const display=await page.locator('#geometry').evaluate(layer=>({

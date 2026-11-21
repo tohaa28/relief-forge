@@ -1,5 +1,5 @@
-import svgpath from './vendor/svgpath.mjs?v=0.2.0-alpha.81';
-import {paintFromArtwork} from './eps-paint.js?v=0.2.0-alpha.81';
+import svgpath from './vendor/svgpath.mjs?v=0.2.0-alpha.82';
+import {paintFromArtwork} from './eps-paint.js?v=0.2.0-alpha.82';
 const NS='http://www.w3.org/2000/svg';
 const tags=new Set('svg g defs path image use clipPath mask pattern linearGradient radialGradient stop rect circle ellipse line polyline polygon title desc metadata'.split(' '));
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
@@ -30,7 +30,18 @@ function commands(d,transform=''){
   return result;
 }
 export const commandData=c=>c.map(s=>s.join(' ')).join(' ');
-export function worldData(p){return p.artwork?svgpath(commandData(p.commands)).translate(...p.offset).toString():p.points.map(([x,y],i)=>`${i?'L':'M'}${x} ${y}`).join(' ')+(p.closed?' Z':'');}
+export function worldData(p){
+  if(!p.artwork)return p.points.map(([x,y],i)=>`${i?'L':'M'}${x} ${y}`).join(' ')+(p.closed?' Z':'');
+  const [dx,dy]=p.offset;
+  if(!p.commands.every(command=>['M','L','C','Q','Z'].includes(command[0])))
+    return svgpath(commandData(p.commands)).translate(dx,dy).toString();
+  return p.commands.map(command=>{
+    if(!dx&&!dy)return command[0]+command.slice(1).join(' ');
+    const coordinates=[];
+    for(let i=1;i<command.length;i+=2)coordinates.push(command[i]+dx,command[i+1]+dy);
+    return command[0]+coordinates.join(' ');
+  }).join('');
+}
 export function artworkMarkup(p){return `<g transform="translate(${p.offset.join(' ')})">${p.artwork}</g>`;}
 export function safeFragment(s,Parser){xml(`<svg xmlns="${NS}" xmlns:xlink="http://www.w3.org/1999/xlink">${s}</svg>`,Parser);return s;}
 function length(s,fallback,ppi){if(!s)return fallback;const m=s.match(/^\s*([\d.eE+-]+)\s*(mm|cm|in|pt|pc|px)?\s*$/);if(!m)throw Error('SVG: неизвестные единицы');return Number(m[1])*({mm:1,cm:10,in:25.4,pt:25.4/72,pc:25.4/6,px:25.4/ppi}[m[2]||'px']);}
