@@ -642,3 +642,5 @@ Alpha.72 synthetic 20k C/CPU4: серия 60 wheel 294ms, geometry updates total
 ## F-075. Open не сбрасывал область до picker; пустой caption получал fallback-имя
 
 Прежний Open только вызывал file.click. Alpha76 перед выбором очищает рабочий документ/стадии/overlays/camera, предыдущая геометрия доступна в Undo. Cancel оставляет пусто. Подтверждён дополнительный дефект basename('')→relief-forge в caption; исправлен только условный вызов caption, экспортное имя не менялось. Физический размер300×200/fit342×242 проверять с floating tolerance. Не кликать скрытый Undo в свёрнутой панели harness: Ctrl+Z есть у пользователя. Полные попытки и доказательства: ALPHA76_UNIFIED_MOVE_OPEN_RESET.md.
+
+В alpha.77 первоначальные проверки source-regex падали из-за CRLF и прежней сигнатуры вызова acceptRetracing. После исправлений 429 JS PASS. Новый Chromium сценарий использует тестовый Worker: проверяет RGBA, обратный SVG, Rust/нативную проверку при нуле дефектов и отмену. Сам внешний Worker этим сценарием не проверяется.

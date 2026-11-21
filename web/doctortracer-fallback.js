@@ -1,5 +1,5 @@
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.76';
-import {importRichSvg} from './rich-svg.js?v=0.2.0-alpha.76';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.77';
+import {importRichSvg} from './rich-svg.js?v=0.2.0-alpha.77';
 
 // The linked DoctorTracer 0.21.1 WASM gh-pages site owns its Worker and its GPL
 // dependencies. Nothing from that distribution is copied or relicensed here.
@@ -405,8 +405,8 @@ export function maskSimilarity(before,after,{cutoff=128}={}){
   }
   return {iou:either?both/either:0,areaRatio:a?b/a:0,sourcePixels:a,resultPixels:b};
 }
-export function acceptRetracing(beforeIssues,afterReport,similarity,{minIou=.95}={}){
-  return Number.isInteger(beforeIssues)&&beforeIssues>DOCTORTRACER_THRESHOLD&&
+export function acceptRetracing(beforeIssues,afterReport,similarity,{minIou=.95,threshold=DOCTORTRACER_THRESHOLD}={}){
+  return Number.isInteger(beforeIssues)&&beforeIssues>threshold&&
     afterReport?.complete===true&&afterReport.fullScope===true&&
     Array.isArray(afterReport.issues)&&afterReport.issues.length<beforeIssues&&
     similarity?.iou>=minIou&&similarity.areaRatio>=.95&&similarity.areaRatio<=1.05;
