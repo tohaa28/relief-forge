@@ -46,6 +46,9 @@ try{
           const pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;
           if(!pixels.some((value,i)=>i%4===3&&value>128))throw new Error('Silhouette was empty');
           const {width,height}=canvas;
+          const sample=(x,y)=>Array.from(ctx.getImageData(Math.floor(width*x),Math.floor(height*y),1,1).data);
+          window.importedPixels=[sample(.3,.5),sample(.5,.5),sample(.05,.05)];
+
           trace.disabled=false;
           trace.onclick=()=>{
             const inset=Number(document.querySelector('#detail').value);
@@ -70,7 +73,7 @@ try{
   await page.goto(published||(real?'https://tohaa28.github.io/relief-forge/':'http://localhost:'+port));
   await page.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
   const input={name:'tracer-tab.svg',mimeType:'image/svg+xml',buffer:Buffer.from(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="10mm" height="10mm" viewBox="0 0 10 10"><path fill="black" d="M2 2H8V8H2Z"/></svg>')};
+    '<svg xmlns="http://www.w3.org/2000/svg" width="10mm" height="10mm" viewBox="0 0 10 10"><g opacity=".6"><path fill="#ff0000" d="M2 2H7V8H2Z"/><path fill="#0000ff" d="M4 2H8V8H4Z"/></g></svg>')};
   const settled=()=>page.waitForFunction(()=>document.querySelector('#busy').hidden&&document.querySelector('#status').textContent.startsWith('ПОСЛЕ:'));
   await page.locator('#file').setInputFiles(input);
   await settled();
@@ -82,10 +85,14 @@ try{
   assert.equal(await page.locator('main').isHidden(),true);
   assert.equal(await page.locator('#doctortracer-return').isDisabled(),true);
   if(real){
-    await tracer.getByText('Силуэт.png',{exact:true}).first().waitFor();
+    await tracer.getByText('Импортированный макет.png',{exact:true}).first().waitFor();
     for(const label of ['Базовый','Чистые Края','Оставить Прозрачность','Высокое Качество','Два Цвета'])
       await tracer.getByText(label,{exact:true}).click();
   }else{
+    await tracer.locator('#trace').waitFor();
+    const samples=await tracer.locator('#trace').evaluate(()=>window.importedPixels);
+    assert.deepEqual(samples,[[255,0,0,153],[0,0,255,153],[0,0,0,0]],
+      'original colors and group opacity must survive PNG handoff, including overlapped shapes');
     await tracer.locator('#detail').fill('3');
     await tracer.locator('#trace').click();
   }
