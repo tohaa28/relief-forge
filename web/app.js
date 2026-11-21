@@ -1,4 +1,4 @@
-import {appearanceRasterPlan,rasterizeImportedAppearance} from './doctortracer-appearance.js?v=0.2.0-alpha.89';
+import {appearanceRasterPlan,doctorTracerHandoffPlan,rasterizeImportedAppearance} from './doctortracer-appearance.js?v=0.2.0-alpha.89';
 import {traceInDoctorTracerInterface} from './doctortracer-interface.js?v=0.2.0-alpha.89';
 import {nativeParts} from './native-bezier.js?v=0.2.0-alpha.89';
 import {cacheViewDecorations} from './view-zoom.js?v=0.2.0-alpha.89';
@@ -1591,18 +1591,22 @@ async function sendToDoctorTracer(){
   showStage('Подготовка изображения…');
   showDoctorTracerTab(true);
   try{
-    const plan=appearanceRasterPlan(source,Number($('doctortracer-dpi').value));
+    const requested=appearanceRasterPlan(source,Number($('doctortracer-dpi').value));
+    const plan=doctorTracerHandoffPlan(requested);
+    const notices=[];
+    if(plan.dpi<requested.dpi)notices.push('Лимит DoctorTracer 2400 px: '+Math.round(plan.dpi)+' dpi');
     await yieldForUi();
-    const png=await rasterizeImportedAppearance(source,plan,{signal:abort.signal});
-    showStage('Открытие DoctorTracer…');
+    const png=await rasterizeImportedAppearance(source,plan,{signal:abort.signal,
+      onWarning:message=>notices.push(message)});
+    const prefix=notices.length?notices.join(' · ')+' · ':'';
+    showStage(prefix+'Открытие DoctorTracer…');
     const {svg}=await traceInDoctorTracerInterface(png,{
       frame:$('doctortracer-frame'),returnButton:$('doctortracer-return'),
-      status:message=>showStage((Math.max(plan.width,plan.height)>2400?
-        'DoctorTracer уменьшит растр до 2400 px · ':'')+message),signal:abort.signal
+      status:message=>showStage(prefix+message),signal:abort.signal
     });
     if(abort.signal.aborted)return;
     candidate=validate(remapDoctorTracerSvg(source,svg,plan));
-    record('doctortracer-return-source',{pixels:[plan.width,plan.height],dpi:plan.dpi,paths:candidate.paths.length});
+    record('doctortracer-return-source',{pixels:[plan.width,plan.height],dpi:plan.dpi,requestedDpi:requested.dpi,notices,paths:candidate.paths.length});
   }catch(error){
     const message=abort.signal.aborted?'Трассировка отменена.':'DoctorTracer: '+error.message;
     record('doctortracer-return-aborted',{reason:message});

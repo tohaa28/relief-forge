@@ -1,5 +1,5 @@
 import test from 'node:test';
-import {appearanceRasterPlan} from '../web/doctortracer-appearance.js';
+import {appearanceRasterPlan,doctorTracerHandoffPlan} from '../web/doctortracer-appearance.js';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {rasterizeDocumentAlpha,maskSimilarity,validateDoctorTracerRgba} from '../web/doctortracer-fallback.js';
@@ -152,4 +152,19 @@ test('manual handoff supports exact 300, 600 and 1200 dpi without silent resizin
  }
  assert.throws(()=>appearanceRasterPlan(page,450),/300, 600 или 1200/);
  assert.throws(()=>appearanceRasterPlan({width:420,height:297},1200),/слишком велик/);
+});
+
+test('DoctorTracer handoff raster matches the final 2400 px grid, with honest physical scale',()=>{
+ const requested=appearanceRasterPlan({width:210,height:297},1200);
+ const original=structuredClone(requested),plan=doctorTracerHandoffPlan(requested);
+ assert.equal(plan.height,2400);
+ assert.equal(plan.width,Math.round(requested.width*2400/requested.height));
+ assert.equal(plan.requestedDpi,1200);
+ assert.ok(Math.abs(plan.dpi-2400*25.4/297)<.01);
+ assert.equal(plan.widthMm,210);assert.equal(plan.heightMm,297);
+ assert.deepEqual(requested,original);
+ for(const dpi of [300,600,1200]){
+   const small=appearanceRasterPlan({width:10,height:10},dpi);
+   assert.deepEqual(doctorTracerHandoffPlan(small),{...small,requestedDpi:dpi});
+ }
 });

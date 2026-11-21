@@ -324,3 +324,4 @@
 {"at": "2026-11-21", "action": "doctortracer-manual-source-replacement", "status": "deployed", "merge_sha": "719c6f2919469c2a33476227b3dd300aecd3b0c8", "workflow": "44932088585", "pr": 120}
 {"at": "2026-11-21", "action": "doctortracer-crisp-raster-dpi", "status": "candidate", "base": "b7a76a7"}
 {"at": "2026-11-21", "action": "doctortracer-crisp-raster-dpi", "status": "deployed", "merge_sha": "ef6f0e62d32c9270abaf4e55e71baf69fb01cb31", "workflow": "44933857318", "pr": 121}
+{"at":"2026-11-21T18:45:00Z","action":"alpha89-crisp-clip-handoff-candidate","base":"4427cbf197598f3ded236bbbd339e913f830fee2","branch":"fix/alpha89-crisp-clip-handoff","status":"prototype Chromium tested; repository candidate not fully tested; main unchanged","details":"Clip-only binary coverage with unchanged real group opacity; direct bounded raster; unsupported clips are warned about."}

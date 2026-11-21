@@ -1,3 +1,4 @@
+import {hardenClipMasks} from './doctortracer-clip-mask.js?v=0.2.0-alpha.89';
 import {exportDocument,importRichSvg,safeFragment} from './rich-svg.js?v=0.2.0-alpha.89';
 
 export function appearanceRasterPlan(document,dpi){
@@ -34,7 +35,18 @@ function originalArtwork(document){
   }catch{return null;}
 }
 
-export function appearanceRasterSvg(document,plan){
+// The external wizard caps its input at 2400 px and interpolates larger PNGs.
+// Rasterize directly onto that final grid to avoid a second smoothing pass.
+export const DOCTORTRACER_HANDOFF_MAX_SIDE=2400;
+export function doctorTracerHandoffPlan(plan){
+  const side=Math.max(plan.width,plan.height);
+  if(side<=DOCTORTRACER_HANDOFF_MAX_SIDE)return {...plan,requestedDpi:plan.dpi};
+  const scale=DOCTORTRACER_HANDOFF_MAX_SIDE/side;
+  return {...plan,width:Math.max(1,Math.round(plan.width*scale)),
+    height:Math.max(1,Math.round(plan.height*scale)),dpi:plan.dpi*scale,requestedDpi:plan.dpi};
+}
+
+export function appearanceRasterSvg(document,plan,{onWarning=()=>{}}={}){
   let artwork=originalArtwork(document);
   if(!artwork){
     const root=new DOMParser().parseFromString(exportDocument(document),'image/svg+xml').documentElement;
@@ -43,10 +55,15 @@ export function appearanceRasterSvg(document,plan){
     artwork=new XMLSerializer().serializeToString(root);
   }
   const safe=safeFragment(artwork.replace(/^\s*<\?xml[^?]*\?>/i,''),DOMParser);
-  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${plan.width}" height="${plan.height}" viewBox="${plan.x} ${plan.y} ${plan.widthMm} ${plan.heightMm}" preserveAspectRatio="none"><style>
+  const markup=`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${plan.width}" height="${plan.height}" viewBox="${plan.x} ${plan.y} ${plan.widthMm} ${plan.heightMm}" preserveAspectRatio="none"><style>
     path,rect,circle,ellipse,line,polygon,polyline,use {shape-rendering:crispEdges!important}
     image {image-rendering:pixelated!important}
     </style>${safe}</svg>`;
+  // Generated filters are trusted raster-only markup, inserted AFTER the
+  // untrusted SVG has passed the original allowlist validation.
+  const result=hardenClipMasks(markup);
+  if(result.unsupported)onWarning('Сложных обрезок без отключения сглаживания: '+result.unsupported+'.');
+  return result.markup;
 }
 
 // Canvas encoders use their own DPI. Replace any pHYs chunk so the file
@@ -79,9 +96,9 @@ async function pngWithDpi(png,dpi){
   return new Blob([png.slice(0,33),chunk,png.slice(33)],{type:'image/png'});
 }
 
-export async function rasterizeImportedAppearance(document,plan,{signal}={}){
+export async function rasterizeImportedAppearance(document,plan,{signal,onWarning}={}){
   signal?.throwIfAborted();
-  const url=URL.createObjectURL(new Blob([appearanceRasterSvg(document,plan)],{type:'image/svg+xml'}));
+  const url=URL.createObjectURL(new Blob([appearanceRasterSvg(document,plan,{onWarning})],{type:'image/svg+xml'}));
   const canvas=globalThis.document.createElement('canvas');
   try{
     const image=new Image();
