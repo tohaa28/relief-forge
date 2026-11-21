@@ -1,3 +1,7 @@
+# Доктор Узелков — 0.2.0-alpha.76
+
+«Переместить» объединяет работу с узлами и ручками Безье (V/H). «Открыть» очищает рабочую область и сбрасывает масштаб перед выбором файла; Ctrl+Z возвращает прежний документ. [Открыть приложение](https://tohaa28.github.io/relief-forge/?v=alpha76) · [PR#108](https://github.com/tohaa28/relief-forge/pull/108) · [История и проверки](docs/history/ALPHA76_UNIFIED_MOVE_OPEN_RESET.md).
+
 # Доктор Узелков — 0.2.0-alpha.75
 
 Быстрый зум просмотра: одна камера на кадр без повторного построения SVG и подложки. Кнопка «По умолчанию» возвращает параметры; сглаживание Безье по умолчанию0, обработка по существующей кнопке «Применить изменения». [Открыть приложение](https://tohaa28.github.io/relief-forge/?v=alpha75) · [PR#107](https://github.com/tohaa28/relief-forge/pull/107) · [История и проверки](docs/history/ALPHA75_VIEW_ZOOM_DEFAULTS.md) · [Сводка предыдущих изменений](docs/history/CHANGES_ALPHA72_ALPHA74.md).
