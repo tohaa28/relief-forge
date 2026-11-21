@@ -46,6 +46,9 @@ try{
   // on the canvas rather than clicking a hidden off-screen button.
   assert.ok(await page.locator('#geometry .curve-node').count()>0);
   await page.locator('#geometry .curve-node').first().click();
+  await page.evaluate(()=>document.querySelector('#toggle-points').click());
+  assert.ok(await page.locator('#manual-glyphs .curve-node').first().isVisible(),
+    'healthy-point visibility must not hide the editable points');
   const before=await page.locator('#geometry').innerHTML();
   await page.locator('#node-close').click();
   assert.match(await page.locator('#status').textContent(),/Локальная правка сохранена/);
@@ -66,7 +69,7 @@ try{
   await page.locator('#node-done').click();
   await page.waitForFunction(()=>!document.body.classList.contains('curve-editing')&&
     document.querySelector('#busy').hidden&&
-    document.querySelector('#status').textContent.startsWith('Пройдено'));
+    document.querySelector('#status').textContent.startsWith('Маркеры изменённых контуров обновлены'));
   assert.equal(await openCount(),1,'the fixed open contour disappears and the other stays marked');
   assert.equal(await page.locator('.problem-marker').count(),1);
   const display=await page.locator('#geometry').evaluate(layer=>({

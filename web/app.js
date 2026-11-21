@@ -1,46 +1,46 @@
-import {nativeParts} from './native-bezier.js?v=0.2.0-alpha.79';
-import {cacheViewDecorations} from './view-zoom.js?v=0.2.0-alpha.79';
-import {prepareAfterCopy} from './after-preparation.js?v=0.2.0-alpha.79';
-import {prepareNativeIntersections} from './native-intersections.js?v=0.2.0-alpha.79';
-import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.79';
-import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.79';
-import {issueViewBox} from './issue-focus.js?v=0.2.0-alpha.79';
-import {visibleHealthyAnchors,circlePath} from './vector-points.js?v=0.2.0-alpha.79';
-import {issueDistanceLabel,screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.79';
-import {issuesForManualEditor,resolveManualIssues,retainsIssuesDuringManualChange} from './manual-issue-state.js?v=0.2.0-alpha.79';
-import {diagnoseLocalNodeArea,localNodeRadius} from './local-node-diagnostics.js?v=0.2.0-alpha.79';
-import {buildAnchorIndex,nearbyAnchors,createLiveCurvePatch,drawLiveCurvePatch} from './manual-edit-performance.js?v=0.2.0-alpha.79';
-import {heavyManualScene,screenToDocumentPoint,manualVectorBounds} from './manual-viewport-performance.js?v=0.2.0-alpha.79';
-import {createDeferredCurveEditor} from './deferred-curve-editor.js?v=0.2.0-alpha.79';
-import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.79';
-import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.79';
-import {packedInput} from './auto-repair.js?v=0.2.0-alpha.79';
-import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js?v=0.2.0-alpha.79';
-import {removeTinyClosedSubpaths} from './cnc-microfilter.js?v=0.2.0-alpha.79';
-import {beginImportBefore,captureImportBefore,importedComparison} from './import-before.js?v=0.2.0-alpha.79';
-import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js?v=0.2.0-alpha.79';
-import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.79';
-import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.79';
-import {separateCoincidentNonadjacentNodes} from './coincident-node-separation.js?v=0.2.0-alpha.79';
-import {repairSelfIntersections} from './self-intersection-repair.js?v=0.2.0-alpha.79';
-import {mergeNearbyGeometry} from './nearby-curve-merge.js?v=0.2.0-alpha.79';
-import {rasterPlan,rasterizeDocument,rasterizeDocumentAlpha,traceDocumentWithNodeBudget,maskSimilarity,acceptRetracing} from './doctortracer-fallback.js?v=0.2.0-alpha.79';
-import {createDoctorTracerMaskCache,preparedRasterPlan,boundedWorkerRasterPlan,workerRasterFromPreparedMask,PREPARED_RASTER_DPI} from './doctortracer-prepared.js?v=0.2.0-alpha.79';
-import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode,finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.79';
-import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.79';
-import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.79';
-import {inspectDocumentComplexity,largeFileWarning} from './complexity-preflight.js?v=0.2.0-alpha.79';
-import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.79';
-import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.79';
-import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.79';
-import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.79';
-import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.79';
-import {runNativeJob,cancelNativeJobs} from './native-jobs.js?v=0.2.0-alpha.79';
+import {nativeParts} from './native-bezier.js?v=0.2.0-alpha.80';
+import {cacheViewDecorations} from './view-zoom.js?v=0.2.0-alpha.80';
+import {prepareAfterCopy} from './after-preparation.js?v=0.2.0-alpha.80';
+import {prepareNativeIntersections} from './native-intersections.js?v=0.2.0-alpha.80';
+import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.80';
+import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.80';
+import {issueViewBox} from './issue-focus.js?v=0.2.0-alpha.80';
+import {visibleHealthyAnchors,circlePath} from './vector-points.js?v=0.2.0-alpha.80';
+import {issueDistanceLabel,screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.80';
+import {issuesForManualEditor,resolveManualIssues,retainsIssuesDuringManualChange} from './manual-issue-state.js?v=0.2.0-alpha.80';
+import {diagnoseLocalNodeArea,localNodeRadius} from './local-node-diagnostics.js?v=0.2.0-alpha.80';
+import {buildAnchorIndex,updateAnchorPosition,nearbyAnchors,createLiveCurvePatch,drawLiveCurvePatch} from './manual-edit-performance.js?v=0.2.0-alpha.80';
+import {heavyManualScene,screenToDocumentPoint,manualVectorBounds} from './manual-viewport-performance.js?v=0.2.0-alpha.80';
+import {createDeferredCurveEditor} from './deferred-curve-editor.js?v=0.2.0-alpha.80';
+import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.80';
+import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.80';
+import {packedInput} from './auto-repair.js?v=0.2.0-alpha.80';
+import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js?v=0.2.0-alpha.80';
+import {removeTinyClosedSubpaths} from './cnc-microfilter.js?v=0.2.0-alpha.80';
+import {beginImportBefore,captureImportBefore,importedComparison} from './import-before.js?v=0.2.0-alpha.80';
+import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js?v=0.2.0-alpha.80';
+import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.80';
+import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.80';
+import {separateCoincidentNonadjacentNodes} from './coincident-node-separation.js?v=0.2.0-alpha.80';
+import {repairSelfIntersections} from './self-intersection-repair.js?v=0.2.0-alpha.80';
+import {mergeNearbyGeometry} from './nearby-curve-merge.js?v=0.2.0-alpha.80';
+import {rasterPlan,rasterizeDocument,rasterizeDocumentAlpha,traceDocumentWithNodeBudget,maskSimilarity,acceptRetracing} from './doctortracer-fallback.js?v=0.2.0-alpha.80';
+import {createDoctorTracerMaskCache,preparedRasterPlan,boundedWorkerRasterPlan,workerRasterFromPreparedMask,PREPARED_RASTER_DPI} from './doctortracer-prepared.js?v=0.2.0-alpha.80';
+import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode,finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.80';
+import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.80';
+import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.80';
+import {inspectDocumentComplexity,largeFileWarning} from './complexity-preflight.js?v=0.2.0-alpha.80';
+import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.80';
+import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.80';
+import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.80';
+import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.80';
+import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.80';
+import {runNativeJob,cancelNativeJobs} from './native-jobs.js?v=0.2.0-alpha.80';
 const mergeOverlappingObjects=(document,options)=>runNativeJob({action:'union',document,options});
-import {gpuBroadphase} from './gpu-broadphase.js?v=0.2.0-alpha.79';
-import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.79';
-import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.79';
-import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.79';
+import {gpuBroadphase} from './gpu-broadphase.js?v=0.2.0-alpha.80';
+import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.80';
+import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.80';
+import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.80';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 let clearanceKey='',clearanceJob=0,clearanceTimer=null,clearanceWorker=null,clearanceReport=null;
 function updateClearance(document,unit){
@@ -62,7 +62,7 @@ function updateClearance(document,unit){
     clearanceKey=key;clearanceReport=null;clearanceJob++;clearTimeout(clearanceTimer);clearanceWorker?.terminate();clearanceWorker=null;
     label.textContent=threshold?'Измерение расстояний…':'Укажите расстояние больше 0 и не больше 1000 мм.';
     if(threshold&&document.paths.length){const id=clearanceJob;clearanceTimer=setTimeout(()=>{
-      clearanceWorker=new Worker(new URL('./clearance-worker.js?v=0.2.0-alpha.79',import.meta.url),{type:'module'});
+      clearanceWorker=new Worker(new URL('./clearance-worker.js?v=0.2.0-alpha.80',import.meta.url),{type:'module'});
       clearanceWorker.onmessage=({data})=>{if(data.id!==clearanceJob)return;clearanceReport=data.report||null;label.textContent=data.error||('Узкие места < '+threshold+' мм: '+data.report.markers.length+(data.report.complete?' · проверка завершена':' · проверка неполная (лимит или пограничная точность)'));clearanceWorker?.terminate();clearanceWorker=null;render();};
       clearanceWorker.onerror=()=>{if(id!==clearanceJob)return;label.textContent='Измерение расстояний не завершено: ошибка вычисления.';clearanceWorker?.terminate();clearanceWorker=null;};
       clearanceWorker.postMessage({id,document:{paths:document.paths.map(p=>({kind:p.kind,artwork:Boolean(p.artwork),commands:p.commands,points:p.points,closed:p.closed,offset:p.offset}))},threshold});
@@ -164,7 +164,7 @@ let localEditors=new Map(),localEditUndo=[],localEditRedo=[],localEditCount=0;
 let localEditorIndexes=new Map(),localPatchElements=new Map();
 let manualGlyphBuildUnit=0,manualZoomFrame=0,manualZoomRegion=null,manualZoomDirty=true;
 let manualPendingView=null,manualGlyphScaleUnit=0;
-let manualPathBounds=null,manualSceneHeavy=null,manualGlyphCenter=null,
+let manualPathBounds=null,manualSceneHeavy=null,
   manualViewportCenter=null,manualScreenRect=null;
 const localPatchKey=(path,segment)=>path+':'+segment;
 function syncLocalPatches({path=null,segments=null,reset=false}={}){
@@ -216,13 +216,14 @@ function resetLocalEditors(){
   localEditors.clear();localEditorIndexes.clear();localPatchElements.clear();
   localEditUndo=[];localEditRedo=[];localEditCount=0;
   $('manual-patches').replaceChildren();
+  $('manual-glyphs').hidden=false;
   $('manual-glyphs').replaceChildren();
   $('manual-local-geometry').replaceChildren();
   if(manualZoomFrame)cancelAnimationFrame(manualZoomFrame);
   manualZoomFrame=0;manualGlyphBuildUnit=0;manualZoomRegion=null;
   manualPendingView=null;manualGlyphScaleUnit=0;
   manualZoomDirty=true;manualPathBounds=null;manualSceneHeavy=null;
-  manualGlyphCenter=null;manualViewportCenter=null;manualScreenRect=null;
+  manualViewportCenter=null;manualScreenRect=null;
   document.body.classList.remove('local-editor-active','manual-local-zoom');
 }
 function localEditorToolbar(){
@@ -361,7 +362,7 @@ function scheduleManualZoomRefresh(){
     // Glyph icons are re-created only after a significant zoom change;
     // the native Bézier layer is recycled across many wheel frames.
     if(!manualGlyphBuildUnit||moved||Math.max(unit/manualGlyphBuildUnit,
-      manualGlyphBuildUnit/unit)>1.8)drawLocalEditorOverlay();
+      manualGlyphBuildUnit/unit)>1.2)drawLocalEditorOverlay();
     else {
       if(!manualGlyphScaleUnit||Math.max(unit/manualGlyphScaleUnit,manualGlyphScaleUnit/unit)>1.12)
         rescaleLocalEditorGlyphs(unit);
@@ -384,13 +385,13 @@ function drawLocalEditorOverlay(){
     unit=screenUnitsPerPixel(view,$('canvas').clientWidth,$('canvas').clientHeight);
   manualGlyphBuildUnit=unit;
   manualGlyphScaleUnit=unit;
-  const focus=manualFocus.point;
   const center=[view.x+view.width/2,view.y+view.height/2];
-  const glyphCenter=Math.abs(focus[0]-center[0])<=view.width*.65&&
-    Math.abs(focus[1]-center[1])<=view.height*.65?focus:center;
-  manualGlyphCenter=glyphCenter;manualViewportCenter=center;
-  const near=nearbyAnchors(indexed,glyphCenter,Math.max(unit*135,settingNumber('tolerance')*3),
-    {limit:200,includeIndex:activeCurveNode?.path===path?activeCurveNode.index:null});
+  manualViewportCenter=center;
+  const width=Math.max(view.width,unit*$('canvas').clientWidth);
+  const height=Math.max(view.height,unit*$('canvas').clientHeight);
+  const near=nearbyAnchors(indexed,center,Math.hypot(width,height)*.65,
+    {limit:200,includeIndex:activeCurveNode?.path===path?activeCurveNode.index:null,
+      viewport:{x:center[0]-width/2,y:center[1]-height/2,width,height}});
   const seen=new Set();
   for(const n of near){
     const pos=editor.nodePosition(n.index)||n.point;
@@ -593,13 +594,20 @@ function changed(action,{skipDiagnostics=false,preserveIssues=false}={}){
 }
 function scheduleManualMarkerCheck(editedIndices){
   const document=doc;
-  // Let commands that close the editor (Open, Save, export) finish first.
-  queueMicrotask(()=>{
+  queueMicrotask(async()=>{
     if(doc!==document||busy||!ready||curveEditing()||!manualReviewPending)return;
-    const indices=doc.paths.flatMap((path,index)=>path.kind==='image'?[]:[index]);
-    if(indices.length)void runProgressiveDiagnostics(indices,settingNumber('tolerance'),{
-      diagnosticsOnly:true,preserveUnverified:true,editedIndices
-    });
+    const generation=++diagnosticGeneration;
+    const cancelled=()=>generation!==diagnosticGeneration||doc!==document;
+    lock(true,{coverCanvas:false});
+    progressStage('Проверка маркеров на изменённых контурах',20);
+    try{
+      const result=await refreshEditedMarkerScopes(issues,editedIndices,settingNumber('tolerance'),cancelled);
+      if(cancelled())return;
+      issues=result;
+      status('Маркеры изменённых контуров обновлены. Для полной проверки нажмите «Проверить дефекты».');
+    }finally{
+      if(!cancelled())lock(false);
+    }
   });
 }
 function scheduleManualLocalRecheck(){
@@ -722,7 +730,7 @@ function workspaceScan({attemptRepair=false,manual=false}={}){
   state.hidden=health.ok&&!manual;
   state.dataset.health=health.ok?'ok':'warning';
   $('workspace-health-report').value=safeWorkspaceReport(health,{
-    version:'0.2.0-alpha.79',source:lastImportFailure?.source||doc.sourceFileName||'',
+    version:'0.2.0-alpha.80',source:lastImportFailure?.source||doc.sourceFileName||'',
     errors:displayErrors});
   record('workspace-health',{ok:health.ok,issues:health.issues,forceWireframe,attempts:repairs,
     count:health.elementCount,rect:health.canvasRect,bbox:health.geometryBox});
@@ -749,7 +757,7 @@ $('workspace-check').onclick=()=>{
   const health=workspaceScan({attemptRepair:true,manual:true});
   $('workspace-health-report').value=safeWorkspaceReport(health||{
     ok:true,issues:[],note:'Документ не открыт'},{
-    version:'0.2.0-alpha.79',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
+    version:'0.2.0-alpha.80',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
   $('workspace-health-dialog').showModal();
 };
 $('workspace-check-repair').onclick=()=>{
@@ -1300,7 +1308,7 @@ $('recheck-defects').onclick=()=>{
 
 function spawnWorker(){
   ready=false;$('engine').textContent='○ Загрузка Rust / WASM…';
-  worker=new Worker(new URL('worker.js?v=0.2.0-alpha.79',import.meta.url),{type:'module'});
+  worker=new Worker(new URL('worker.js?v=0.2.0-alpha.80',import.meta.url),{type:'module'});
   worker.onmessage=({data})=>{
     if(data.id===0){ready=!data.error;$('engine').textContent=ready?'● Rust / WASM готов':'○ WASM не собран';status(data.error||'Rust-ядро готово');render();if(ready&&doc.paths.length&&!currentComparison()&&!suppressNextDiagnostic)calculate(0);suppressNextDiagnostic=false;return;}
     if(!pending||data.id!==pending.id)return;
@@ -1775,11 +1783,21 @@ async function refreshEditedMarkerScopes(previous,editedIndices,tolerance,cancel
     if(scopes.size>=8)break;
   }
   let current=previous;
+  const deadline=performance.now()+3000;
   for(const [key,indices] of scopes){
+    const remaining=deadline-performance.now();
+    if(remaining<=0)break;
     if(cancelled())return previous;
     if(!indices.every(index=>doc.paths[index]&&doc.paths[index].kind!=='image'))continue;
     try{
-      const checked=await runNativeJob({action:'diagnose',document:doc,issues:[],indices,tolerance});
+      const paths=indices.map(index=>{
+        const {kind,commands,points,closed,offset,artwork}=doc.paths[index];
+        return {kind,commands,points,closed,offset,artwork:Boolean(artwork)};
+      });
+      const checked=await runNativeJob({action:'diagnose',document:{paths},issues:[],tolerance},{
+        startupTimeoutMs:remaining,executionTimeoutMs:remaining
+      });
+      checked.issues=checked.issues.map(issue=>({...issue,path:indices[issue.path],other:indices[issue.other]}));
       if(cancelled())return previous;
       if(checked.complete){
         current=current.filter(issue=>!nativeKinds.has(issue.kind)||scopeKey(issue)!==key);
@@ -1792,7 +1810,7 @@ async function refreshEditedMarkerScopes(previous,editedIndices,tolerance,cancel
   return current;
 }
 
-async function runProgressiveDiagnostics(indices,tolerance,{diagnosticsOnly=false,preserveUnverified=false,editedIndices=[]}={}){
+async function runProgressiveDiagnostics(indices,tolerance,{diagnosticsOnly=false,preserveUnverified=false}={}){
   const generation=++diagnosticGeneration;
   const scope=[],contours=[],unreadable=[];
   lock(true,{coverCanvas:false});
@@ -1835,15 +1853,7 @@ async function runProgressiveDiagnostics(indices,tolerance,{diagnosticsOnly=fals
         issues=preserveUnverified||curveEditing()?resolveManualIssues(issues,results,{
           failed:preserveUnverified?!complete:failedBatches>0||nativeFailure||unreadable.length>0||plan.skipped.length>0
         }):results;
-        if(preserveUnverified&&!complete){
-          manualReviewPending=true;
-          // A distant ambiguous contour cannot invalidate a complete check
-          // of the exact objects that own a known native defect.
-          const verifiedIssues=await refreshEditedMarkerScopes(issues,editedIndices,tolerance,
-            ()=>generation!==diagnosticGeneration);
-          if(generation!==diagnosticGeneration)return;
-          issues=verifiedIssues;
-        }
+        if(preserveUnverified&&!complete)manualReviewPending=true;
         manualDiagnosticsPending=false;
         metrics=pathMetrics;
         curvePreview=null;
@@ -2229,6 +2239,7 @@ $('canvas').addEventListener('pointerup',e=>{
         if(changed.length){
           manualFocus={path:drag.path,point:drag.curveHandle?
             [...(editor.nodePosition(drag.curveNode)||pos)]:[...target]};
+          if(!drag.curveHandle)updateAnchorPosition(localEditorIndexes.get(drag.path),drag.curveNode,target);
           localEditorModified(drag.path,drag.curveHandle?'handle':'move',changed);
         }else drawLocalEditorOverlay();
       }catch(error){status(error.message);drawLocalEditorOverlay();}
@@ -2284,7 +2295,7 @@ $('toggle-points').onclick=()=>{
   pointsVisible=!pointsVisible;record('toggle-all-anchors',{visible:pointsVisible});
   if(curveEditing()){
     $('toggle-points-label').textContent=pointsVisible?'Скрыть здоровые точки':'Показать здоровые точки';
-    $('manual-glyphs').hidden=!pointsVisible;return;
+    return;
   }
   render();
 };
@@ -2429,7 +2440,7 @@ function openValue(value,name,historyStarted=false){const next=validate(value),o
   }}
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;openingFile=true;lastImportFailure=null;lastImportAttempt={source:name,status:'converting',bytes:bytes.byteLength};updateMascot();if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта '+(/\.pdf$/i.test(name)?'PDF':'EPS')+'…';record('vector-import-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.79',import.meta.url));
+  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.80',import.meta.url));
   progressStage(/\.pdf$/i.test(name)?'Импорт PDF: подготовка MuPDF':'Импорт EPS: подготовка интерпретатора',9);
   const started=performance.now();let downloadLoaded=0,lastDownloadLogAt=0;
   const fail=message=>{
@@ -2700,4 +2711,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();if(!curveEditing())requestRecalculation();
 });
-record('session-start',{version:'0.2.0-alpha.79'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorVersion='0.2.0-alpha.79';document.documentElement.dataset.doctorReady='true';document.dispatchEvent(new Event('doctor-ready'));
+record('session-start',{version:'0.2.0-alpha.80'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorVersion='0.2.0-alpha.80';document.documentElement.dataset.doctorReady='true';document.dispatchEvent(new Event('doctor-ready'));
