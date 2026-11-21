@@ -309,3 +309,4 @@
 {"at": "2026-11-21", "action": "after-clearance-overlay", "status": "deployed", "merge_sha": "994617006dd3847c6583156dc917501c128a7c7f", "workflow": "44919754986", "pr": 113}
 {"at": "2026-11-21", "action": "manual-edit-latency", "status": "implemented", "base_sha": "63245a4", "evidence": "private local EPS, 23.4 to 9.6 ms remove, 32.9 to 26 ms exit"}
 {"at": "2026-11-21", "action": "manual-edit-latency", "status": "deployed", "merge_sha": "b50dbf5a488dd9fbabd38ae5311f937389cd3fa6", "workflow": "44921690127", "pr": 114}
+{"at": "2026-11-21", "action": "paint-editor-exit-progress-before-commit", "status": "implemented", "base_sha": "336ea6a", "evidence": "private EPS local, progress visible first frame, viewer 46 ms"}

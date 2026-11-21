@@ -1,4 +1,4 @@
-import {circlePath} from './vector-points.js?v=0.2.0-alpha.82';
+import {circlePath} from './vector-points.js?v=0.2.0-alpha.83';
 
 // Capture only screen-size decorations after a full render. Camera frames
 // never inspect native commands, rebuild geometry, or relaunch diagnostics.
