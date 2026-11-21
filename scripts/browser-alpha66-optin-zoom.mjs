@@ -16,8 +16,7 @@ try{
  page.on('pageerror',error=>errors.push(error.message));
  await page.goto('http://localhost:'+port);
  await page.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
- assert.equal(await page.locator('#doctortracer-enabled').isChecked(),false,
-   'doctortracer must be opt-in, disabled on first load');
+ assert.ok(await page.locator('#doctortracer-send').isDisabled());
  const count=2300;
  const commands=['M 1 40'];
  for(let i=1;i<=count;i++){
@@ -33,7 +32,8 @@ try{
  await page.waitForFunction(()=>document.querySelector('#busy').hidden&&
    document.querySelector('#status').textContent.startsWith('ПОСЛЕ:'),
    {},{timeout:120000});
- assert.match(await page.locator('#doctortracer-status').textContent(),/отключён/);
+ assert.ok(await page.locator('#doctortracer-tab').isHidden());
+ assert.ok(await page.locator('#doctortracer-send').isEnabled());
  // AFTER may legitimately remove thousands of redundant Bézier anchors.
  // Select original BEFORE to stress the pathological 2300-C source precisely.
  await page.locator('#compare-before').click();

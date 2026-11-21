@@ -4,14 +4,11 @@ import {readFileSync} from 'node:fs';
 import {heavyManualScene,screenToDocumentPoint} from '../web/manual-viewport-performance.js';
 const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
 const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
-test('DoctorTracer is an opt-in staged checkbox, disabled by default, never runs when off',()=>{
- assert.match(html,/id="doctortracer-enabled" type="checkbox"/);
- assert.doesNotMatch(html,/id="doctortracer-enabled"[^>]*checked/);
- assert.match(app,/'doctortracer-enabled','repair-self-intersections','self-intersection-mode'/);
- assert.match(app,/if\(!settingChecked\('doctortracer-enabled'\)\)\{[\s\S]*?return report;/);
- assert.match(app,/if\(settingChecked\('doctortracer-enabled'\)\)void prepareImportArtworkMask\(doc\)/);
- assert.match(app,/else\{ \$\('doctortracer-status'\)[\s\S]*?if\(ready\)calculate\(0\);/);
- assert.match(app,/modified\.every\(id=>id==='doctortracer-enabled'\|\|id==='clearance-threshold'\)/);
+test('DoctorTracer has an explicit send button gated by AFTER',()=>{
+ assert.match(html,/id="doctortracer-send" type="button" disabled/);
+ assert.doesNotMatch(html,/id="doctortracer-enabled"/);
+ assert.match(app,/compareStage!=='after'\)return null/);
+ assert.match(app,/\$\('doctortracer-send'\).onclick=\(\)=>\{void sendToDoctorTracer\(\);\}/);
 });
 test('manual viewport isolation depends on total commands even with one path',()=>{
  assert.equal(heavyManualScene([{kind:'vector',commands:Array.from({length:7546},()=>['C'])}]),true);
@@ -39,10 +36,6 @@ test('viewport panning rebuild threshold compares actual previous viewport, not 
  assert.match(app,/manualViewportCenter=center/);
  assert.doesNotMatch(app,/const moved=manualGlyphCenter&&/);
 });
-test('enabling DoctorTracer applies to existing AFTER preview on Apply without reimport',()=>{
- assert.match(app,/modified\.includes\('doctortracer-enabled'\)&&settingChecked\('doctortracer-enabled'\)&&[\s\S]*?curvePreview\?\.afterDiagnosed\)void checkPreviewAfter\(curvePreview\)/);
-});
-
 test('manual editor builds a native segment index and local geometry before any node click',()=>{
  assert.match(app,/if\(heavyManualScene\(doc\.paths\)&&Number\.isInteger\(primary\)&&localEditor\(primary\)\)manualFocus=/);
  assert.match(app,/render\(\);\n  if\(manualFocus\)drawLocalEditorOverlay\(\);/);

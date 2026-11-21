@@ -202,20 +202,15 @@ test('direct Canvas 2D renderer paints compound holes in one evenodd fill and op
  assert.equal(kinds.filter(v=>v==='bezier').length,1);
 });
 
-test('AFTER integration takes source, rechecks candidate and keeps undo; does not rerun on every edit',()=>{
+test('DoctorTracer starts on send and imports the returned SVG into the normal pipeline',()=>{
   const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
-  const html=readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
-  assert.match(app,/retryUnfixableWithDoctorTracer\(preview,report,callRust,generation\)/);
-  assert.match(app,/appearanceRasterPlan\(source\)/);
-  assert.match(app,/doctorMaskCache\.get\(preview\.doctorMaskToken\)/);
-  assert.match(app,/traceDocumentWithNodeBudget\(source,plan,/);
-  assert.match(app,/acceptRetracing\(originalCount,checked,similarity,\{threshold:0\}\)/);
-  assert.match(app,/preview\.result=candidate/);
-  assert.match(app,/preview\.comparisonData\.afterDoc=candidate/);
-  assert.match(app,/checkpoint\(baseline\);doc=clone\(pv\.result\)/);
-  assert.match(html,/id="doctortracer-status"/);
+  assert.match(app,/const source=currentComparison\(\)\?\.beforeDoc/);
+  assert.match(app,/const \{svg\}=await traceInDoctorTracerInterface\(raster,/);
+  assert.match(app,/candidate=validate\(remapDoctorTracerSvg\(source,svg,plan\)\)/);
+  assert.match(app,/openValue\(\{\.\.\.candidate,sourceFileName:name\},name\)/);
+  assert.match(app,/importedBefore=beginImportBefore\(doc\)/);
+  assert.doesNotMatch(app,/retryUnfixableWithDoctorTracer\(/);
 });
-
 
 test('bounded node-budget fallback retries the original artwork at 70 percent, preserving mm',async()=>{
  const source=doc(),snapshot=structuredClone(source);
@@ -320,14 +315,12 @@ test('alpha62: DoctorTracer Worker receives only black RGB + alpha and packed tr
  assert.deepEqual(Array.from(backing),snapshot,'non-packed source view not mutated');
 });
 
-test('alpha62: production integration normalizes BOTH initial and retry rasters before Worker',()=>{
+test('legacy Worker route normalizes initial and retry rasters',()=>{
  const source=readFileSync(new URL('../web/doctortracer-fallback.js',import.meta.url),'utf8');
- const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
  assert.match(source,/const pixels=blackTransparentRgba8\(new Uint8Array\(/);
  assert.match(source,/const pixels=blackTransparentRgba8\(/);
  assert.match(source,/worker\.postMessage\(\{pixels:pixels\.buffer/);
  assert.match(source,/alpha:true,willReadFrequently:true/);
- assert.match(app,/firstRaster:raster,scales:\[1\],signal:abort\.signal/);
  assert.match(source,/downsampleBlackTransparentRgba8\(referenceRaster,current\.width,current\.height\)/);
  assert.match(source,/await rasterize\(source,current,\{signal\}\)/);
 });

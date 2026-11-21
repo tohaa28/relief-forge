@@ -1,4 +1,4 @@
-import {exportDocument,importRichSvg,safeFragment} from './rich-svg.js?v=0.2.0-alpha.87';
+import {exportDocument,importRichSvg,safeFragment} from './rich-svg.js?v=0.2.0-alpha.88';
 
 export function appearanceRasterPlan(document,{dpi=600,maxSide=9000,maxPixels=36000000}={}){
   const {width:widthMm,height:heightMm}=document;

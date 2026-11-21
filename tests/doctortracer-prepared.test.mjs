@@ -141,14 +141,9 @@ test('alpha65: 600dpi Canvas only reads alpha strips; no full RGBA image is cach
  assert.deepEqual(src,input());
 });
 
-test('alpha65: import mask is prepared before calculate; fallback consumes cache and checks 600dpi alpha',()=>{
+test('manual handoff rasterizes imported artwork on demand at bounded size',()=>{
  const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
- assert.match(app,/void prepareImportArtworkMask\(doc\)/);
- assert.match(app,/await doctorMaskCache\.prepare\(opened/);
- assert.match(app,/if\(ready&&opened\.paths\.some\(p=>p\.kind!=='image'\)\)calculate\(0\)/);
- assert.match(app,/doctorMaskCache\.get\(preview\.doctorMaskToken\)/);
+ assert.match(app,/const plan=appearanceRasterPlan\(source,\{maxSide:2400,maxPixels:5760000\}\)/);
  assert.match(app,/const raster=await rasterizeImportedAppearance\(source,plan/);
- assert.match(app,/firstRaster:raster,scales:\[1\],signal:abort\.signal/);
- assert.match(app,/const candidateRaster=await rasterizeArtworkAlpha\(candidate,prepared\.plan/);
- assert.match(app,/doctorMaskCache\.invalidate\(\)/);
+ assert.doesNotMatch(app,/prepareImportArtworkMask\(/);
 });

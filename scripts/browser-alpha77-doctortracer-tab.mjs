@@ -70,19 +70,35 @@ try{
         </script>`});
     });
   }
-  await page.goto(published||(real?'https://tohaa28.github.io/relief-forge/':'http://localhost:'+port));
+  await page.goto(published||(real?'https://tohaa28.github.io/relief-forge/':'http://localhost:'+port),
+    {waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
   const input={name:'tracer-tab.svg',mimeType:'image/svg+xml',buffer:Buffer.from(
     '<svg xmlns="http://www.w3.org/2000/svg" width="10mm" height="10mm" viewBox="0 0 10 10"><g opacity=".6"><path fill="#ff0000" d="M2 2H7V8H2Z"/><path fill="#0000ff" d="M4 2H8V8H4Z"/></g></svg>')};
   const settled=()=>page.waitForFunction(()=>document.querySelector('#busy').hidden&&document.querySelector('#status').textContent.startsWith('ПОСЛЕ:'));
   await page.locator('#file').setInputFiles(input);
   await settled();
+  const send=page.locator('#doctortracer-send');
+  const before=page.locator('#compare-before');
+  const after=page.locator('#compare-after');
+  const geometry=()=>page.locator('#geometry path.comparison-path').evaluateAll(
+    paths=>paths.map(path=>path.getAttribute('d')));
+  await before.click();
+  assert.ok(await send.isDisabled());
+  const original=await geometry();
+  assert.equal(original.length,2);
+  await after.click();
+  assert.ok(await send.isEnabled());
   if(!real)assert.equal(requests,0);
-  await page.locator('#doctortracer-enabled').check();
-  await page.locator('#apply-changes').click();
+  await send.click();
   const tracer=page.frameLocator('#doctortracer-frame');
   await page.waitForFunction(()=>document.querySelector('#doctortracer-stage').textContent.includes('Настройте параметры'));
   assert.equal(await page.locator('main').isHidden(),true);
+  assert.ok(await page.locator('header').isHidden());
+  assert.ok(await page.locator('footer').isHidden());
+  assert.ok((await page.locator('.tracer-heading').boundingBox()).height<=32);
+  assert.ok((await page.locator('#doctortracer-frame').boundingBox()).height>=
+    (await page.locator('body').boundingBox()).height-32);
   assert.equal(await page.locator('#doctortracer-return').isDisabled(),true);
   if(real){
     await tracer.getByText('Импортированный макет.png',{exact:true}).first().waitFor();
@@ -98,16 +114,30 @@ try{
   }
   await page.locator('#doctortracer-return').click({timeout:120000});
   await settled();
-  assert.match(await page.locator('#doctortracer-status').textContent(),/после трассировки осталось|геометрия заметно отличается|новый вектор принят/);
   assert.ok(await page.locator('main').isVisible());
-  await page.locator('#file').setInputFiles(input);
+  assert.match(await page.locator('#workspace-filename').textContent(),/DoctorTracer\.svg/);
+  await before.click();
+  const traced=await geometry();
+  assert.notDeepEqual(traced,original);
+  if(!real)assert.equal(traced.length,1);
+  await after.click();
+  await send.click();
   await page.waitForFunction(()=>document.querySelector('#doctortracer-stage').textContent.includes('Настройте параметры'));
   await page.locator('#doctortracer-cancel').click();
+  await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('отменена'));
+  await before.click();
+  assert.deepEqual(await geometry(),traced);
+  await page.keyboard.press('Control+z');
   await settled();
-  assert.match(await page.locator('#doctortracer-status').textContent(),/отменена/);
+  await before.click();
+  assert.deepEqual(await geometry(),original);
+  await page.keyboard.press('Control+y');
+  await settled();
+  await before.click();
+  assert.deepEqual(await geometry(),traced);
   assert.ok(await page.locator('#doctortracer-tab').isHidden());
   assert.deepEqual(errors,[]);
-  console.log('PASS DoctorTracer wizard: PNG input, settings, SVG return, host validation and cancel');
+  console.log('PASS DoctorTracer wizard: PNG input, settings, SVG as new BEFORE, regular processing, cancel and Undo/Redo');
 }finally{
   await browser?.close();
   server.kill();

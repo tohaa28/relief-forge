@@ -1,4 +1,4 @@
-import {DOCTORTRACER_URL,validateDoctorTracerRgba} from './doctortracer-fallback.js?v=0.2.0-alpha.87';
+import {DOCTORTRACER_URL,validateDoctorTracerRgba} from './doctortracer-fallback.js?v=0.2.0-alpha.88';
 
 function rasterPng(raster){
   validateDoctorTracerRgba(raster);
