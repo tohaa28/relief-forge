@@ -634,8 +634,10 @@ aside.right #recheck-defects{width:100%;padding:6px 8px;margin:2px 0 8px;font-si
 /* Alpha69: proximity join distance follows existing compact right panel. */
 #merge-nearby-distance{font-variant-numeric:tabular-nums}
 
-body.doctortracer-active main {display:none}
+body.doctortracer-active > :is(header,nav,main,footer) {display:none}
 #doctortracer-tab[hidden] {display:none}
-#doctortracer-tab {display:flex;flex-direction:column;flex:1;min-height:0;padding:12px;gap:6px}
-.tracer-heading {display:flex;align-items:center;justify-content:space-between;gap:12px}
+#doctortracer-tab {display:flex;flex-direction:column;flex:1;min-height:0}
+.tracer-heading {display:flex;align-items:center;gap:6px;padding:2px 6px;min-width:0}
+.tracer-heading button {min-height:24px;padding:2px 7px;white-space:nowrap}
+#doctortracer-stage {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #doctortracer-frame {flex:1;width:100%;min-height:0;border:1px solid #c3d7d6;background:#fff}

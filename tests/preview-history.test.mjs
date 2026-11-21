@@ -12,9 +12,12 @@ test('Undo and Redo operate on committed documents while an automatic preview ex
   const context={doc:structuredClone(committed),past:[structuredClone(original)],future:[],
     curvePreview:preview,busy:false,curveEditing:()=>false,selected:new Set([0]),clone:structuredClone,
     localEditUndo:[],localEditRedo:[],manualReviewPending:false,
+    historyImportBaselines:new WeakMap(),importedBefore:null,
     $:id=>buttons[id]};
   context.changed=(action,opts)=>{context.curvePreview=null;context.lastChange={action,skipDiagnostics:opts?.skipDiagnostics};};
   vm.createContext(context);
+  vm.runInContext(app.slice(app.indexOf('function snapshotForHistory('),
+    app.indexOf('function checkpoint(')),context);
   const availability=app.split(/\r?\n/).find(line=>
     line.includes("$('undo').disabled=")&&line.includes("$('redo').disabled="));
   const handler=id=>{
