@@ -327,7 +327,7 @@ test('alpha62: production integration normalizes BOTH initial and retry rasters 
  assert.match(source,/const pixels=blackTransparentRgba8\(/);
  assert.match(source,/worker\.postMessage\(\{pixels:pixels\.buffer/);
  assert.match(source,/alpha:true,willReadFrequently:true/);
- assert.match(app,/firstRaster:raster,referenceRaster:originalMask,signal:abort\.signal/);
+ assert.match(app,/firstRaster:raster,referenceRaster:originalMask,scales:\[1\],signal:abort\.signal/);
  assert.match(source,/downsampleBlackTransparentRgba8\(referenceRaster,current\.width,current\.height\)/);
  assert.match(source,/await rasterize\(source,current,\{signal\}\)/);
 });

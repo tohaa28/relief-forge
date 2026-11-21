@@ -148,7 +148,7 @@ test('alpha65: import mask is prepared before calculate; fallback consumes cache
  assert.match(app,/if\(ready&&opened\.paths\.some\(p=>p\.kind!=='image'\)\)calculate\(0\)/);
  assert.match(app,/doctorMaskCache\.get\(preview\.doctorMaskToken\)/);
  assert.match(app,/const originalMask=workerRasterFromPreparedMask\(prepared,plan\)/);
- assert.match(app,/firstRaster:raster,referenceRaster:originalMask,signal:abort\.signal/);
+ assert.match(app,/firstRaster:raster,referenceRaster:originalMask,scales:\[1\],signal:abort\.signal/);
  assert.match(app,/const candidateRaster=await rasterizeDocumentAlpha\(candidate,prepared\.plan/);
  assert.match(app,/doctorMaskCache\.invalidate\(\)/);
 });
