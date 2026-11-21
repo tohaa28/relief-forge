@@ -35,15 +35,15 @@ function originalArtwork(document){
   }catch{return null;}
 }
 
-// The external wizard caps its input at 2400 px and interpolates larger PNGs.
-// Rasterize directly onto that final grid to avoid a second smoothing pass.
-export const DOCTORTRACER_HANDOFF_MAX_SIDE=2400;
+// The current DoctorTracer Rust/WASM ABI accepts up to 4096×4096 and 8M pixels.
+// Never change the requested DPI or the already chosen pixel grid to fit.
+export const DOCTORTRACER_HANDOFF_MAX_SIDE=4096;
+export const DOCTORTRACER_HANDOFF_MAX_PIXELS=8000000;
 export function doctorTracerHandoffPlan(plan){
-  const side=Math.max(plan.width,plan.height);
-  if(side<=DOCTORTRACER_HANDOFF_MAX_SIDE)return {...plan,requestedDpi:plan.dpi};
-  const scale=DOCTORTRACER_HANDOFF_MAX_SIDE/side;
-  return {...plan,width:Math.max(1,Math.round(plan.width*scale)),
-    height:Math.max(1,Math.round(plan.height*scale)),dpi:plan.dpi*scale,requestedDpi:plan.dpi};
+  if(!Number.isSafeInteger(plan.width)||!Number.isSafeInteger(plan.height)||plan.width<1||plan.height<1)throw Error('Некорректный размер растра.');
+  if(Math.max(plan.width,plan.height)>DOCTORTRACER_HANDOFF_MAX_SIDE||plan.width*plan.height>DOCTORTRACER_HANDOFF_MAX_PIXELS)
+    throw Error('Исходный растр '+plan.width+'×'+plan.height+' ('+plan.dpi+' dpi) превышает предел текущего WASM DoctorTracer (4096 px / 8 млн пикселей). Автоматическое уменьшение запрещено.');
+  return {...plan,requestedDpi:plan.dpi};
 }
 
 export function appearanceRasterSvg(document,plan,{onWarning=()=>{}}={}){

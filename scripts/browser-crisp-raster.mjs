@@ -38,11 +38,11 @@ try{
    const colorCorrect=data.every((v,i)=>i%4!==0||data[i+3]===0||v===255&&data[i+1]===0&&data[i+2]===0);
    out.push({name,levels,width,height,painted,colorCorrect,warnings,unchanged:before===JSON.stringify(source)});
   }
-  const large=importRichSvg('<svg xmlns="http://www.w3.org/2000/svg" width="210mm" height="297mm" viewBox="0 0 210 297"><g opacity=".6"><path fill="red" d="M10 10L200 45L70 290Z"/></g></svg>');
+  const large=importRichSvg('<svg xmlns="http://www.w3.org/2000/svg" width="67mm" height="10mm" viewBox="0 0 210 297"><g opacity=".6"><path fill="red" d="M10 10L200 45L70 290Z"/></g></svg>');
   const plan=doctorTracerHandoffPlan(appearanceRasterPlan(large,1200));
   const png=await rasterizeImportedAppearance(large,plan),image=await pixels(png);
   const header=new DataView(await png.slice(0,54).arrayBuffer());
-  out.push({name:'capped',width:image.width,height:image.height,dpi:header.getUint32(41)*.0254,expectedDpi:plan.dpi,levels:[...new Set(image.data.filter((v,i)=>i%4===3))].sort((a,b)=>a-b)});
+  out.push({name:'native',width:image.width,height:image.height,dpi:header.getUint32(41)*.0254,expectedDpi:plan.dpi,levels:[...new Set(image.data.filter((v,i)=>i%4===3))].sort((a,b)=>a-b)});
   const unsupported=hardenClipMasks('<svg xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="c"><path d="M0 0L10 0L0 10Z"/></clipPath></defs><path stroke="red" d="M0 0L0 10" clip-path="url(#c)"/></svg>');
   out.push({name:'unsupported',converted:unsupported.converted,unsupported:unsupported.unsupported,retained:unsupported.markup.includes('clip-path="url(#c)"')});
   return out;
@@ -53,7 +53,7 @@ try{
   assert.ok(result.painted>1000);assert.ok(result.colorCorrect);assert.ok(result.unchanged);
   assert.deepEqual(result.warnings,[]);
  }
- const capped=results[4];assert.equal(capped.height,2400);assert.ok(Math.abs(capped.dpi-capped.expectedDpi)<.02);assert.deepEqual(capped.levels,[0,153]);
+ const native=results[4];assert.equal(native.width,Math.round(67*1200/25.4));assert.equal(native.height,Math.round(10*1200/25.4));assert.equal(native.expectedDpi,1200);assert.ok(Math.abs(native.dpi-1200)<.02);assert.deepEqual(native.levels,[0,153]);
  assert.deepEqual(results[5],{name:'unsupported',converted:0,unsupported:1,retained:true});
- console.log('PASS crisp clip masks and capped raster',JSON.stringify(results));
+ console.log('PASS crisp clip masks and original resolution raster',JSON.stringify(results));
 }finally{await browser?.close();server.kill();}

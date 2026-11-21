@@ -37,6 +37,7 @@ export async function traceInDoctorTracerInterface(png,{frame,returnButton,statu
           if(loaded)throw Error('Интерфейс DoctorTracer изменился. Передача изображения недоступна.');
           return;
         }
+        if(win.doctorTracerInputContract!=='native-raster-v1')throw Error('Требуется DoctorTracer с поддержкой исходного разрешения (0.21.3 или новее). Передача отменена: уменьшение запрещено.');
         // Images and other decorative resources must not delay the handoff.
         connected=true;
         clearTimeout(timer);

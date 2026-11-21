@@ -41,7 +41,7 @@ try{
       return route.fulfill({contentType:'text/html',body:`<!doctype html>
         <img src="decoration.svg" alt=""><input id="file" type="file"><button id="vector" disabled>Вектор</button>
         <button id="trace" disabled>Трассировать</button><input id="detail" type="number" value="2">
-        <script>
+        <script>window.doctorTracerInputContract='native-raster-v1';
         const file=document.querySelector('#file'),vector=document.querySelector('#vector'),trace=document.querySelector('#trace');
         let svg='';
         file.onchange=async()=>{

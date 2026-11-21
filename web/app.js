@@ -1594,7 +1594,7 @@ async function sendToDoctorTracer(){
     const requested=appearanceRasterPlan(source,Number($('doctortracer-dpi').value));
     const plan=doctorTracerHandoffPlan(requested);
     const notices=[];
-    if(plan.dpi<requested.dpi)notices.push('Лимит DoctorTracer 2400 px: '+Math.round(plan.dpi)+' dpi');
+    notices.push('Исходный растр '+plan.width+'×'+plan.height+' · '+plan.dpi+' dpi');
     await yieldForUi();
     const png=await rasterizeImportedAppearance(source,plan,{signal:abort.signal,
       onWarning:message=>notices.push(message)});
