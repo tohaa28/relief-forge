@@ -585,13 +585,13 @@ function changed(action,{skipDiagnostics=false,preserveIssues=false}={}){
 function scheduleManualMarkerCheck(){
   const document=doc;
   // Let commands that close the editor (Open, Save, export) finish first.
-  settingsTimeout=setTimeout(()=>{
+  queueMicrotask(()=>{
     if(doc!==document||busy||!ready||curveEditing()||!manualReviewPending)return;
     const indices=doc.paths.flatMap((path,index)=>path.kind==='image'?[]:[index]);
     if(indices.length)void runProgressiveDiagnostics(indices,settingNumber('tolerance'),{
       diagnosticsOnly:true,preserveUnverified:true
     });
-  },0);
+  });
 }
 function scheduleManualLocalRecheck(){
   if(!curveEditing()||!manualFocus)return;
