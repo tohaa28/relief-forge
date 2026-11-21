@@ -498,3 +498,11 @@ curve-quality сравнивает geometryCommands (world M/L/C/Q/Z) у source 
 ## M-073 · alpha75: камера отдельно от документа; единый источник defaults
 
 Viewer reuse full native SVG + one RAF virtual camera; cache decoration refs once per render, no native parsing/spatial traversal/clearance Worker on wheel. Editor remains bounded native segment cache because its local editing needs differ; do not cull opaque fills or raster images in viewer. DOM-free meet mapping preserves moving-cursor anchors. Reset uses HTML defaults to avoid divergence of initial and restored controls, stages settings until existing Apply, includes range/check/select, smoothing0. See history/ALPHA75_VIEW_ZOOM_DEFAULTS.md for budget, failure and test evidence.
+
+## M-074 · Один move, маршрутизация по цели жеста
+
+Anchor glyph → existing moveAnchor; data-curve-handle → existing moveHandle in same move tool. Keep deferred local patch/Undo/session commit and node-kind constraints. V/H aliases same tool; Add/Remove remain distinct and never drag handles. Avoid changing the unrelated repair-self-intersection handles option. Real pointer tests and EPS compare in history/ALPHA76_UNIFIED_MOVE_OPEN_RESET.md.
+
+## M-075 · Open resets before file selection, keeps previous document in Undo
+
+Shared resetWorkspace for New/Open commits valid local edits first, checkpoints nonempty previous model, clears stale generations/timers/overlays/comparison/report, creates300×200 empty doc and Fit before file.click. Cancel remains empty per explicit user request; settings and file history are retained. Failed import after Open stays empty; direct drop error recovery is preserved. Caption must not call export basename fallback for a missing source. Full browser picker/cancel/same-name/Undo tests required before publication.

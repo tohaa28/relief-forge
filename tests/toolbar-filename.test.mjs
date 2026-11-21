@@ -26,7 +26,8 @@ test('file caption is safe, bounded, and bound to confirmed document state',()=>
  assert.match(html,/id="workspace-filename"/);
  assert.match(css,/\.workspace-file\[hidden\]\{display:none!important\}/);
  assert.match(css,/#workspace-filename\{[^}]*text-overflow:ellipsis/);
- assert.match(app,/const name=basename\(doc\.sourceFileName\|\|doc\.epsImport\?\.name\|\|doc\.pdfImport\?\.name\|\|'\'\)/);
+ assert.match(app,/const sourceName=doc\.sourceFileName\|\|doc\.epsImport\?\.name\|\|doc\.pdfImport\?\.name/);
+ assert.match(app,/const name=sourceName\?basename\(sourceName\):''/);
  assert.match(app,/\$\('workspace-filename'\)\.textContent=name/);
  assert.match(app,/function render\(\)\{\s*syncWorkspaceFileLabel\(\)/);
  assert.match(app,/doc=\{format:'relief-forge',version:1,width:300,height:200,paths:\[\]\}/);

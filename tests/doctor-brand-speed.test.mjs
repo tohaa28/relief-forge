@@ -15,7 +15,7 @@ test('Every editing and file operation has its unique SVG symbol and Russian bra
   assert.ok(present.size>=32);
   for(const [,id] of html.matchAll(/<use href="doctor-icons\.svg#([^"]+)"/g))
     assert.ok(present.has(id),'Unresolved icon '+id);
-  for(const name of ['node-move','node-add','node-remove','node-handles','node-cusp','node-smooth',
+  for(const name of ['node-move','node-add','node-remove','node-cusp','node-smooth',
     'node-symmetric','node-line','node-curve','node-break','node-close','node-reverse']){
     assert.match(html,new RegExp('id="'+name+'"[^>]*><img[^>]*approved-icon'));
   }
@@ -33,7 +33,7 @@ test('Global hotkeys, node modes and text-field safety are deterministic',()=>{
   assert.deepEqual(key('E',{ctrlKey:true,shiftKey:true}),{button:'export'});
   assert.deepEqual(key('v',{}),{button:'select'});
   assert.deepEqual(key('e',{}),{button:'curve-edit'});
-  assert.deepEqual(key('h',{nodes:true}),{tool:'handles'});
+  assert.deepEqual(key('h',{nodes:true}),{tool:'move'});
   assert.deepEqual(key('+',{nodes:true,shiftKey:true}),{tool:'add'});
   assert.deepEqual(key('Delete',{nodes:true}),{operation:'remove'});
   assert.deepEqual(key('s',{nodes:true}),{operation:'smooth'});

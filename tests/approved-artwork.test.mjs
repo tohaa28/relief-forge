@@ -31,7 +31,7 @@ test('every referenced approved PNG icon exists and retains interactive controls
   assert.ok(referenced.length>=30,'Expected approved icons in main UI and context menu');
   for(const ref of referenced)assert.ok(existsSync(file('web/'+ref)),ref);
   for(const action of ['open','export-eps','save','undo','redo','curve-edit','node-move',
-    'node-add','node-remove','node-handles','node-cusp','node-smooth','node-symmetric',
+    'node-add','node-remove','node-cusp','node-smooth','node-symmetric',
     'node-line','node-curve','node-break','node-close','node-reverse']){
     assert.match(html,new RegExp('<button[^>]*id="'+action+'"[^>]*><img[^>]*approved-icon'));
   }
