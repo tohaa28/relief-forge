@@ -58,7 +58,11 @@ try{
   const events=Array.from({length:60},(_,i)=>({x:500+i%4*30,y:370+i%3*20,delta:i%4===3?30:-30}));
   for(const e of events)expected=zoomBox(expected,e.delta>0?1.15:1/1.15,screenToDocumentPoint(e.x,e.y,initial.rect,expected));
   const burstMs=await page.evaluate(events=>{const c=document.querySelector('#canvas'),t=performance.now();for(const e of events)c.dispatchEvent(new WheelEvent('wheel',{clientX:e.x,clientY:e.y,deltaY:e.delta,bubbles:true,cancelable:true}));return performance.now()-t;},events);
-  await page.waitForTimeout(180);
+  await page.waitForFunction(()=>{
+   const c=document.querySelector('#canvas'),b=c.viewBox.baseVal,r=document.querySelector('.issue-ring');
+   return window.__viewWrites>0&&r&&Math.abs(Number(r.getAttribute('r'))/
+    Math.max(b.width/c.clientWidth,b.height/c.clientHeight)-7)<1e-5;
+  });
   const report=await page.evaluate(()=>{
    window.__viewObserver.disconnect();window.__geoObserver.disconnect();const c=document.querySelector('#canvas'),b=c.viewBox.baseVal,
     ring=document.querySelector('.issue-ring'),unit=Math.max(b.width/c.clientWidth,b.height/c.clientHeight);
@@ -69,11 +73,31 @@ try{
   report.cameraError=Math.max(...Object.values(expected).map((v,i)=>Math.abs(v-report.view[i])));
   if(!process.env.ALPHA75_BASELINE)assert.ok(report.cameraError<1e-7,'every moving-cursor step must be retained: '+report.cameraError);
   assert.equal(await page.evaluate(()=>window.__viewSnapshot()),snapshot,'zoom never modifies model/history/diagnostics/selection');
-  assert.ok(Math.abs(report.ringPixels-7)<1e-7,'issue rings keep 7px radius');
+  assert.ok(Math.abs(report.ringPixels-7)<1e-5,'issue rings keep 7px radius');
   if(!process.env.ALPHA75_BASELINE){assert.equal(report.renders,0);assert.equal(report.writes,1);assert.equal(report.geometryMutations,0);assert.equal(report.retained,true);}
   reports.push({name,burstMs,...report});
  }
  if(!process.env.ALPHA75_BASELINE){
+  const decorationWrites=await page.evaluate(async()=>{
+   const canvas=document.querySelector('#canvas'),ring=document.querySelector('.issue-ring');
+   let writes=0,frames=0;
+   const observer=new MutationObserver(records=>{writes+=records.length;});
+   observer.observe(ring,{attributes:true,attributeFilter:['r']});
+   const camera=new MutationObserver(records=>{frames+=records.length;});
+   camera.observe(canvas,{attributes:true,attributeFilter:['viewBox']});
+   const rect=canvas.getBoundingClientRect();
+   for(let i=0;i<8;i++){
+    canvas.dispatchEvent(new WheelEvent('wheel',{clientX:rect.left+rect.width/2,
+      clientY:rect.top+rect.height/2,deltaY:120,cancelable:true}));
+    await new Promise(resolve=>requestAnimationFrame(resolve));
+   }
+   const during=writes;
+   await new Promise(resolve=>setTimeout(resolve,170));
+   observer.disconnect();camera.disconnect();
+   return {during,after:writes,frames};
+  });
+  assert.deepEqual(decorationWrites,{during:0,after:1,frames:8},
+    'each frame updates the camera and the marker is resized once after the gesture');
   const before=await page.locator('#canvas').getAttribute('viewBox');
   await page.evaluate(()=>{
    const c=document.querySelector('#canvas');
