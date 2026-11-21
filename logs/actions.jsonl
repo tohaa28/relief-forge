@@ -316,3 +316,4 @@
 {"at": "2026-11-21", "action": "zoom-decorations-settle-after-burst", "status": "implemented", "base_sha": "6e15c23", "evidence": "private EPS: 120 writes before, 10 after"}
 {"at": "2026-11-21", "action": "zoom-decorations-settle-after-burst", "status": "deployed", "merge_sha": "f29d5b56584ea16d059be47a6089ebcd84831914", "workflow": "44925713023", "pr": 117}
 {"at": "2026-11-21", "action": "doctortracer-real-wizard-roundtrip", "status": "implemented", "base_sha": "f9e5a03"}
+{"at": "2026-11-21", "action": "doctortracer-real-wizard-roundtrip", "status": "deployed", "merge_sha": "366bb61c12b3a3cd3418670fbdc89e4575b0a6c1", "workflow": "44928668258", "pr": 118}
