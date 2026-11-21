@@ -300,3 +300,4 @@
 {"at": "2026-11-21", "action": "doctortracer-workspace-tab", "status": "implemented", "base_sha": "6bd106f"}
 {"at": "2026-11-21", "action": "doctortracer-workspace-tab", "status": "deployed", "merge_sha": "7b1214151cc39db6977e7a5c8dea6d32116ae381", "workflow": "44882012498", "pr": 109}
 {"at": "2026-11-21", "action": "retain-unresolved-markers", "status": "implemented", "base_sha": "6174189"}
+{"at": "2026-11-21", "action": "retain-unresolved-markers", "status": "deployed", "merge_sha": "b6306d7da86f08b8a8fee0f9c943bee51f5fa3c0", "workflow": "44882980563", "pr": 110}
