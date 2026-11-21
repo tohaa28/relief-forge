@@ -1,0 +1,142 @@
+{
+  "scenario": "synthetic viewer zoom; Chromium headless; CPU throttling4x;60 wheel events with moving cursor; not FPS or user hardware",
+  "sourceBefore": "0a79676:web/app.js",
+  "before": [
+    {
+      "name": "compound",
+      "burstMs": 24935.09999999404,
+      "renders": 60,
+      "writes": 60,
+      "geometryMutations": 240,
+      "retained": false,
+      "view": [
+        46.01358236138885,
+        24.625998833182404,
+        1.8939231395721434,
+        1.5163466095924376
+      ],
+      "ringPixels": 7,
+      "cameraError": 7.122894807309876e-07
+    },
+    {
+      "name": "many-after",
+      "burstMs": 22412.20000000298,
+      "renders": 60,
+      "writes": 60,
+      "geometryMutations": 237120,
+      "retained": false,
+      "view": [
+        46.01358236138885,
+        24.625998833182404,
+        1.8939231395721434,
+        1.5163466095924376
+      ],
+      "ringPixels": 7,
+      "cameraError": 7.122894807309876e-07
+    },
+    {
+      "name": "before",
+      "burstMs": 19957.10000000894,
+      "renders": 60,
+      "writes": 60,
+      "geometryMutations": 120,
+      "retained": false,
+      "view": [
+        46.01358236138885,
+        24.625998833182404,
+        1.8939231395721434,
+        1.5163466095924376
+      ],
+      "ringPixels": 7,
+      "cameraError": 7.122894807309876e-07
+    },
+    {
+      "name": "prepared",
+      "burstMs": 18593.60000000894,
+      "renders": 60,
+      "writes": 60,
+      "geometryMutations": 120,
+      "retained": false,
+      "view": [
+        46.01358236138885,
+        24.625998833182404,
+        1.8939231395721434,
+        1.5163466095924376
+      ],
+      "ringPixels": 7,
+      "cameraError": 7.122894807309876e-07
+    }
+  ],
+  "after": [
+    {
+      "name": "compound",
+      "burstMs": 5.9000000059604645,
+      "renders": 0,
+      "writes": 1,
+      "geometryMutations": 0,
+      "retained": true,
+      "view": [
+        46.01358208252389,
+        24.625999545471885,
+        1.8939230565785712,
+        1.5163466942314536
+      ],
+      "ringPixels": 7,
+      "cameraError": 0
+    },
+    {
+      "name": "many-after",
+      "burstMs": 2.699999988079071,
+      "renders": 0,
+      "writes": 1,
+      "geometryMutations": 0,
+      "retained": true,
+      "view": [
+        46.01358208252389,
+        24.625999545471885,
+        1.8939230565785712,
+        1.5163466942314536
+      ],
+      "ringPixels": 7,
+      "cameraError": 0
+    },
+    {
+      "name": "before",
+      "burstMs": 2.4000000059604645,
+      "renders": 0,
+      "writes": 1,
+      "geometryMutations": 0,
+      "retained": true,
+      "view": [
+        46.01358208252389,
+        24.625999545471885,
+        1.8939230565785712,
+        1.5163466942314536
+      ],
+      "ringPixels": 7,
+      "cameraError": 0
+    },
+    {
+      "name": "prepared",
+      "burstMs": 2.5999999940395355,
+      "renders": 0,
+      "writes": 1,
+      "geometryMutations": 0,
+      "retained": true,
+      "view": [
+        46.01358208252389,
+        24.625999545471885,
+        1.8939230565785712,
+        1.5163466942314536
+      ],
+      "ringPixels": 7,
+      "cameraError": 0
+    }
+  ],
+  "notes": [
+    "Before and after use same scene and browser automation.",
+    "Full vector DOM retained; no segment culling in viewer.",
+    "Timings include event handlers, not a claim about GPU render cost.",
+    "SVG float32 camera error recorded in baseline; new double virtual camera compared with serialized viewBox."
+  ]
+}

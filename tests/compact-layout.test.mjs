@@ -76,10 +76,10 @@ test('unified autoheal has one Apply action, problems and both smoothing/optimiz
  assert.ok(!area.includes('id="manual-repairs"'),'manual problem tools belong in editor only');
  assert.match(area,/<h2>Автоисправление<\/h2>/);
  for(const id of ['issues-panel','issues','issue-count','summary','tolerance',
-                  'smoothing-amount','optimization-tolerance','optimization-range','apply-changes'])
+                  'smoothing-amount','optimization-tolerance','optimization-range','settings-defaults','apply-changes'])
    assert.ok(area.includes('id="'+id+'"'),id);
- assert.equal((area.match(/<button\b/g)||[]).length,4,
-   'only Apply, explicit defect recheck and two visibility toggles; no old automatic start/cancel/preview buttons');
+ assert.equal((area.match(/<button\b/g)||[]).length,5,
+   'only defaults, Apply, explicit defect recheck and two visibility toggles; no old automatic start/cancel/preview buttons');
  assert.match(area,/<button id="recheck-defects" type="button"/);
  assert.match(area, /<button id="apply-changes" class="primary" disabled>[^]*?Применить изменения<\/button>/);
  for(const id of ['auto-heal','auto-apply','auto-discard','optimize-preview','optimize-apply','optimize-cancel','diagnose'])

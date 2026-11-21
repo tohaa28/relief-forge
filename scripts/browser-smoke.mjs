@@ -89,8 +89,10 @@ try{
   }
   const zoomWidth=await page.locator('#canvas').getAttribute('viewBox');
   await page.locator('#zoom-in').click();
+  await page.waitForFunction(previous=>document.querySelector('#canvas').getAttribute('viewBox')!==previous,zoomWidth);
   assert.notEqual(await page.locator('#canvas').getAttribute('viewBox'),zoomWidth);
   await page.locator('#zoom-out').click();
+  await page.waitForFunction(previous=>{const actual=document.querySelector('#canvas').getAttribute('viewBox').split(/\s+/).map(Number);return previous.split(/\s+/).map(Number).every((n,i)=>Math.abs(n-actual[i])<=Math.max(1,Math.abs(n))*2e-6);},zoomWidth);
   const restored=(await page.locator('#canvas').getAttribute('viewBox')).split(/\s+/).map(Number),original=zoomWidth.split(/\s+/).map(Number);
   restored.forEach((n,i)=>assert.ok(Math.abs(n-original[i])<=Math.max(1,Math.abs(original[i]))*2e-6,'zoom +/- restores view'));
   console.log('PASS complete vector +/- signs and real zoom inverse controls');

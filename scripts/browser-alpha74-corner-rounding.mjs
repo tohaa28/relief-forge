@@ -22,7 +22,7 @@ try{
     const event=ui.waitForEvent('download');await ui.keyboard.press('Control+Shift+s');
     return JSON.parse(readFileSync(await (await event).path(),'utf8'));
   };
-  const apply=async()=>{await ui.locator('#apply-changes').click();await ready();};
+  const apply=async()=>{if(await ui.locator('#apply-changes').isEnabled())await ui.locator('#apply-changes').click();await ready();};
   const open=async(svg,name)=>{
     await ui.locator('#file').setInputFiles({name,mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
     await ui.waitForFunction(()=>document.querySelector('#busy').hidden&&
