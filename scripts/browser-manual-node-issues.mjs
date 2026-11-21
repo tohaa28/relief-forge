@@ -77,6 +77,11 @@ try{
     button.addEventListener('click',()=>{
       window.exitProgressVisible=!document.querySelector('#task-status').hidden&&
         document.body.classList.contains('curve-editing');
+      const canvas=document.querySelector('#canvas'),rect=canvas.getBoundingClientRect();
+      window.exitZoomBefore=canvas.viewBox.baseVal.width;
+      canvas.dispatchEvent(new WheelEvent('wheel',{deltaY:-120,cancelable:true,
+        clientX:rect.left+rect.width/2,clientY:rect.top+rect.height/2}));
+
       requestAnimationFrame(()=>{
         window.exitProgressBeforePaint=!document.querySelector('#task-status').hidden&&
           !document.querySelector('#task-progress').hasAttribute('value')&&
@@ -98,6 +103,9 @@ try{
     document.querySelector('#busy').hidden&&
     document.querySelector('#status').textContent.startsWith('Маркеры изменённых контуров обновлены'));
   assert.equal(await page.evaluate(()=>window.exitProgressBeforePaint),true);
+  await page.waitForFunction(()=>Math.abs(document.querySelector('#canvas').viewBox.baseVal.width-
+    window.exitZoomBefore/1.15)<1e-4);
+
   assert.ok(await page.evaluate(()=>window.committedFirstPath===document.querySelector('#geometry [data-path]')),
     'refreshing markers must reuse the committed vector DOM');
   assert.equal(await page.evaluate(()=>window.markerPassLocked),false);

@@ -311,3 +311,4 @@
 {"at": "2026-11-21", "action": "manual-edit-latency", "status": "deployed", "merge_sha": "b50dbf5a488dd9fbabd38ae5311f937389cd3fa6", "workflow": "44921690127", "pr": 114}
 {"at": "2026-11-21", "action": "paint-editor-exit-progress-before-commit", "status": "implemented", "base_sha": "336ea6a", "evidence": "private EPS local, progress visible first frame, viewer 46 ms"}
 {"at": "2026-11-21", "action": "paint-editor-exit-progress-before-commit", "status": "deployed", "merge_sha": "48fd7b116559d0c19b64ebfa792091be4bb6f55d", "workflow": "44923017847", "pr": 115}
+{"at": "2026-11-21", "action": "post-editor-zoom-retain-input", "status": "implemented", "base_sha": "77626a1"}
