@@ -138,5 +138,72 @@
     "Full vector DOM retained; no segment culling in viewer.",
     "Timings include event handlers, not a claim about GPU render cost.",
     "SVG float32 camera error recorded in baseline; new double virtual camera compared with serialized viewBox."
-  ]
+  ],
+  "publishedPublic": [
+    {
+      "name": "compound",
+      "burstMs": 7,
+      "renders": 0,
+      "writes": 1,
+      "geometryMutations": 0,
+      "retained": true,
+      "view": [
+        46.01358208252389,
+        24.625999545471885,
+        1.8939230565785712,
+        1.5163466942314536
+      ],
+      "ringPixels": 7,
+      "cameraError": 0
+    },
+    {
+      "name": "many-after",
+      "burstMs": 2.699999988079071,
+      "renders": 0,
+      "writes": 1,
+      "geometryMutations": 0,
+      "retained": true,
+      "view": [
+        46.01358208252389,
+        24.625999545471885,
+        1.8939230565785712,
+        1.5163466942314536
+      ],
+      "ringPixels": 7,
+      "cameraError": 0
+    },
+    {
+      "name": "before",
+      "burstMs": 2.5,
+      "renders": 0,
+      "writes": 1,
+      "geometryMutations": 0,
+      "retained": true,
+      "view": [
+        46.01358208252389,
+        24.625999545471885,
+        1.8939230565785712,
+        1.5163466942314536
+      ],
+      "ringPixels": 7,
+      "cameraError": 0
+    },
+    {
+      "name": "prepared",
+      "burstMs": 2.7000000178813934,
+      "renders": 0,
+      "writes": 1,
+      "geometryMutations": 0,
+      "retained": true,
+      "view": [
+        46.01358208252389,
+        24.625999545471885,
+        1.8939230565785712,
+        1.5163466942314536
+      ],
+      "ringPixels": 7,
+      "cameraError": 0
+    }
+  ],
+  "publishedUrl": "https://tohaa28.github.io/relief-forge/?v=alpha75"
 }
