@@ -641,3 +641,5 @@ body.doctortracer-active > :is(header,nav,main,footer) {display:none}
 .tracer-heading button {min-height:24px;padding:2px 7px;white-space:nowrap}
 #doctortracer-stage {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #doctortracer-frame {flex:1;width:100%;min-height:0;border:1px solid #c3d7d6;background:#fff}
+
+#doctortracer-dpi {font:inherit;color:inherit;min-height:26px;border:1px solid #c3d5df;border-radius:4px;background:#fff}

@@ -45,7 +45,10 @@ try{
         const file=document.querySelector('#file'),vector=document.querySelector('#vector'),trace=document.querySelector('#trace');
         let svg='';
         file.onchange=async()=>{
-          const image=await createImageBitmap(file.files[0]);
+          const png=file.files[0];
+          const header=new DataView(await png.slice(0,54).arrayBuffer());
+          window.rasterDpi=Math.round(header.getUint32(41)*0.0254);
+          const image=await createImageBitmap(png);
           const canvas=document.createElement('canvas');
           canvas.width=image.width;canvas.height=image.height;
           const ctx=canvas.getContext('2d');ctx.drawImage(image,0,0);
@@ -54,6 +57,8 @@ try{
           const {width,height}=canvas;
           const sample=(x,y)=>Array.from(ctx.getImageData(Math.floor(width*x),Math.floor(height*y),1,1).data);
           window.importedPixels=[sample(.3,.5),sample(.5,.5),sample(.05,.05)];
+          window.rasterSize=[width,height];
+          window.edgeAlphas=[...new Set(pixels.filter((_value,i)=>i%4===3))].sort((a,b)=>a-b);
 
           trace.disabled=false;
           trace.onclick=()=>{
@@ -80,21 +85,30 @@ try{
     {waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
   const input={name:'tracer-tab.svg',mimeType:'image/svg+xml',buffer:Buffer.from(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="10mm" height="10mm" viewBox="0 0 10 10"><g opacity=".6"><path fill="#ff0000" d="M2 2H7V8H2Z"/><path fill="#0000ff" d="M4 2H8V8H4Z"/></g></svg>')};
+    '<svg xmlns="http://www.w3.org/2000/svg" width="10mm" height="10mm" viewBox="0 0 10 10"><g opacity=".6"><path fill="#ff0000" d="M2.13 2.11H7V8H2.13L1.17 6.42Z"/><path fill="#0000ff" d="M4 2H8V8H4Z"/></g></svg>')};
   const settled=()=>page.waitForFunction(()=>document.querySelector('#busy').hidden&&document.querySelector('#status').textContent.startsWith('ПОСЛЕ:'));
   await page.locator('#file').setInputFiles(input);
   await settled();
   const send=page.locator('#doctortracer-send');
+  const dpi=page.locator('#doctortracer-dpi');
+  const verifyRaster=async (value,alpha=153)=>{
+    const ready=tracer.locator('#trace');
+    await ready.waitFor();
+    assert.deepEqual(await ready.evaluate(()=>[window.rasterDpi,window.rasterSize,window.edgeAlphas]),
+      [value,Array(2).fill(Math.round(10*value/25.4)),[0,alpha]]);
+  };
   const before=page.locator('#compare-before');
   const after=page.locator('#compare-after');
   const geometry=()=>page.locator('#geometry path.comparison-path').evaluateAll(
     paths=>paths.map(path=>path.getAttribute('d')));
   await before.click();
   assert.ok(await send.isDisabled());
+  assert.ok(await dpi.isDisabled());
   const original=await geometry();
   assert.equal(original.length,2);
   await after.click();
   assert.ok(await send.isEnabled());
+  assert.equal(await dpi.inputValue(),"600");
   if(!real)assert.equal(requests,0);
   await send.click();
   const tracer=page.frameLocator('#doctortracer-frame');
@@ -112,7 +126,7 @@ try{
     for(const label of ['Базовый','Чистые Края','Оставить Прозрачность','Высокое Качество','Два Цвета'])
       await tracer.getByText(label,{exact:true}).click();
   }else{
-    await tracer.locator('#trace').waitFor();
+    await verifyRaster(600);
     const samples=await tracer.locator('#trace').evaluate(()=>window.importedPixels);
     assert.deepEqual(samples,[[255,0,0,153],[0,0,255,153],[0,0,0,0]],
       'original colors and group opacity must survive PNG handoff, including overlapped shapes');
@@ -128,10 +142,14 @@ try{
   assert.notDeepEqual(traced,original);
   if(!real)assert.equal(traced.length,1);
   await after.click();
-  await send.click();
-  await page.waitForFunction(()=>document.querySelector('#doctortracer-stage').textContent.includes('Настройте параметры'));
-  await page.locator('#doctortracer-cancel').click();
-  await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('отменена'));
+  for(const resolution of real?[1200]:[1200,300]){
+    await dpi.selectOption(String(resolution));
+    await send.click();
+    await page.waitForFunction(()=>document.querySelector('#doctortracer-stage').textContent.includes('Настройте параметры'));
+    if(!real)await verifyRaster(resolution,255);
+    await page.locator('#doctortracer-cancel').click();
+    await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('отменена'));
+  }
   await before.click();
   assert.deepEqual(await geometry(),traced);
   await page.keyboard.press('Control+z');

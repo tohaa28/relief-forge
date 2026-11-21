@@ -1,4 +1,4 @@
-import {curveNodesTyped} from './curve-edit.js?v=0.2.0-alpha.88';
+import {curveNodesTyped} from './curve-edit.js?v=0.2.0-alpha.89';
 
 // A command-buffer transaction for one compound vector. During manual mode the
 // full document, original SVG artwork and EPS geometry are immutable. All

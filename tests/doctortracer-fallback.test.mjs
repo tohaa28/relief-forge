@@ -205,7 +205,7 @@ test('direct Canvas 2D renderer paints compound holes in one evenodd fill and op
 test('DoctorTracer starts on send and imports the returned SVG into the normal pipeline',()=>{
   const app=readFileSync(new URL('../web/app.js',import.meta.url),'utf8');
   assert.match(app,/const source=currentComparison\(\)\?\.beforeDoc/);
-  assert.match(app,/const \{svg\}=await traceInDoctorTracerInterface\(raster,/);
+  assert.match(app,/const \{svg\}=await traceInDoctorTracerInterface\(png,/);
   assert.match(app,/candidate=validate\(remapDoctorTracerSvg\(source,svg,plan\)\)/);
   assert.match(app,/openValue\(\{\.\.\.candidate,sourceFileName:name\},name\)/);
   assert.match(app,/importedBefore=beginImportBefore\(doc\)/);
