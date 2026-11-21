@@ -1,5 +1,5 @@
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.90';
-import {importRichSvg} from './rich-svg.js?v=0.2.0-alpha.90';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.91';
+import {importRichSvg} from './rich-svg.js?v=0.2.0-alpha.91';
 
 // The linked DoctorTracer 0.21.1 WASM gh-pages site owns its Worker and its GPL
 // dependencies. Nothing from that distribution is copied or relicensed here.
