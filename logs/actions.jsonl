@@ -308,3 +308,4 @@
 {"at": "2026-11-22", "action": "simplify-shortest-anchor-distance-first", "status": "deployed", "workflow": "45017717327", "merge_sha": "9f80a31a55bbb8ba31e8dfee21533ee0e0741fbb", "pr": 130}
 {"at": "2026-11-22", "action": "simplify-narrow-return-spikes-first", "status": "candidate", "base": "98411ea", "private_fixture_spikes": 4}
 {"at": "2026-11-22", "action": "simplify-narrow-return-spikes-first", "status": "deployed", "workflow": "45019377446", "merge_sha": "1a87f1520b399c49e9878fb13e46a8ac925f80d7", "pr": 131}
+{"at": "2026-11-22", "action": "background-edited-curve-defects", "status": "candidate", "base": "a710ca5"}
