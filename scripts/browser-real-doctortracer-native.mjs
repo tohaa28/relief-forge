@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join,resolve,extname,sep} from 'node:path';
 import {chromium} from 'playwright';
 
-const ref='bdb8ad49464e242b213aea0f618f24bc6aa90bbc';
+const ref='6d67342b2305a4a18a0ee64c96f3b4cdf5aa4cd3';
 const root=await mkdtemp(join(tmpdir(),'doctortracer-real-'));
 let server,browser;
 try{
@@ -14,6 +14,7 @@ try{
  git('init','-q');git('fetch','--depth=1','https://github.com/tohaa28/DoctorTracer.git',ref);git('checkout','--detach','FETCH_HEAD');
  execFileSync(process.execPath,['tests/crisp_handoff.mjs'],{cwd:root,stdio:'inherit'});
  execFileSync(process.execPath,['tests/native_raster.mjs'],{cwd:root,stdio:'inherit'});
+ execFileSync(process.execPath,['tests/crisp_grid_curves.mjs'],{cwd:root,stdio:'inherit'});
  const web=join(root,'web');
  const types={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.wasm':'application/wasm','.png':'image/png','.json':'application/json','.svg':'image/svg+xml'};
  server=createServer(async(req,res)=>{
