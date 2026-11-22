@@ -1,6 +1,6 @@
-import {curveNodes,moveCurveNode} from './curve-edit.js?v=0.2.0-alpha.92';
-import {nativeParts,controlsBounds,pointDistance} from './native-bezier.js?v=0.2.0-alpha.92';
-import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.92';
+import {curveNodes,moveCurveNode} from './curve-edit.js?v=0.2.0-alpha.93';
+import {nativeParts,controlsBounds,pointDistance} from './native-bezier.js?v=0.2.0-alpha.93';
+import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.93';
 
 // Automatic surgery only, never invoked from pointermove/pointerup.
 // No flattening, no added anchors, no global retracing. The exact native

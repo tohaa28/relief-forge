@@ -90,7 +90,7 @@ test('alpha69: staged option and both normal/large previews use the same distanc
   assert.match(html,/id="merge-nearby-strict" type="checkbox" checked/);
   assert.equal((app.match(/mergeNearbyGeometry\(selfHealed.document,/g)||[]).length,2);
   assert.match(app,/const next=readSettingsForm\(\),error=validateSettingsDraft\(next\)/);
-  assert.match(app,/const after=rounded.document/);
+  assert.match(app,/const after=simplified.document/);
   assert.match(app,/nearbyOptions:\{enabled:settingChecked\('merge-nearby'\)/);
   assert.match(app,/changed\('curve-session-commit',\{skipDiagnostics:true,preserveIssues:true\}\)/,
     'closing manual node editor still must not trigger a background global diagnostic');

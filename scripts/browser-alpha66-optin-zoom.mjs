@@ -33,7 +33,7 @@ try{
    document.querySelector('#status').textContent.startsWith('ПОСЛЕ:'),
    {},{timeout:120000});
  assert.ok(await page.locator('#doctortracer-tab').isHidden());
- assert.ok(await page.locator('#doctortracer-send').isEnabled());
+ assert.ok(await page.locator('#doctortracer-send').isHidden());
  // AFTER may legitimately remove thousands of redundant Bézier anchors.
  // Select original BEFORE to stress the pathological 2300-C source precisely.
  await page.locator('#compare-before').click();

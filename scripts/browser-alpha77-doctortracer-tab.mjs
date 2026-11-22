@@ -91,6 +91,12 @@ try{
   await settled();
   const send=page.locator('#doctortracer-send');
   const dpi=page.locator('#doctortracer-dpi');
+  assert.ok(await send.isHidden());
+  assert.ok(await dpi.isHidden());
+  // Enable the hidden UI explicitly in this regression fixture.
+  await page.evaluate(()=>{
+    for(const id of ['doctortracer-send','doctortracer-dpi'])document.getElementById(id).hidden=false;
+  });
   const verifyRaster=async (value,alpha=153)=>{
     const ready=tracer.locator('#trace');
     await ready.waitFor();

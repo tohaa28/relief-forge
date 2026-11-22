@@ -16,7 +16,7 @@ test('the actual unified preview and Apply commit point repairs even when smooth
     kind:'vector',artwork:'<path/>',commands,offset:[0,0],closed:false,
     points:commands.map(c=>c.slice(-2))
   }]};
-  const elements={'selection-only':{checked:true},'smoothing-amount':{value:'0'},
+  const elements={'selection-only':{checked:true},'smoothing-amount':{value:'0'},'simplification-percent':{value:'0'},
     'optimization-tolerance':{value:'0.00001'},tolerance:{value:'0.01'},'optimization-result':{},'gpu-status':{},'merge-overlaps':{checked:false},
     'remove-micro':{checked:true},'micro-width':{value:'0.1'},'micro-height':{value:'0.1'},
     'repair-self-intersections':{checked:false},'self-intersection-mode':{value:'hybrid'},
@@ -39,7 +39,7 @@ test('the actual unified preview and Apply commit point repairs even when smooth
     checkpoint:before=>past.push(structuredClone(before)),updateFileHistory:patch=>history.push(patch)};
   context.changed=action=>{changes.push(action);context.curvePreview=null;};
   vm.createContext(context);
-  const start=app.indexOf('async function buildUnifiedPreview()');
+  const start=app.indexOf('async function simplifyAfter(');
   const finish=app.indexOf('function requestRecalculation()',start);
   vm.runInContext(app.slice(start,finish),context);
   const beforeEps=exportEps(source);

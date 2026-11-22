@@ -1,6 +1,6 @@
 // Direct Ghostscript PNG rendering. Never decode/re-encode or filter its output.
-import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.92';
-import {doctorTracerHandoffPlan} from './doctortracer-appearance.js?v=0.2.0-alpha.92';
+import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.93';
+import {doctorTracerHandoffPlan} from './doctortracer-appearance.js?v=0.2.0-alpha.93';
 export function captureRasterSource(document,bytes,format,fonts=[]){
  if(!['eps','pdf'].includes(format))throw Error('Неверный формат исходника.');
  return {format,bytes,fonts:fonts.slice(),stamp:geometryStamp(document),sourceSvg:document.sourceSvg||'',
@@ -52,7 +52,7 @@ export function ghostscriptPngInfo(bytes,plan){
 export async function rasterizeGhostscript(entry,plan,{signal,onProgress=()=>{}}={}){
  signal?.throwIfAborted();
  return new Promise((resolve,reject)=>{
-  const worker=new Worker(new URL('ghostscript-raster-worker.js?v=0.2.0-alpha.92',import.meta.url));
+  const worker=new Worker(new URL('ghostscript-raster-worker.js?v=0.2.0-alpha.93',import.meta.url));
   let settled=false;
   const finish=(error,result)=>{
    if(settled)return;settled=true;clearTimeout(timer);signal?.removeEventListener('abort',abort);worker.terminate();
