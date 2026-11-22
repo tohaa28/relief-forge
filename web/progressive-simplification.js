@@ -1,6 +1,6 @@
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.96';
-import {evaluateBezier,nativeParts,pointDistance,sampleNativeParts} from './native-bezier.js?v=0.2.0-alpha.96';
-import {validateCurveChange,validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.96';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.97';
+import {evaluateBezier,nativeParts,pointDistance,sampleNativeParts} from './native-bezier.js?v=0.2.0-alpha.97';
+import {validateCurveChange,validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.97';
 
 const compareCandidates=(a,b)=>Number(Boolean(b.spike))-Number(Boolean(a.spike))||a.distance-b.distance||a.error-b.error||a.order-b.order;
 

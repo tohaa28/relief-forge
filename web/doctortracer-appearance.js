@@ -1,5 +1,5 @@
-import {hardenClipMasks} from './doctortracer-clip-mask.js?v=0.2.0-alpha.96';
-import {exportDocument,importRichSvg,safeFragment} from './rich-svg.js?v=0.2.0-alpha.96';
+import {hardenClipMasks} from './doctortracer-clip-mask.js?v=0.2.0-alpha.97';
+import {exportDocument,importRichSvg,safeFragment} from './rich-svg.js?v=0.2.0-alpha.97';
 
 export function appearanceRasterPlan(document,dpi){
   if(![300,600,1200].includes(dpi))throw Error('Выберите 300, 600 или 1200 dpi.');

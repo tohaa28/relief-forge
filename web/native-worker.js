@@ -1,10 +1,10 @@
-import {checkEditedDefects} from './edited-defects.js?v=0.2.0-alpha.96';
-import {planProgressiveSimplification} from './progressive-simplification.js?v=0.2.0-alpha.96';
-import {roundBezierCorners} from './corner-rounding.js?v=0.2.0-alpha.96';
-import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.96';
-import {refineNativeDiagnostics} from './native-diagnostic-refinement.js?v=0.2.0-alpha.96';
-import {combineWorkingCopy} from './after-preparation.js?v=0.2.0-alpha.96';
-import {nativeUnionPaths} from './native-boolean.js?v=0.2.0-alpha.96';
+import {checkEditedDefects} from './edited-defects.js?v=0.2.0-alpha.97';
+import {planProgressiveSimplification} from './progressive-simplification.js?v=0.2.0-alpha.97';
+import {roundBezierCorners} from './corner-rounding.js?v=0.2.0-alpha.97';
+import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.97';
+import {refineNativeDiagnostics} from './native-diagnostic-refinement.js?v=0.2.0-alpha.97';
+import {combineWorkingCopy} from './after-preparation.js?v=0.2.0-alpha.97';
+import {nativeUnionPaths} from './native-boolean.js?v=0.2.0-alpha.97';
 self.postMessage({ready:true});
 self.onmessage=({data})=>{
  try{

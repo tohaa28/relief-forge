@@ -1,7 +1,7 @@
-import {nativeParts,pointDistance,lerpPoint,evaluateBezier,splitBezier,bezierPart,cubicControls,controlsBounds,sampleNativeParts} from './native-bezier.js?v=0.2.0-alpha.96';
-import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.96';
-import {finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.96';
-import {paintFromArtwork} from './eps-paint.js?v=0.2.0-alpha.96';
+import {nativeParts,pointDistance,lerpPoint,evaluateBezier,splitBezier,bezierPart,cubicControls,controlsBounds,sampleNativeParts} from './native-bezier.js?v=0.2.0-alpha.97';
+import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.97';
+import {finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.97';
+import {paintFromArtwork} from './eps-paint.js?v=0.2.0-alpha.97';
 
 // Bounded, exact-native surgery. Never called in pointermove or after manual Done.
 // Failure to prove a candidate safe means no change, not an approximate repair.
