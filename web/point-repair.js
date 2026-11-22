@@ -1,6 +1,6 @@
-import {splitBezier} from './native-bezier.js?v=0.2.0-alpha.95';
-import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.95';
-import {pruneCoveredRetraces} from './covered-retraces.js?v=0.2.0-alpha.95';
+import {splitBezier} from './native-bezier.js?v=0.2.0-alpha.96';
+import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.96';
+import {pruneCoveredRetraces} from './covered-retraces.js?v=0.2.0-alpha.96';
 const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
 const end=c=>c.slice(-2);
 

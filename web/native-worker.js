@@ -1,14 +1,16 @@
-import {planProgressiveSimplification} from './progressive-simplification.js?v=0.2.0-alpha.95';
-import {roundBezierCorners} from './corner-rounding.js?v=0.2.0-alpha.95';
-import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.95';
-import {refineNativeDiagnostics} from './native-diagnostic-refinement.js?v=0.2.0-alpha.95';
-import {combineWorkingCopy} from './after-preparation.js?v=0.2.0-alpha.95';
-import {nativeUnionPaths} from './native-boolean.js?v=0.2.0-alpha.95';
+import {checkEditedDefects} from './edited-defects.js?v=0.2.0-alpha.96';
+import {planProgressiveSimplification} from './progressive-simplification.js?v=0.2.0-alpha.96';
+import {roundBezierCorners} from './corner-rounding.js?v=0.2.0-alpha.96';
+import {mergeOverlappingObjects} from './overlap-merge.js?v=0.2.0-alpha.96';
+import {refineNativeDiagnostics} from './native-diagnostic-refinement.js?v=0.2.0-alpha.96';
+import {combineWorkingCopy} from './after-preparation.js?v=0.2.0-alpha.96';
+import {nativeUnionPaths} from './native-boolean.js?v=0.2.0-alpha.96';
 self.postMessage({ready:true});
 self.onmessage=({data})=>{
  try{
   const output=data.action==='union'?mergeOverlappingObjects(data.document,data.options):
     data.action==='simplify-progressively'?planProgressiveSimplification(data.document,data.indices,data.percent,data.tolerance):
+    data.action==='edited-defects'?checkEditedDefects(data.document,data.previous,data.indices,data.tolerance):
     data.action==='round-corners'?roundBezierCorners(data.document,data.indices,data.tolerance):
     data.action==='combine'?combineWorkingCopy(data.document,data.indices,{...data.options,unionFilled:nativeUnionPaths}):
     refineNativeDiagnostics(data.document,data.issues,data.indices,data.tolerance);

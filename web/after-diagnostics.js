@@ -1,7 +1,7 @@
-import {sampledContours} from './rich-svg.js?v=0.2.0-alpha.95';
-import {planDiagnosticBatches,mapDiagnosticIssue} from './large-file-support.js?v=0.2.0-alpha.95';
-import {packedInput} from './auto-repair.js?v=0.2.0-alpha.95';
-import {createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.95';
+import {sampledContours} from './rich-svg.js?v=0.2.0-alpha.96';
+import {planDiagnosticBatches,mapDiagnosticIssue} from './large-file-support.js?v=0.2.0-alpha.96';
+import {packedInput} from './auto-repair.js?v=0.2.0-alpha.96';
+import {createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.96';
 
 // One single source of truth for diagnostic markers on the AFTER geometry.
 // Handles split/overlapping batches without pretending full coverage.
