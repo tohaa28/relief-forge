@@ -257,8 +257,13 @@ function nearbyManualPaths(center,radius){
       return distance(a)-distance(b);
     });
 }
-function refreshLocalZoomGeometry(){
-  const layer=$('manual-local-geometry'),view=$('canvas').viewBox.baseVal;
+function manualViewport(view=$('canvas').viewBox.baseVal){
+  manualScreenRect??=$('canvas').getBoundingClientRect();
+  const width=Math.round(manualScreenRect.width),height=Math.round(manualScreenRect.height);
+  return {view,width,height,unit:screenUnitsPerPixel(view,width,height)};
+}
+function refreshLocalZoomGeometry(viewport=manualViewport()){
+  const layer=$('manual-local-geometry'),{view,unit}=viewport;
   // A single imported 7k-command compound path is as expensive as hundreds
   // of objects. Cache scene complexity once per editor session, never per wheel.
   if(manualSceneHeavy===null)manualSceneHeavy=heavyManualScene(doc.paths);
@@ -313,7 +318,6 @@ function refreshLocalZoomGeometry(){
   for(const {path,d} of hitPaths)
     el('path',{class:'manual-local-hit','data-path':path,d},layer);
   el('path',{class:'manual-local-stroke',d:fragments.join(' ')},layer);
-  const unit=screenUnitsPerPixel(view,$('canvas').clientWidth,$('canvas').clientHeight);
   const marks=issues.filter(q=>q?.point&&q.point[0]>=center[0]-view.width*.65&&
     q.point[0]<=center[0]+view.width*.65&&q.point[1]>=center[1]-view.height*.65&&
     q.point[1]<=center[1]+view.height*.65).slice(0,80);
@@ -343,12 +347,12 @@ function scheduleManualZoomRefresh(){
   manualZoomFrame=requestAnimationFrame(()=>{
     manualZoomFrame=0;
     if(!curveEditing())return;
+    const viewport=manualViewport(manualPendingView||$('canvas').viewBox.baseVal);
     if(manualPendingView){
       const {x,y,width,height}=manualPendingView;manualPendingView=null;
       $('canvas').setAttribute('viewBox',`${x} ${y} ${width} ${height}`);
     }
-    const view=$('canvas').viewBox.baseVal,
-      unit=screenUnitsPerPixel(view,$('canvas').clientWidth,$('canvas').clientHeight);
+    const {view,unit}=viewport;
     if(!manualFocus){
       const path=[...selected].find(i=>doc.paths[i]?.kind!=='image');
       if(Number.isInteger(path))manualFocus={path,
@@ -362,40 +366,38 @@ function scheduleManualZoomRefresh(){
     // Glyph icons are re-created only after a significant zoom change;
     // the native Bézier layer is recycled across many wheel frames.
     if(!manualGlyphBuildUnit||moved||Math.max(unit/manualGlyphBuildUnit,
-      manualGlyphBuildUnit/unit)>1.2)drawLocalEditorOverlay();
+      manualGlyphBuildUnit/unit)>1.2)drawLocalEditorOverlay(viewport,true);
     else {
       if(!manualGlyphScaleUnit||Math.max(unit/manualGlyphScaleUnit,manualGlyphScaleUnit/unit)>1.12)
         rescaleLocalEditorGlyphs(unit);
-      refreshLocalZoomGeometry();
+      refreshLocalZoomGeometry(viewport);
     }
   });
 }
-function drawLocalEditorOverlay(){
+function drawLocalEditorOverlay(viewport=manualViewport(),zoomOnly=false){
   if(!curveEditing()||!localEditors.size)return;
   document.body.classList.add('local-editor-active');
   // The staged segments stay mounted across clicks, panning and mouseup.
   // Only the <=200 nearby glyphs are replaced, never all accumulated patches.
-  const glyphs=$('manual-glyphs');glyphs.replaceChildren();
-  if(!manualFocus)return;
+  const layer=$('manual-glyphs');
+  if(!manualFocus){layer.replaceChildren();return;}
+  const glyphs=document.createDocumentFragment();
   const path=manualFocus.path,editor=localEditor(path);
   if(!editor)return;
   let indexed=localEditorIndexes.get(path);
   if(!indexed){indexed=buildAnchorIndex(editor.nodeList());localEditorIndexes.set(path,indexed);}
-  const view=$('canvas').viewBox.baseVal,
-    unit=screenUnitsPerPixel(view,$('canvas').clientWidth,$('canvas').clientHeight);
+  const {view,unit}=viewport;
   manualGlyphBuildUnit=unit;
   manualGlyphScaleUnit=unit;
   const center=[view.x+view.width/2,view.y+view.height/2];
   manualViewportCenter=center;
-  const width=Math.max(view.width,unit*$('canvas').clientWidth);
-  const height=Math.max(view.height,unit*$('canvas').clientHeight);
+  const width=Math.max(view.width,unit*viewport.width);
+  const height=Math.max(view.height,unit*viewport.height);
   const near=nearbyAnchors(indexed,center,Math.hypot(width,height)*.65,
     {limit:200,includeIndex:activeCurveNode?.path===path?activeCurveNode.index:null,
       viewport:{x:center[0]-width/2,y:center[1]-height/2,width,height}});
-  const seen=new Set();
   for(const n of near){
     const pos=editor.nodePosition(n.index)||n.point;
-    seen.add(n.index);
     const selected=activeCurveNode?.path===path&&activeCurveNode.index===n.index,
       kind=editor.getNode(n.index)?.type||n.type;
     const attrs={'data-path':path,'data-curve-node':n.index,
@@ -424,8 +426,9 @@ function drawLocalEditorOverlay(){
       }
     }
   }
-  localEditorToolbar();
-  refreshLocalZoomGeometry();
+  layer.replaceChildren(glyphs);
+  if(!zoomOnly)localEditorToolbar();
+  refreshLocalZoomGeometry(viewport);
 }
 function localEditorModified(path,action,changedSegments=null){
   if(!curveEditing())return;
