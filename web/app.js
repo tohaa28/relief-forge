@@ -1,47 +1,47 @@
-import {appearanceRasterPlan,doctorTracerHandoffPlan,rasterizeImportedAppearance} from './doctortracer-appearance.js?v=0.2.0-alpha.97';
-import {captureRasterSource,requireRasterSource,rasterizeGhostscript} from './ghostscript-raster.js?v=0.2.0-alpha.97';
-import {traceInDoctorTracerInterface} from './doctortracer-interface.js?v=0.2.0-alpha.97';
-import {cacheViewDecorations} from './view-zoom.js?v=0.2.0-alpha.97';
-import {prepareAfterCopy} from './after-preparation.js?v=0.2.0-alpha.97';
-import {prepareNativeIntersections} from './native-intersections.js?v=0.2.0-alpha.97';
-import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.97';
-import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.97';
-import {issueViewBox} from './issue-focus.js?v=0.2.0-alpha.97';
-import {visibleHealthyAnchors,circlePath} from './vector-points.js?v=0.2.0-alpha.97';
-import {issueDistanceLabel,screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.97';
-import {issuesForManualEditor,resolveManualIssues,retainsIssuesDuringManualChange} from './manual-issue-state.js?v=0.2.0-alpha.97';
-import {diagnoseLocalNodeArea,localNodeRadius} from './local-node-diagnostics.js?v=0.2.0-alpha.97';
-import {buildAnchorIndex,updateAnchorPosition,nearbyAnchors,createLiveCurvePatch,drawLiveCurvePatch} from './manual-edit-performance.js?v=0.2.0-alpha.97';
-import {heavyManualScene,screenToDocumentPoint,manualVectorBounds} from './manual-viewport-performance.js?v=0.2.0-alpha.97';
-import {createDeferredCurveEditor} from './deferred-curve-editor.js?v=0.2.0-alpha.97';
-import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.97';
-import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.97';
-import {packedInput} from './auto-repair.js?v=0.2.0-alpha.97';
-import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js?v=0.2.0-alpha.97';
-import {removeTinyClosedSubpaths} from './cnc-microfilter.js?v=0.2.0-alpha.97';
-import {beginImportBefore,captureImportBefore,importedComparison} from './import-before.js?v=0.2.0-alpha.97';
-import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js?v=0.2.0-alpha.97';
-import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.97';
-import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.97';
-import {separateCoincidentNonadjacentNodes} from './coincident-node-separation.js?v=0.2.0-alpha.97';
-import {repairSelfIntersections} from './self-intersection-repair.js?v=0.2.0-alpha.97';
-import {mergeNearbyGeometry} from './nearby-curve-merge.js?v=0.2.0-alpha.97';
-import {remapDoctorTracerSvg} from './doctortracer-fallback.js?v=0.2.0-alpha.97';
-import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode,finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.97';
-import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.97';
-import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.97';
-import {inspectDocumentComplexity,largeFileWarning} from './complexity-preflight.js?v=0.2.0-alpha.97';
-import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.97';
-import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.97';
-import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.97';
-import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.97';
-import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.97';
-import {runNativeJob,cancelNativeJobs} from './native-jobs.js?v=0.2.0-alpha.97';
+import {appearanceRasterPlan,doctorTracerHandoffPlan,rasterizeImportedAppearance} from './doctortracer-appearance.js?v=0.2.0-alpha.98';
+import {captureRasterSource,requireRasterSource,rasterizeGhostscript} from './ghostscript-raster.js?v=0.2.0-alpha.98';
+import {traceInDoctorTracerInterface} from './doctortracer-interface.js?v=0.2.0-alpha.98';
+import {cacheViewDecorations} from './view-zoom.js?v=0.2.0-alpha.98';
+import {prepareAfterCopy} from './after-preparation.js?v=0.2.0-alpha.98';
+import {prepareNativeIntersections} from './native-intersections.js?v=0.2.0-alpha.98';
+import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.98';
+import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.98';
+import {issueViewBox} from './issue-focus.js?v=0.2.0-alpha.98';
+import {visibleHealthyAnchors,circlePath} from './vector-points.js?v=0.2.0-alpha.98';
+import {issueDistanceLabel,screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.98';
+import {issuesForManualEditor,resolveManualIssues,retainsIssuesDuringManualChange} from './manual-issue-state.js?v=0.2.0-alpha.98';
+import {diagnoseLocalNodeArea,localNodeRadius} from './local-node-diagnostics.js?v=0.2.0-alpha.98';
+import {buildAnchorIndex,updateAnchorPosition,nearbyAnchors,createLiveCurvePatch,drawLiveCurvePatch} from './manual-edit-performance.js?v=0.2.0-alpha.98';
+import {heavyManualScene,screenToDocumentPoint,manualVectorBounds} from './manual-viewport-performance.js?v=0.2.0-alpha.98';
+import {createDeferredCurveEditor} from './deferred-curve-editor.js?v=0.2.0-alpha.98';
+import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.98';
+import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.98';
+import {packedInput} from './auto-repair.js?v=0.2.0-alpha.98';
+import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js?v=0.2.0-alpha.98';
+import {removeTinyClosedSubpaths} from './cnc-microfilter.js?v=0.2.0-alpha.98';
+import {beginImportBefore,captureImportBefore,importedComparison} from './import-before.js?v=0.2.0-alpha.98';
+import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js?v=0.2.0-alpha.98';
+import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.98';
+import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.98';
+import {separateCoincidentNonadjacentNodes} from './coincident-node-separation.js?v=0.2.0-alpha.98';
+import {repairSelfIntersections} from './self-intersection-repair.js?v=0.2.0-alpha.98';
+import {mergeNearbyGeometry} from './nearby-curve-merge.js?v=0.2.0-alpha.98';
+import {remapDoctorTracerSvg} from './doctortracer-fallback.js?v=0.2.0-alpha.98';
+import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode,finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.98';
+import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.98';
+import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.98';
+import {inspectDocumentComplexity,largeFileWarning} from './complexity-preflight.js?v=0.2.0-alpha.98';
+import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.98';
+import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.98';
+import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.98';
+import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.98';
+import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.98';
+import {runNativeJob,cancelNativeJobs} from './native-jobs.js?v=0.2.0-alpha.98';
 const mergeOverlappingObjects=(document,options)=>runNativeJob({action:'union',document,options});
-import {gpuBroadphase} from './gpu-broadphase.js?v=0.2.0-alpha.97';
-import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.97';
-import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.97';
-import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.97';
+import {gpuBroadphase} from './gpu-broadphase.js?v=0.2.0-alpha.98';
+import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.98';
+import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.98';
+import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.98';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 let clearanceKey='',clearanceJob=0,clearanceTimer=null,clearanceWorker=null,clearanceReport=null;
 function updateClearance(document,unit){
@@ -63,12 +63,19 @@ function updateClearance(document,unit){
     clearanceKey=key;clearanceReport=null;clearanceJob++;clearTimeout(clearanceTimer);clearanceWorker?.terminate();clearanceWorker=null;
     label.textContent=threshold?'Измерение расстояний…':'Укажите расстояние больше 0 и не больше 1000 мм.';
     if(threshold&&document.paths.length){const id=clearanceJob;clearanceTimer=setTimeout(()=>{
-      clearanceWorker=new Worker(new URL('./clearance-worker.js?v=0.2.0-alpha.97',import.meta.url),{type:'module'});
-      clearanceWorker.onmessage=({data})=>{if(data.id!==clearanceJob)return;clearanceReport=data.report||null;label.textContent=data.error||('Узкие места < '+threshold+' мм: '+data.report.markers.length+(data.report.complete?' · проверка завершена':' · проверка неполная (лимит или пограничная точность)'));clearanceWorker?.terminate();clearanceWorker=null;render();};
+      clearanceWorker=new Worker(new URL('./clearance-worker.js?v=0.2.0-alpha.98',import.meta.url),{type:'module'});
+      clearanceWorker.onmessage=({data})=>{if(data.id!==clearanceJob)return;clearanceReport=data.report||null;label.textContent=data.error||('Узкие места < '+threshold+' мм: '+data.report.markers.length+(data.report.complete?' · проверка завершена':' · проверка неполная (лимит или пограничная точность)'));clearanceWorker?.terminate();clearanceWorker=null;
+        if(viewDecorationTimer!==null)pendingClearanceRender=data.id;
+        else showClearanceResult();
+      };
       clearanceWorker.onerror=()=>{if(id!==clearanceJob)return;label.textContent='Измерение расстояний не завершено: ошибка вычисления.';clearanceWorker?.terminate();clearanceWorker=null;};
       clearanceWorker.postMessage({id,document:{paths:document.paths.map(p=>({kind:p.kind,artwork:Boolean(p.artwork),commands:p.commands,points:p.points,closed:p.closed,offset:p.offset}))},threshold});
     },120);}else if(threshold)label.textContent='Откройте макет для измерения расстояний.';
   }
+  drawClearanceMarkers(threshold,unit);
+}
+function drawClearanceMarkers(threshold,unit){
+  const layer=$('clearance-markers');
   layer.replaceChildren();
   if(clearanceReport&&markersVisible&&!curveEditing())for(const marker of clearanceReport.markers){
     const circle=el('circle',{cx:marker.point[0],cy:marker.point[1],r:Math.max(threshold,unit*7),fill:'#ff79bb','fill-opacity':'.38','data-distance-mm':marker.distance},layer);
@@ -164,6 +171,7 @@ let localEditors=new Map(),localEditUndo=[],localEditRedo=[],localEditCount=0;
 let localEditorIndexes=new Map(),localPatchElements=new Map();
 let manualGlyphBuildUnit=0,manualZoomFrame=0,manualZoomRegion=null,manualZoomDirty=true;
 let manualPendingView=null,manualGlyphScaleUnit=0;
+let manualZoomSettleTimer=null,manualGlyphBuildAt=-Infinity;
 let manualPathBounds=null,manualSceneHeavy=null,
   manualViewportCenter=null,manualScreenRect=null;
 const localPatchKey=(path,segment)=>path+':'+segment;
@@ -213,6 +221,7 @@ function localEditor(path){
   return localEditors.get(path);
 }
 function resetLocalEditors(){
+  clearTimeout(manualZoomSettleTimer);manualZoomSettleTimer=null;manualGlyphBuildAt=-Infinity;
   localEditors.clear();localEditorIndexes.clear();localPatchElements.clear();
   localEditUndo=[];localEditRedo=[];localEditCount=0;
   $('manual-patches').replaceChildren();
@@ -365,8 +374,10 @@ function scheduleManualZoomRefresh(){
     // Rebuild nearby anchors when panning outside the glyph neighbourhood.
     // Glyph icons are re-created only after a significant zoom change;
     // the native Bézier layer is recycled across many wheel frames.
-    if(!manualGlyphBuildUnit||moved||Math.max(unit/manualGlyphBuildUnit,
-      manualGlyphBuildUnit/unit)>1.2)drawLocalEditorOverlay(viewport,true);
+    const needsOverlay=!manualGlyphBuildUnit||moved||Math.max(unit/manualGlyphBuildUnit,
+      manualGlyphBuildUnit/unit)>1.2;
+    if(needsOverlay&&(manualZoomSettleTimer===null||performance.now()-manualGlyphBuildAt>=85))
+      drawLocalEditorOverlay(viewport,true);
     else {
       if(!manualGlyphScaleUnit||Math.max(unit/manualGlyphScaleUnit,manualGlyphScaleUnit/unit)>1.12)
         rescaleLocalEditorGlyphs(unit);
@@ -383,11 +394,11 @@ function drawLocalEditorOverlay(viewport=manualViewport(),zoomOnly=false){
   if(!manualFocus){layer.replaceChildren();return;}
   const glyphs=document.createDocumentFragment();
   const path=manualFocus.path,editor=localEditor(path);
-  if(!editor)return;
+  if(!editor){layer.replaceChildren();return;}
   let indexed=localEditorIndexes.get(path);
   if(!indexed){indexed=buildAnchorIndex(editor.nodeList());localEditorIndexes.set(path,indexed);}
   const {view,unit}=viewport;
-  manualGlyphBuildUnit=unit;
+  manualGlyphBuildUnit=unit;manualGlyphBuildAt=performance.now();
   manualGlyphScaleUnit=unit;
   const center=[view.x+view.width/2,view.y+view.height/2];
   manualViewportCenter=center;
@@ -647,13 +658,28 @@ function scheduleManualLocalRecheck(){
   },50);
 }
 let viewPendingBox=null,viewZoomFrame=0,refreshViewDecorations=null;
-let viewDecorationTimer=null,viewDecorationUnit=1;
+let viewDecorationTimer=null,viewDecorationUnit=1,pendingClearanceRender=null;
 function settleViewDecorations(){
   clearTimeout(viewDecorationTimer);
   viewDecorationTimer=setTimeout(()=>{
     viewDecorationTimer=null;
     if(!curveEditing())refreshViewDecorations?.(viewDecorationUnit);
+    const id=pendingClearanceRender;pendingClearanceRender=null;
+    if(id!==null&&id===clearanceJob&&!curveEditing())showClearanceResult();
   },100);
+}
+let viewHealthyDecoration=null;
+function cacheViewerDecorations(unit){
+  refreshViewDecorations=curveEditing()?null:cacheViewDecorations(
+    $('geometry'),$('markers'),$('clearance-markers'),unit,viewHealthyDecoration,settingNumber('clearance-threshold'));
+}
+function showClearanceResult(){
+  if(curveEditing()||manualClearancePaused)return;
+  const {unit}=manualViewport();
+  refreshViewDecorations?.(unit);
+  drawClearanceMarkers(settingNumber('clearance-threshold'),unit);
+  $('toggle-markers').disabled=busy||!(displayedIssues.length||clearanceReport?.markers.length);
+  cacheViewerDecorations(unit);
 }
 function cancelViewZoom(){
   if(viewZoomFrame)cancelAnimationFrame(viewZoomFrame);
@@ -695,6 +721,11 @@ function zoom(factor,center){
     // querying native geometry for each event. One RAF commits the final view
     // and isolates heavy artwork before that frame can paint.
     manualPendingView=view;
+    clearTimeout(manualZoomSettleTimer);
+    manualZoomSettleTimer=setTimeout(()=>{
+      manualZoomSettleTimer=null;
+      if(curveEditing())scheduleManualZoomRefresh();
+    },85);
     scheduleManualZoomRefresh();
   }else{
     viewPendingBox=view;
@@ -757,7 +788,7 @@ function workspaceScan({attemptRepair=false,manual=false}={}){
   state.hidden=health.ok&&!manual;
   state.dataset.health=health.ok?'ok':'warning';
   $('workspace-health-report').value=safeWorkspaceReport(health,{
-    version:'0.2.0-alpha.97',source:lastImportFailure?.source||doc.sourceFileName||'',
+    version:'0.2.0-alpha.98',source:lastImportFailure?.source||doc.sourceFileName||'',
     errors:displayErrors});
   record('workspace-health',{ok:health.ok,issues:health.issues,forceWireframe,attempts:repairs,
     count:health.elementCount,rect:health.canvasRect,bbox:health.geometryBox});
@@ -784,7 +815,7 @@ $('workspace-check').onclick=()=>{
   const health=workspaceScan({attemptRepair:true,manual:true});
   $('workspace-health-report').value=safeWorkspaceReport(health||{
     ok:true,issues:[],note:'Документ не открыт'},{
-    version:'0.2.0-alpha.97',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
+    version:'0.2.0-alpha.98',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
   $('workspace-health-dialog').showModal();
 };
 $('workspace-check-repair').onclick=()=>{
@@ -821,7 +852,7 @@ function render({reuseGeometry=false}={}){
   syncWorkspaceFileLabel();
   if(!reuseGeometry){
     cancelViewZoom();manualScreenRect=null;
-    clearTimeout(viewDecorationTimer);viewDecorationTimer=null;
+    clearTimeout(viewDecorationTimer);viewDecorationTimer=null;pendingClearanceRender=null;
   }
   document.body.classList.toggle('curve-editing',curveEditing());
   updateMascot();
@@ -992,7 +1023,8 @@ function render({reuseGeometry=false}={}){
   for(const id of ['new','line','rect','circle','select'])$(id).disabled=busy||reviewing;
   // Diagnostics run automatically after opening/changing a document or settings.
   document.querySelectorAll('[data-action]').forEach(b=>b.disabled=busy||!ready||reviewing);
-  refreshViewDecorations=curveEditing()?null:cacheViewDecorations($('geometry'),$('markers'),$('clearance-markers'),markerUnit,healthyDecoration,settingNumber('clearance-threshold'));
+  viewHealthyDecoration=healthyDecoration;
+  cacheViewerDecorations(markerUnit);
 }
 function lock(value,{coverCanvas=true,renderAfter=true,keepProgress=false}={}){
   busy=value;
@@ -1374,7 +1406,7 @@ $('recheck-defects').onclick=()=>{
 
 function spawnWorker(){
   ready=false;$('engine').textContent='○ Загрузка Rust / WASM…';
-  worker=new Worker(new URL('worker.js?v=0.2.0-alpha.97',import.meta.url),{type:'module'});
+  worker=new Worker(new URL('worker.js?v=0.2.0-alpha.98',import.meta.url),{type:'module'});
   worker.onmessage=({data})=>{
     if(data.id===0){ready=!data.error;$('engine').textContent=ready?'● Rust / WASM готов':'○ WASM не собран';status(data.error||'Rust-ядро готово');render();if(ready&&doc.paths.length&&!currentComparison()&&!suppressNextDiagnostic)calculate(0);suppressNextDiagnostic=false;return;}
     if(!pending||data.id!==pending.id)return;
@@ -2357,7 +2389,7 @@ function openValue(value,name,historyStarted=false){const next=validate(value),o
 }
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;openingFile=true;lastImportFailure=null;lastImportAttempt={source:name,status:'converting',bytes:bytes.byteLength};updateMascot();if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта '+(/\.pdf$/i.test(name)?'PDF':'EPS')+'…';record('vector-import-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.97',import.meta.url));
+  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.98',import.meta.url));
   progressStage(/\.pdf$/i.test(name)?'Импорт PDF: подготовка MuPDF':'Импорт EPS: подготовка интерпретатора',9);
   const started=performance.now();let downloadLoaded=0,lastDownloadLogAt=0;
   const fail=message=>{
@@ -2629,4 +2661,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();if(!curveEditing())requestRecalculation();
 });
-record('session-start',{version:'0.2.0-alpha.97'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorVersion='0.2.0-alpha.97';document.documentElement.dataset.doctorReady='true';document.dispatchEvent(new Event('doctor-ready'));
+record('session-start',{version:'0.2.0-alpha.98'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorVersion='0.2.0-alpha.98';document.documentElement.dataset.doctorReady='true';document.dispatchEvent(new Event('doctor-ready'));

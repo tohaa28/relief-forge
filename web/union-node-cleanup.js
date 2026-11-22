@@ -1,4 +1,4 @@
-import './vendor/clipper.js?v=0.2.0-alpha.97';
+import './vendor/clipper.js?v=0.2.0-alpha.98';
 
 // Conservative post-Union cleanup. Only replace a subchain when every
 // removed original vertex stays within a bounded distance of its replacement

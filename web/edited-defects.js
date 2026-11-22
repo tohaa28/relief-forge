@@ -1,5 +1,5 @@
-import {controlsBounds,nativeParts} from './native-bezier.js?v=0.2.0-alpha.97';
-import {refineNativeDiagnostics} from './native-diagnostic-refinement.js?v=0.2.0-alpha.97';
+import {controlsBounds,nativeParts} from './native-bezier.js?v=0.2.0-alpha.98';
+import {refineNativeDiagnostics} from './native-diagnostic-refinement.js?v=0.2.0-alpha.98';
 
 const kinds=new Set(['open','short','coincident','near_node','intersection','self_intersection','overlap']);
 const span=(path,index)=>{
