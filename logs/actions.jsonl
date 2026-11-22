@@ -313,3 +313,4 @@
 {"at": "2026-11-22", "action": "profile-optimize-weld-cycle", "status": "candidate", "base": "d0ff8dd", "reference_ms": 7790, "cycle1_ms": 5979, "cycle2_ms": 5086, "discarded_cycle3_ms": 5207, "equivalent": true}
 {"at": "2026-11-22", "action": "profile-optimize-weld-cycle", "status": "deployed", "workflow": "45043485835", "merge_sha": "9dcc978ff3788b60b9cf48beeca4bdda806e38e3", "pr": 133, "measured_ms": [7790, 5979, 5086], "hashes_match": true}
 {"at": "2026-11-22", "action": "measure-editor-and-result-zoom", "status": "candidate", "base": "2e45813", "editor_worst_median_ms": [66.7, 50], "editor_rebuilds": [14, 9], "viewer_p95_ms": [33.4, 33.4]}
+{"at": "2026-11-22", "action": "measure-editor-and-result-zoom", "status": "deployed", "workflow": "45046613692", "merge_sha": "56c08a066297d3279da7cfae9775e8a5ccd73a78", "pr": 134}
