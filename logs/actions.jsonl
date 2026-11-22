@@ -309,3 +309,4 @@
 {"at": "2026-11-22", "action": "simplify-narrow-return-spikes-first", "status": "candidate", "base": "98411ea", "private_fixture_spikes": 4}
 {"at": "2026-11-22", "action": "simplify-narrow-return-spikes-first", "status": "deployed", "workflow": "45019377446", "merge_sha": "1a87f1520b399c49e9878fb13e46a8ac925f80d7", "pr": 131}
 {"at": "2026-11-22", "action": "background-edited-curve-defects", "status": "candidate", "base": "a710ca5"}
+{"at": "2026-11-22", "action": "background-edited-curve-defects", "status": "deployed", "workflow": "45041848527", "merge_sha": "9784e56efc59cb9b532140b7e2316f8dd40e7242", "pr": 132}
