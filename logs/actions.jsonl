@@ -305,3 +305,4 @@
 {"at": "2026-11-22", "action": "progressive-after-hide-doctortracer", "status": "candidate", "base": "45b5206", "pr": 129}
 {"at": "2026-11-22", "action": "progressive-after-hide-doctortracer", "status": "deployed", "merge_sha": "5094482274fb7b6e9b8832b1afeda0392b69b1a8", "workflow": "45016160323", "pr": 129}
 {"at": "2026-11-22", "action": "simplify-shortest-anchor-distance-first", "status": "candidate", "base": "180af8f"}
+{"at": "2026-11-22", "action": "simplify-shortest-anchor-distance-first", "status": "deployed", "workflow": "45017717327", "merge_sha": "9f80a31a55bbb8ba31e8dfee21533ee0e0741fbb", "pr": 130}
