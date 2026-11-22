@@ -1,48 +1,48 @@
-import {appearanceRasterPlan,doctorTracerHandoffPlan,rasterizeImportedAppearance} from './doctortracer-appearance.js?v=0.2.0-alpha.94';
-import {captureRasterSource,requireRasterSource,rasterizeGhostscript} from './ghostscript-raster.js?v=0.2.0-alpha.94';
-import {traceInDoctorTracerInterface} from './doctortracer-interface.js?v=0.2.0-alpha.94';
-import {nativeParts} from './native-bezier.js?v=0.2.0-alpha.94';
-import {cacheViewDecorations} from './view-zoom.js?v=0.2.0-alpha.94';
-import {prepareAfterCopy} from './after-preparation.js?v=0.2.0-alpha.94';
-import {prepareNativeIntersections} from './native-intersections.js?v=0.2.0-alpha.94';
-import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.94';
-import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.94';
-import {issueViewBox} from './issue-focus.js?v=0.2.0-alpha.94';
-import {visibleHealthyAnchors,circlePath} from './vector-points.js?v=0.2.0-alpha.94';
-import {issueDistanceLabel,screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.94';
-import {issuesForManualEditor,resolveManualIssues,retainsIssuesDuringManualChange} from './manual-issue-state.js?v=0.2.0-alpha.94';
-import {diagnoseLocalNodeArea,localNodeRadius} from './local-node-diagnostics.js?v=0.2.0-alpha.94';
-import {buildAnchorIndex,updateAnchorPosition,nearbyAnchors,createLiveCurvePatch,drawLiveCurvePatch} from './manual-edit-performance.js?v=0.2.0-alpha.94';
-import {heavyManualScene,screenToDocumentPoint,manualVectorBounds} from './manual-viewport-performance.js?v=0.2.0-alpha.94';
-import {createDeferredCurveEditor} from './deferred-curve-editor.js?v=0.2.0-alpha.94';
-import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.94';
-import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.94';
-import {packedInput} from './auto-repair.js?v=0.2.0-alpha.94';
-import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js?v=0.2.0-alpha.94';
-import {removeTinyClosedSubpaths} from './cnc-microfilter.js?v=0.2.0-alpha.94';
-import {beginImportBefore,captureImportBefore,importedComparison} from './import-before.js?v=0.2.0-alpha.94';
-import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js?v=0.2.0-alpha.94';
-import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.94';
-import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.94';
-import {separateCoincidentNonadjacentNodes} from './coincident-node-separation.js?v=0.2.0-alpha.94';
-import {repairSelfIntersections} from './self-intersection-repair.js?v=0.2.0-alpha.94';
-import {mergeNearbyGeometry} from './nearby-curve-merge.js?v=0.2.0-alpha.94';
-import {remapDoctorTracerSvg} from './doctortracer-fallback.js?v=0.2.0-alpha.94';
-import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode,finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.94';
-import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.94';
-import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.94';
-import {inspectDocumentComplexity,largeFileWarning} from './complexity-preflight.js?v=0.2.0-alpha.94';
-import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.94';
-import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.94';
-import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.94';
-import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.94';
-import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.94';
-import {runNativeJob,cancelNativeJobs} from './native-jobs.js?v=0.2.0-alpha.94';
+import {appearanceRasterPlan,doctorTracerHandoffPlan,rasterizeImportedAppearance} from './doctortracer-appearance.js?v=0.2.0-alpha.95';
+import {captureRasterSource,requireRasterSource,rasterizeGhostscript} from './ghostscript-raster.js?v=0.2.0-alpha.95';
+import {traceInDoctorTracerInterface} from './doctortracer-interface.js?v=0.2.0-alpha.95';
+import {nativeParts} from './native-bezier.js?v=0.2.0-alpha.95';
+import {cacheViewDecorations} from './view-zoom.js?v=0.2.0-alpha.95';
+import {prepareAfterCopy} from './after-preparation.js?v=0.2.0-alpha.95';
+import {prepareNativeIntersections} from './native-intersections.js?v=0.2.0-alpha.95';
+import {validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.95';
+import {importRichSvg,worldData,artworkMarkup,safeFragment,sampledContours,exportDocument} from './rich-svg.js?v=0.2.0-alpha.95';
+import {issueViewBox} from './issue-focus.js?v=0.2.0-alpha.95';
+import {visibleHealthyAnchors,circlePath} from './vector-points.js?v=0.2.0-alpha.95';
+import {issueDistanceLabel,screenUnitsPerPixel,renderIssueMarkers,createIssueBoundsValidator} from './issue-markers.js?v=0.2.0-alpha.95';
+import {issuesForManualEditor,resolveManualIssues,retainsIssuesDuringManualChange} from './manual-issue-state.js?v=0.2.0-alpha.95';
+import {diagnoseLocalNodeArea,localNodeRadius} from './local-node-diagnostics.js?v=0.2.0-alpha.95';
+import {buildAnchorIndex,updateAnchorPosition,nearbyAnchors,createLiveCurvePatch,drawLiveCurvePatch} from './manual-edit-performance.js?v=0.2.0-alpha.95';
+import {heavyManualScene,screenToDocumentPoint,manualVectorBounds} from './manual-viewport-performance.js?v=0.2.0-alpha.95';
+import {createDeferredCurveEditor} from './deferred-curve-editor.js?v=0.2.0-alpha.95';
+import {exportEps,exportColoredEps} from './eps-export.js?v=0.2.0-alpha.95';
+import {geometryStamp} from './eps-paint.js?v=0.2.0-alpha.95';
+import {packedInput} from './auto-repair.js?v=0.2.0-alpha.95';
+import {mappedComparison,activeComparisonFrame,zoomBox} from './central-comparison.js?v=0.2.0-alpha.95';
+import {removeTinyClosedSubpaths} from './cnc-microfilter.js?v=0.2.0-alpha.95';
+import {beginImportBefore,captureImportBefore,importedComparison} from './import-before.js?v=0.2.0-alpha.95';
+import {basename,epsResultFilename,readHistory,persistHistory,createHistoryEntry,updateHistoryEntry,formatHistoryStatus,formatHistoryDate} from './file-history.js?v=0.2.0-alpha.95';
+import {selectedVectorIndices,smoothAndOptimizePaths,smoothVectorPath,optimizeVectorPath} from './curve-optimizer.js?v=0.2.0-alpha.95';
+import {repairVectorPoints} from './point-repair.js?v=0.2.0-alpha.95';
+import {separateCoincidentNonadjacentNodes} from './coincident-node-separation.js?v=0.2.0-alpha.95';
+import {repairSelfIntersections} from './self-intersection-repair.js?v=0.2.0-alpha.95';
+import {mergeNearbyGeometry} from './nearby-curve-merge.js?v=0.2.0-alpha.95';
+import {remapDoctorTracerSvg} from './doctortracer-fallback.js?v=0.2.0-alpha.95';
+import {curveNodes,curveNodesTyped,moveCurveNode,nearestCurveSegment,addCurveNode,deleteCurveNode,curveHandles,curveNodeType,moveCurveHandle,setCurveNodeType,setCurveSegmentType,reverseCurveDirection,closeCurveAtNode,breakCurveAtNode,finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.95';
+import {keyboardAction} from './doctor-shortcuts.js?v=0.2.0-alpha.95';
+import {planDiagnosticBatches,mapDiagnosticIssue,isSupportedDrop,droppedFiles} from './large-file-support.js?v=0.2.0-alpha.95';
+import {inspectDocumentComplexity,largeFileWarning} from './complexity-preflight.js?v=0.2.0-alpha.95';
+import {syncWorkspaceMascot} from './mascot-visibility.js?v=0.2.0-alpha.95';
+import {assessImportedGeometry} from './import-integrity.js?v=0.2.0-alpha.95';
+import {inspectWorkspace,recoverWorkspace,shortWorkspaceDiagnosis,safeWorkspaceReport} from './workspace-health.js?v=0.2.0-alpha.95';
+import {chooseAfterSnapshot,afterSaveDecision,afterSaveMessage} from './after-result.js?v=0.2.0-alpha.95';
+import {diagnoseAfterDocument} from './after-diagnostics.js?v=0.2.0-alpha.95';
+import {runNativeJob,cancelNativeJobs} from './native-jobs.js?v=0.2.0-alpha.95';
 const mergeOverlappingObjects=(document,options)=>runNativeJob({action:'union',document,options});
-import {gpuBroadphase} from './gpu-broadphase.js?v=0.2.0-alpha.94';
-import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.94';
-import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.94';
-import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.94';
+import {gpuBroadphase} from './gpu-broadphase.js?v=0.2.0-alpha.95';
+import {refitBooleanUnion} from './union-refit.js?v=0.2.0-alpha.95';
+import {protectPreviewNodeBudget,previewBudgetMessage} from './preview-node-budget.js?v=0.2.0-alpha.95';
+import {verifyEpsOutputGeometry} from './eps-export.js?v=0.2.0-alpha.95';
 let nodeTool='move',activeCurveNode=null,contextHit=null;
 let clearanceKey='',clearanceJob=0,clearanceTimer=null,clearanceWorker=null,clearanceReport=null;
 function updateClearance(document,unit){
@@ -64,7 +64,7 @@ function updateClearance(document,unit){
     clearanceKey=key;clearanceReport=null;clearanceJob++;clearTimeout(clearanceTimer);clearanceWorker?.terminate();clearanceWorker=null;
     label.textContent=threshold?'Измерение расстояний…':'Укажите расстояние больше 0 и не больше 1000 мм.';
     if(threshold&&document.paths.length){const id=clearanceJob;clearanceTimer=setTimeout(()=>{
-      clearanceWorker=new Worker(new URL('./clearance-worker.js?v=0.2.0-alpha.94',import.meta.url),{type:'module'});
+      clearanceWorker=new Worker(new URL('./clearance-worker.js?v=0.2.0-alpha.95',import.meta.url),{type:'module'});
       clearanceWorker.onmessage=({data})=>{if(data.id!==clearanceJob)return;clearanceReport=data.report||null;label.textContent=data.error||('Узкие места < '+threshold+' мм: '+data.report.markers.length+(data.report.complete?' · проверка завершена':' · проверка неполная (лимит или пограничная точность)'));clearanceWorker?.terminate();clearanceWorker=null;render();};
       clearanceWorker.onerror=()=>{if(id!==clearanceJob)return;label.textContent='Измерение расстояний не завершено: ошибка вычисления.';clearanceWorker?.terminate();clearanceWorker=null;};
       clearanceWorker.postMessage({id,document:{paths:document.paths.map(p=>({kind:p.kind,artwork:Boolean(p.artwork),commands:p.commands,points:p.points,closed:p.closed,offset:p.offset}))},threshold});
@@ -743,7 +743,7 @@ function workspaceScan({attemptRepair=false,manual=false}={}){
   state.hidden=health.ok&&!manual;
   state.dataset.health=health.ok?'ok':'warning';
   $('workspace-health-report').value=safeWorkspaceReport(health,{
-    version:'0.2.0-alpha.94',source:lastImportFailure?.source||doc.sourceFileName||'',
+    version:'0.2.0-alpha.95',source:lastImportFailure?.source||doc.sourceFileName||'',
     errors:displayErrors});
   record('workspace-health',{ok:health.ok,issues:health.issues,forceWireframe,attempts:repairs,
     count:health.elementCount,rect:health.canvasRect,bbox:health.geometryBox});
@@ -770,7 +770,7 @@ $('workspace-check').onclick=()=>{
   const health=workspaceScan({attemptRepair:true,manual:true});
   $('workspace-health-report').value=safeWorkspaceReport(health||{
     ok:true,issues:[],note:'Документ не открыт'},{
-    version:'0.2.0-alpha.94',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
+    version:'0.2.0-alpha.95',source:lastImportFailure?.source||doc.sourceFileName||'',errors:displayErrors});
   $('workspace-health-dialog').showModal();
 };
 $('workspace-check-repair').onclick=()=>{
@@ -1078,28 +1078,28 @@ function attachPreparedComparison(preview,prepared){
 // "start/cancel" action. Only Apply commits a candidate to the document.
 async function simplifyAfter(source,indices,tolerance,generation){
   const percent=settingNumber('simplification-percent');
-  const stats={percent,removed:0,protected:0};
+  const stats={percent,removed:0,spikes:0,protected:0};
   if(!percent)return {document:source,stats};
   progressStage('Упрощение кривых ПОСЛЕ',97);
   const plan=await runNativeJob({action:'simplify-progressively',document:source,indices,percent,tolerance});
   if(generation!==previewGeneration||!plan.changes.length)return {document:source,stats:plan.stats};
   const document={...source,paths:source.paths.slice()};
   stats.protected=plan.stats.protected;
-  for(const [i,{index,commands,removed}] of plan.changes.entries()){
+  for(const [i,{index,commands,removed,spikes}] of plan.changes.entries()){
     if(generation!==previewGeneration)break;
     const path=source.paths[index],offset=path.offset||[0,0];
     const local=commands.map(([type,...values])=>[type,...values.map((value,i)=>value-offset[i%2])]);
     try{
       document.paths[index]=finishDeferredCurveCommands(path,local,{});
-      stats.removed+=removed;
-    }catch{return {document:source,stats:{percent,removed:0,protected:stats.protected+plan.changes.length}};}
+      stats.removed+=removed;stats.spikes+=spikes;
+    }catch{return {document:source,stats:{percent,removed:0,spikes:0,protected:stats.protected+plan.changes.length}};}
     if(i%24===23)await yieldForUi();
   }
   return {document,stats};
 }
-function simplificationSummary({percent,removed,protected:retained}){
+function simplificationSummary({percent,removed,spikes,protected:retained}){
   return percent?'\nУпрощение ПОСЛЕ '+percent+'% · удалено узлов '+removed+
-    (retained?' · защищено объектов '+retained:'')+'.':'';
+    (spikes?' · убрано выступов '+spikes:'')+(retained?' · защищено объектов '+retained:'')+'.':'';
 }
 
 async function buildUnifiedPreview(){
@@ -1358,7 +1358,7 @@ $('recheck-defects').onclick=()=>{
 
 function spawnWorker(){
   ready=false;$('engine').textContent='○ Загрузка Rust / WASM…';
-  worker=new Worker(new URL('worker.js?v=0.2.0-alpha.94',import.meta.url),{type:'module'});
+  worker=new Worker(new URL('worker.js?v=0.2.0-alpha.95',import.meta.url),{type:'module'});
   worker.onmessage=({data})=>{
     if(data.id===0){ready=!data.error;$('engine').textContent=ready?'● Rust / WASM готов':'○ WASM не собран';status(data.error||'Rust-ядро готово');render();if(ready&&doc.paths.length&&!currentComparison()&&!suppressNextDiagnostic)calculate(0);suppressNextDiagnostic=false;return;}
     if(!pending||data.id!==pending.id)return;
@@ -2378,7 +2378,7 @@ function openValue(value,name,historyStarted=false){const next=validate(value),o
 }
 function importEps(bytes,name,historyStarted=false){
   if(busy)return;openingFile=true;lastImportFailure=null;lastImportAttempt={source:name,status:'converting',bytes:bytes.byteLength};updateMascot();if(!historyStarted)beginFileHistory(name);lock(true);$('busy-label').textContent='Подготовка импорта '+(/\.pdf$/i.test(name)?'PDF':'EPS')+'…';record('vector-import-start',{name,bytes:bytes.byteLength,fonts:importFonts.map(f=>f.name)});
-  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.94',import.meta.url));
+  epsImportActive=true;epsWorker??=new Worker(new URL('eps-worker.js?v=0.2.0-alpha.95',import.meta.url));
   progressStage(/\.pdf$/i.test(name)?'Импорт PDF: подготовка MuPDF':'Импорт EPS: подготовка интерпретатора',9);
   const started=performance.now();let downloadLoaded=0,lastDownloadLogAt=0;
   const fail=message=>{
@@ -2650,4 +2650,4 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
   const al=Number($('area-limit').value),ll=Number($('length-limit').value);
   selected=new Set(doc.paths.map((p,i)=>({p,i})).filter(({p,i})=>filter==='all'||filter==='open'&&!p.closed||filter==='closed'&&p.closed||filter==='cw'&&area(p)>0||filter==='ccw'&&area(p)<0||filter==='duplicate'&&issues.some(x=>x.kind==='duplicate'&&x.path===i)||filter==='area-less'&&p.closed&&Math.abs(area(p))<al||filter==='area-more'&&p.closed&&Math.abs(area(p))>al||filter==='length-less'&&length(p)<ll||filter==='length-more'&&length(p)>ll).map(({i})=>i));render();if(!curveEditing())requestRecalculation();
 });
-record('session-start',{version:'0.2.0-alpha.94'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorVersion='0.2.0-alpha.94';document.documentElement.dataset.doctorReady='true';document.dispatchEvent(new Event('doctor-ready'));
+record('session-start',{version:'0.2.0-alpha.95'});renderFileHistory();spawnWorker();fit();document.documentElement.dataset.doctorVersion='0.2.0-alpha.95';document.documentElement.dataset.doctorReady='true';document.dispatchEvent(new Event('doctor-ready'));
