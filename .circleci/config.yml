@@ -1,0 +1,52 @@
+version: 2.1
+jobs:
+  rust-wasm-browser:
+    docker:
+      - image: node:24-bookworm
+    resource_class: medium
+    environment:
+      CI: "true"
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - checkout
+      - run:
+          name: Install system and pinned Rust tools
+          command: |
+            apt-get update
+            apt-get install -y --no-install-recommends python3 ca-certificates curl build-essential pkg-config
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/relief-rustup.sh
+            sh /tmp/relief-rustup.sh -y --profile minimal --default-toolchain 1.85.1
+            echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> "$BASH_ENV"
+            source "$BASH_ENV"
+            rustup target add wasm32-unknown-unknown
+            rustc --version
+            node --version
+      - run:
+          name: Install locked dependencies and validate assets
+          command: |
+            npm ci
+            python3 scripts/prepare-approved-art.py
+      - run:
+          name: Native and JavaScript regression tests
+          command: |
+            cargo test --locked
+            npm test
+            node --check web/app.js
+            node --check web/worker.js
+      - run:
+          name: Build WASM and install matching Chromium shell
+          command: |
+            cargo build --locked --release --target wasm32-unknown-unknown
+            cp target/wasm32-unknown-unknown/release/relief_forge.wasm web/engine.wasm
+            npx playwright install --with-deps --only-shell chromium
+      - run:
+          name: WASM ABI, all browser regressions and crisp raster
+          command: node scripts/check-wasm.mjs
+          no_output_timeout: 15m
+      - store_artifacts:
+          path: web
+          destination: relief-forge-wasm-web
+workflows:
+  verify:
+    jobs:
+      - rust-wasm-browser

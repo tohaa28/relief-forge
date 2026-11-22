@@ -1,6 +1,6 @@
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.90';
-import {evaluateBezier,lerpPoint,nativeParts,pointDistance,sampleNativeParts} from './native-bezier.js?v=0.2.0-alpha.90';
-import {validateCurveChange,validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.90';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.93';
+import {evaluateBezier,lerpPoint,nativeParts,pointDistance,sampleNativeParts} from './native-bezier.js?v=0.2.0-alpha.93';
+import {validateCurveChange,validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.93';
 
 class CandidateQueue{
   values=[];

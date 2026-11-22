@@ -41,7 +41,7 @@ try{
       return route.fulfill({contentType:'text/html',body:`<!doctype html>
         <img src="decoration.svg" alt=""><input id="file" type="file"><button id="vector" disabled>Вектор</button>
         <button id="trace" disabled>Трассировать</button><input id="detail" type="number" value="2">
-        <script>
+        <script>window.doctorTracerInputContract='native-raster-v1';
         const file=document.querySelector('#file'),vector=document.querySelector('#vector'),trace=document.querySelector('#trace');
         let svg='';
         file.onchange=async()=>{
@@ -84,42 +84,6 @@ try{
   await page.goto(published||(real?'https://tohaa28.github.io/relief-forge/':'http://localhost:'+port),
     {waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.querySelector('#engine').textContent.includes('готов'));
-  if(!real){
-    const checks=await page.evaluate(async()=>{
-      const {importRichSvg}=await import('/rich-svg.js');
-      const {appearanceRasterPlan,rasterizeImportedAppearance}=await import('/doctortracer-appearance.js');
-      const draw=async (width,dpi,clip,maxSide,opacity=.6)=>{
-        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${width}mm" height="10mm" viewBox="0 0 10 10">${clip}
-          <g opacity="${opacity}" clip-path="url(#edge)" ${clip.includes('shade')?'mask="url(#shade)"':''}>
-            <path fill="#f00" d="M1.25 1.25H9.25V9.25H1.25Z"/>
-          </g></svg>`;
-        const source=importRichSvg(svg),plan=appearanceRasterPlan(source,dpi);
-        const blob=await rasterizeImportedAppearance(source,plan,{maxSide});
-        const image=await createImageBitmap(blob);
-        const canvas=document.createElement('canvas');
-        canvas.width=image.width;canvas.height=image.height;
-        const ctx=canvas.getContext('2d');ctx.drawImage(image,0,0);image.close();
-        const rgba=ctx.getImageData(0,0,canvas.width,canvas.height).data;
-        const alphas=new Set();
-        for(let i=3;i<rgba.length;i+=4)alphas.add(rgba[i]);
-        return {width:canvas.width,alphas:[...alphas].sort((a,b)=>a-b),
-          center:ctx.getImageData(Math.round(canvas.width*.5),Math.round(canvas.height*.75),1,1).data[3]};
-      };
-      const diagonal='<defs><clipPath id="edge"><path d="M0 4.17L10 1.18V10H0Z"/></clipPath></defs>';
-      const reference='<defs><path id="cut" d="M0 .41L1 .12V1H0Z"/><clipPath id="edge" clipPathUnits="objectBoundingBox"><use href="#cut"/></clipPath></defs>';
-      const hole='<defs><clipPath id="edge"><path clip-rule="evenodd" d="M0 0H10V10H0Z M4 6H6V9H4Z"/></clipPath></defs>';
-      const masked=diagonal.replace('</defs>','<mask id="shade"><rect width="10" height="10" fill="white" opacity=".5"/></mask></defs>');
-      return [await draw(10,600,diagonal),await draw(10,600,reference),
-        await draw(10,600,masked),await draw(10,600,hole),await draw(60,1200,diagonal,2400,1)];
-    });
-    assert.deepEqual(checks,[
-      {width:236,alphas:[0,153],center:153},
-      {width:236,alphas:[0,153],center:153},
-      {width:236,alphas:[0,77],center:77},
-      {width:236,alphas:[0,153],center:0},
-      {width:2400,alphas:[0,255],center:255}
-    ],'clip paths and DoctorTracer downscaling must not introduce partially covered pixels');
-  }
   const input={name:'tracer-tab.svg',mimeType:'image/svg+xml',buffer:Buffer.from(
     '<svg xmlns="http://www.w3.org/2000/svg" width="10mm" height="10mm" viewBox="0 0 10 10"><g opacity=".6"><path fill="#ff0000" d="M2.13 2.11H7V8H2.13L1.17 6.42Z"/><path fill="#0000ff" d="M4 2H8V8H4Z"/></g></svg>')};
   const settled=()=>page.waitForFunction(()=>document.querySelector('#busy').hidden&&document.querySelector('#status').textContent.startsWith('ПОСЛЕ:'));
@@ -129,7 +93,7 @@ try{
   const dpi=page.locator('#doctortracer-dpi');
   assert.ok(await send.isHidden());
   assert.ok(await dpi.isHidden());
-  // Exercise the disabled feature explicitly in the regression fixture.
+  // Enable the hidden UI explicitly in this regression fixture.
   await page.evaluate(()=>{
     for(const id of ['doctortracer-send','doctortracer-dpi'])document.getElementById(id).hidden=false;
   });

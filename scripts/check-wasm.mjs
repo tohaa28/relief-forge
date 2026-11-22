@@ -90,7 +90,10 @@ if(process.env.CI){
  execFileSync(process.execPath,['scripts/browser-alpha76-unified-move.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-alpha76-open-reset.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-alpha77-doctortracer-tab.mjs'],{stdio:'inherit'});
+ execFileSync(process.execPath,['scripts/browser-crisp-raster.mjs'],{stdio:'inherit'});
+ execFileSync(process.execPath,['scripts/browser-ghostscript-raster.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-progressive-simplification.mjs'],{stdio:'inherit'});
+ execFileSync(process.execPath,['scripts/browser-real-doctortracer-native.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-startup-loading.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-clearance.mjs'],{stdio:'inherit'});
  execFileSync(process.execPath,['scripts/browser-pdf-import.mjs'],{stdio:'inherit'});

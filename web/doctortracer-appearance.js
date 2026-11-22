@@ -1,4 +1,5 @@
-import {exportDocument,importRichSvg,safeFragment} from './rich-svg.js?v=0.2.0-alpha.90';
+import {hardenClipMasks} from './doctortracer-clip-mask.js?v=0.2.0-alpha.93';
+import {exportDocument,importRichSvg,safeFragment} from './rich-svg.js?v=0.2.0-alpha.93';
 
 export function appearanceRasterPlan(document,dpi){
   if(![300,600,1200].includes(dpi))throw Error('Выберите 300, 600 или 1200 dpi.');
@@ -34,113 +35,18 @@ function originalArtwork(document){
   }catch{return null;}
 }
 
-// Chromium antialiases clip paths even with crispEdges. Opaque alpha masks
-// let the same vector geometry use the ordinary, unsmoothed fill renderer.
-function hardClipArtwork(artwork){
-  if(!artwork.includes('clip-path'))return artwork;
-  const ns='http://www.w3.org/2000/svg';
-  const wrapper=new DOMParser().parseFromString(
-    `<svg xmlns="${ns}" xmlns:xlink="http://www.w3.org/1999/xlink">${artwork}</svg>`,'image/svg+xml').documentElement;
-  const root=wrapper.firstElementChild;
-  const nodes=[root,...root.querySelectorAll('*')];
-  const ids=new Map();
-  for(const node of nodes)if(node.id&&!ids.has(node.id))ids.set(node.id,node);
-  const definitions=root.ownerDocument.createElementNS(ns,'defs');
-  const masks=new Map();
-  const make=tag=>root.ownerDocument.createElementNS(ns,tag);
-  const property=(node,name)=>node.style.getPropertyValue(name)||node.getAttribute(name);
-  const set=(node,name,value)=>node.style.setProperty(name,value,'important');
-  const shapes=new Set(['path','rect','circle','ellipse','line','polygon','polyline']);
-  let sequence=0;
-
-  function clipShape(source,rule,visited){
-    if(visited.has(source))return null;
-    const tag=source.localName;
-    rule=property(source,'clip-rule')||rule;
-    if(tag==='use'){
-      const href=source.getAttribute('href')||source.getAttribute('xlink:href')||'';
-      const referenced=ids.get(href.slice(1));
-      if(!referenced)return null;
-      const child=clipShape(referenced,rule,new Set([...visited,source]));
-      if(!child)return null;
-      const target=source.cloneNode(false),id=nextId();
-      child.id=id;
-      definitions.append(child);
-      target.removeAttribute('id');
-      target.removeAttribute('xlink:href');
-      target.setAttribute('href','#'+id);
-      for(const [name,value] of Object.entries({opacity:'1',mask:'none',filter:'none'}))set(target,name,value);
-      return applyClip(source,target)?target:null;
-    }
-    if(tag!=='g'&&!shapes.has(tag))return null;
-    const target=source.cloneNode(false);
-    target.removeAttribute('id');
-    for(const name of ['fill','opacity','fill-opacity','stroke','mask','filter','clip-path'])target.removeAttribute(name);
-    for(const [name,value] of Object.entries({fill:'#fff',opacity:'1','fill-opacity':'1',stroke:'none',mask:'none',filter:'none','clip-path':'none','fill-rule':rule||'nonzero','shape-rendering':'crispEdges'}))
-      set(target,name,value);
-    for(const node of source.children){
-      const child=clipShape(node,rule,visited);
-      if(!child)return null;
-      target.append(child);
-    }
-    return applyClip(source,target)?target:null;
-  }
-
-  function nextId(){
-    let id;
-    do{id='du-raster-clip-'+(++sequence);}while(ids.has(id));
-    return id;
-  }
-
-  function clipMask(value){
-    const id=value?.match(/^url\(\s*['"]?#([\w.:-]+)['"]?\s*\)$/)?.[1];
-    if(!id)return null;
-    if(masks.has(id))return masks.get(id);
-    const clip=ids.get(id);
-    if(clip?.localName!=='clipPath')return null;
-    masks.set(id,null); // Reject cycles rather than recursively expanding them.
-    const mask=make('mask');
-    mask.id=nextId();
-    mask.setAttribute('mask-type','alpha');
-    mask.setAttribute('maskContentUnits',clip.getAttribute('clipPathUnits')||'userSpaceOnUse');
-    for(const [name,value] of Object.entries({x:'-100%',y:'-100%',width:'300%',height:'300%'}))mask.setAttribute(name,value);
-    const group=make('g');
-    if(clip.hasAttribute('transform'))group.setAttribute('transform',clip.getAttribute('transform'));
-    if(clip.style.transform)group.style.transform=clip.style.transform;
-    for(const node of clip.children){
-      const geometry=clipShape(node,property(clip,'clip-rule'),new Set());
-      if(!geometry)return null;
-      group.append(geometry);
-    }
-    if(!applyClip(clip,group))return null;
-    mask.append(group);
-    definitions.append(mask);
-    masks.set(id,mask.id);
-    return mask.id;
-  }
-
-  function applyClip(source,target,existingMask){
-    const value=property(source,'clip-path');
-    if(!value||value==='none')return true;
-    const id=clipMask(value);
-    if(!id)return false;
-    set(target,'clip-path','none');
-    const mask='url(#'+id+')';
-    set(target,'mask',existingMask?existingMask+', '+mask:mask);
-    if(existingMask)set(target,'mask-composite','intersect');
-    return true;
-  }
-
-  for(const node of nodes){
-    if(node.closest('clipPath'))continue;
-    const mask=property(node,'mask');
-    applyClip(node,node,mask&&mask!=='none'?mask:null);
-  }
-  if(definitions.childElementCount)root.prepend(definitions);
-  return new XMLSerializer().serializeToString(root);
+// The current DoctorTracer Rust/WASM ABI accepts up to 4096×4096 and 8M pixels.
+// Never change the requested DPI or the already chosen pixel grid to fit.
+export const DOCTORTRACER_HANDOFF_MAX_SIDE=4096;
+export const DOCTORTRACER_HANDOFF_MAX_PIXELS=8000000;
+export function doctorTracerHandoffPlan(plan){
+  if(!Number.isSafeInteger(plan.width)||!Number.isSafeInteger(plan.height)||plan.width<1||plan.height<1)throw Error('Некорректный размер растра.');
+  if(Math.max(plan.width,plan.height)>DOCTORTRACER_HANDOFF_MAX_SIDE||plan.width*plan.height>DOCTORTRACER_HANDOFF_MAX_PIXELS)
+    throw Error('Исходный растр '+plan.width+'×'+plan.height+' ('+plan.dpi+' dpi) превышает предел текущего WASM DoctorTracer (4096 px / 8 млн пикселей). Автоматическое уменьшение запрещено.');
+  return {...plan,requestedDpi:plan.dpi};
 }
 
-export function appearanceRasterSvg(document,plan){
+export function appearanceRasterSvg(document,plan,{onWarning=()=>{}}={}){
   let artwork=originalArtwork(document);
   if(!artwork){
     const root=new DOMParser().parseFromString(exportDocument(document),'image/svg+xml').documentElement;
@@ -149,10 +55,15 @@ export function appearanceRasterSvg(document,plan){
     artwork=new XMLSerializer().serializeToString(root);
   }
   const safe=safeFragment(artwork.replace(/^\s*<\?xml[^?]*\?>/i,''),DOMParser);
-  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${plan.width}" height="${plan.height}" viewBox="${plan.x} ${plan.y} ${plan.widthMm} ${plan.heightMm}" preserveAspectRatio="none"><style>
+  const markup=`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${plan.width}" height="${plan.height}" viewBox="${plan.x} ${plan.y} ${plan.widthMm} ${plan.heightMm}" preserveAspectRatio="none"><style>
     path,rect,circle,ellipse,line,polygon,polyline,use {shape-rendering:crispEdges!important}
     image {image-rendering:pixelated!important}
-    </style>${hardClipArtwork(safe)}</svg>`;
+    </style>${safe}</svg>`;
+  // Generated filters are trusted raster-only markup, inserted AFTER the
+  // untrusted SVG has passed the original allowlist validation.
+  const result=hardenClipMasks(markup);
+  if(result.unsupported)onWarning('Сложных обрезок без отключения сглаживания: '+result.unsupported+'.');
+  return result.markup;
 }
 
 // Canvas encoders use their own DPI. Replace any pHYs chunk so the file
@@ -185,11 +96,10 @@ async function pngWithDpi(png,dpi){
   return new Blob([png.slice(0,33),chunk,png.slice(33)],{type:'image/png'});
 }
 
-export async function rasterizeImportedAppearance(document,plan,{signal,maxSide=Infinity}={}){
+export async function rasterizeImportedAppearance(document,plan,{signal,onWarning}={}){
   signal?.throwIfAborted();
-  const url=URL.createObjectURL(new Blob([appearanceRasterSvg(document,plan)],{type:'image/svg+xml'}));
+  const url=URL.createObjectURL(new Blob([appearanceRasterSvg(document,plan,{onWarning})],{type:'image/svg+xml'}));
   const canvas=globalThis.document.createElement('canvas');
-  let output=canvas;
   try{
     const image=new Image();
     image.src=url;
@@ -201,24 +111,12 @@ export async function rasterizeImportedAppearance(document,plan,{signal,maxSide=
     if(!context)throw Error('Canvas 2D недоступен.');
     context.imageSmoothingEnabled=false;
     context.drawImage(image,0,0);
-    const scale=Math.min(1,maxSide/Math.max(plan.width,plan.height));
-    if(scale<1){
-      output=globalThis.document.createElement('canvas');
-      output.width=Math.max(1,Math.round(plan.width*scale));
-      output.height=Math.max(1,Math.round(plan.height*scale));
-      const scaled=output.getContext('2d');
-      if(!scaled)throw Error('Canvas 2D недоступен.');
-      scaled.imageSmoothingEnabled=false;
-      scaled.drawImage(canvas,0,0,output.width,output.height);
-      canvas.width=canvas.height=0;
-    }
-    const png=await new Promise((resolve,reject)=>output.toBlob(blob=>
+    const png=await new Promise((resolve,reject)=>canvas.toBlob(blob=>
       blob?resolve(blob):reject(Error('Не удалось создать PNG. Выберите меньшее dpi.'))));
     signal?.throwIfAborted();
-    return pngWithDpi(png,plan.dpi*scale);
+    return pngWithDpi(png,plan.dpi);
   }finally{
     URL.revokeObjectURL(url);
     canvas.width=canvas.height=0;
-    output.width=output.height=0;
   }
 }

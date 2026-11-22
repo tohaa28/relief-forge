@@ -1,4 +1,4 @@
-import {DOCTORTRACER_URL} from './doctortracer-fallback.js?v=0.2.0-alpha.90';
+import {DOCTORTRACER_URL} from './doctortracer-fallback.js?v=0.2.0-alpha.93';
 
 
 // Drive the published wizard through its file input and SVG export controls.
@@ -37,12 +37,11 @@ export async function traceInDoctorTracerInterface(png,{frame,returnButton,statu
           if(loaded)throw Error('Интерфейс DoctorTracer изменился. Передача изображения недоступна.');
           return;
         }
+        if(win.doctorTracerInputContract!=='native-raster-v1')throw Error('Требуется DoctorTracer с поддержкой исходного разрешения (0.21.3 или новее). Передача отменена: уменьшение запрещено.');
         // Images and other decorative resources must not delay the handoff.
         connected=true;
         clearTimeout(timer);
         clearInterval(readiness);
-        const preview=ui.getElementById('preview');
-        if(preview)preview.style.imageRendering='pixelated';
         const transfer=new win.DataTransfer();
         transfer.items.add(new win.File([png],'Импортированный макет.png',{type:'image/png'}));
         input.files=transfer.files;
