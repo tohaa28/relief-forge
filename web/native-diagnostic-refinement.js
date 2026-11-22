@@ -1,5 +1,5 @@
-import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.97';
-import {nativeParts,evaluateBezier,pointDistance} from './native-bezier.js?v=0.2.0-alpha.97';
+import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.98';
+import {nativeParts,evaluateBezier,pointDistance} from './native-bezier.js?v=0.2.0-alpha.98';
 // The Rust polyline engine remains useful for its other diagnostic classes.
 // Crossings/overlaps are replaced by witnessed native-curve locations across
 // the selected document, eliminating invented sampling-chord intersections.

@@ -1,4 +1,4 @@
-import {DOCTORTRACER_URL} from './doctortracer-fallback.js?v=0.2.0-alpha.97';
+import {DOCTORTRACER_URL} from './doctortracer-fallback.js?v=0.2.0-alpha.98';
 
 
 // Drive the published wizard through its file input and SVG export controls.

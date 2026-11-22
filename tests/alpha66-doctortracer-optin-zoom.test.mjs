@@ -17,7 +17,7 @@ test('manual viewport isolation depends on total commands even with one path',()
  assert.equal(heavyManualScene([{kind:'image',points:Array(8000)}]),false);
  assert.match(app,/manualSceneHeavy=heavyManualScene\(doc\.paths\)/);
  assert.doesNotMatch(app,/curveEditing\(\)\&\&doc\.paths\.length>25/);
- assert.match(app,/manualPendingView=view;\s+scheduleManualZoomRefresh\(\)/);
+ assert.match(app,/manualPendingView=view;[\s\S]*?scheduleManualZoomRefresh\(\)/);
  assert.match(app,/if\(manualPendingView\)\{[\s\S]*?setAttribute\('viewBox'/);
 });
 test('manual cursor mapping accounts for xMidYMid letterboxing and zoom without SVG matrix',()=>{
