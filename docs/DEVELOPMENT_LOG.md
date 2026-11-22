@@ -1539,3 +1539,7 @@ GitHub Actions https://github.com/tohaa28/relief-forge/actions/runs/45009181173:
 
 ## Quantization diagnostic measurement, 2026-11-22
 Second failed CI https://github.com/tohaa28/relief-forge/actions/runs/45009549102: 30>29 pixel center errors on 160×144 circle, before full audit, candidate rejected and original Rust route retained. Third candidate 4605ac2 tests looser bound ONLY in diagnostic calls, not production, to quantify true mismatch count and audit. No release.
+
+
+## Quantization candidate gate #4, 2026-11-22
+Failed measurement run https://github.com/tohaa28/relief-forge/actions/runs/45009846852: 59/368 pixel centres differed on binary circle (native geometry audit passed); original 0.08 per-edge budget too strict. New src 5bbf087a uses dual <=0.25*boundary and <=2% foreground count, keeps no-AA input unchanged; tests circle/ellipse/hole/rect, CI pending. Do not merge test-only PR #128.
