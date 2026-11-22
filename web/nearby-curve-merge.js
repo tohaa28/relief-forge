@@ -1,6 +1,6 @@
-import {nativeParts,pointDistance,cubicControls,controlsBounds,evaluateBezier} from './native-bezier.js?v=0.2.0-alpha.96';
-import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.96';
-import {finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.96';
+import {nativeParts,pointDistance,cubicControls,controlsBounds,evaluateBezier} from './native-bezier.js?v=0.2.0-alpha.97';
+import {nativeIntersections} from './native-intersections.js?v=0.2.0-alpha.97';
+import {finishDeferredCurveCommands} from './curve-edit.js?v=0.2.0-alpha.97';
 
 // Local tolerance welding; never invoked by pointermove, manual Done, or Undo.
 // A proposed change is written ONLY after exact-native topology and paint checks.
@@ -14,8 +14,9 @@ const bounds=pts=>pts.reduce((b,p)=>[
 const overlaps=(a,b,epsilon=0)=>a&&b&&a[0]<=b[2]+epsilon&&b[0]<=a[2]+epsilon&&
   a[1]<=b[3]+epsilon&&b[1]<=a[3]+epsilon;
 const expand=(b,t)=>[b[0]-t,b[1]-t,b[2]+t,b[3]+t];
-const cloneCommands=p=>p.artwork?structuredClone(p.commands):
+const readCommands=p=>p.artwork?p.commands:
   p.points.map((q,i)=>[i?'L':'M',...q]).concat(p.closed?[['Z']]:[]);
+const cloneCommands=p=>readCommands(p).map(command=>command.slice());
 const last=c=>c.slice(-2);
 const allControls=p=>nativeParts(p).flatMap(part=>part.segments.map(s=>s.controls));
 function bboxPath(p){
@@ -50,11 +51,12 @@ function areaOf(part){
 }
 function areaPreserved(before,after,tol,span,strict){
   if(!strict)return true;
-  const x=nativeParts(before),y=nativeParts(after);
+  const x=before.parts,y=after.parts;
   if(x.length!==y.length||x.some((p,i)=>p.closed!==y[i].closed))return false;
   for(let i=0;i<x.length;i++){
     if(!x[i].closed)continue;
-    const a=areaOf(x[i]),b=areaOf(y[i]);
+    const a=before.areas[i]??=areaOf(x[i]);
+    const b=after.areas[i]??=areaOf(y[i]);
     if(Math.abs(a)>1e-9&&Math.sign(a)!==Math.sign(b))return false;
     if(Math.abs(a-b)>Math.max(tol*tol*2,tol*Math.max(span,0)*.55))return false;
   }
@@ -68,16 +70,18 @@ function segmentPath(controls){
 }
 const geometryRecord=p=>{
   if(!supported(p))return null;
-  const rows=segs(p).map(s=>s.controls);
-  return {bounds:rows.length?bounds(rows.flat()):null,rows};
+  const parts=nativeParts(p);
+  const rows=parts.flatMap(part=>part.segments.map(segment=>segment.controls));
+  return {parts,areas:[],bounds:rows.length?bounds(rows.flat()):null,
+    rows:rows.map(controls=>({controls,box:controlsBounds(controls)}))};
 };
 function localCurves(doc,index,replacement,box,indexed,maxLocal=104){
   const rows=[];
   for(let j=0;j<doc.paths.length;j++){
-    const record=j===index?geometryRecord(replacement):indexed[j];
+    const record=j===index?replacement:indexed[j];
     if(!record?.bounds||!overlaps(record.bounds,box))continue;
-    for(const controls of record.rows){
-      if(overlaps(controlsBounds(controls),box)){
+    for(const {controls,box:curveBox} of record.rows){
+      if(overlaps(curveBox,box)){
         rows.push(controls);
         if(rows.length>maxLocal)throw Error('merge-near-local-budget');
       }
@@ -104,7 +108,7 @@ function localTopologySafe(doc,index,source,candidate,box,tol,indexed){
 }
 const norm=p=>Math.hypot(...p);
 function tinySegmentCandidates(path,tol){
-  const source=cloneCommands(path),parts=nativeParts({...path,offset:[0,0]}),found=[];
+  const source=readCommands(path),parts=nativeParts({...path,offset:[0,0]}),found=[];
   for(const part of parts){
     if(part.closed&&part.segments.length<=3)continue;
     if(!part.closed&&part.segments.length<=2)continue;
@@ -132,14 +136,14 @@ function tinySegmentCandidates(path,tol){
   return found.sort((a,b)=>a.hull-b.hull);
 }
 function tryWeld(doc,index,proposal,tol,strict,Parser,stats,indexed){
-  const path=doc.paths[index],commands=cloneCommands(path);
+  const path=doc.paths[index],commands=readCommands(path);
   const c=commands[proposal.command],prev=commands[proposal.previous];
   if(!c||!prev||(!proposal.seam&&!['L','Q','C'].includes(c[0]))||
      !['L','Q','C'].includes(prev[0]))return false;
   const end=proposal.seam?proposal.controls.at(-1):last(c),p0=last(prev),delta=minus(end,p0);
   if(D(end,p0)>tol)return false;
-  const modified=structuredClone(commands);
-  const p=modified[proposal.previous];
+  const modified=commands.slice();
+  const p=modified[proposal.previous]=prev.slice();
   p.splice(p.length-2,2,...end);
   if(p[0]==='C'){p[3]+=delta[0];p[4]+=delta[1];}
   else if(p[0]==='Q'){p[1]+=delta[0]*.5;p[2]+=delta[1]*.5;}
@@ -147,17 +151,19 @@ function tryWeld(doc,index,proposal,tol,strict,Parser,stats,indexed){
   let candidate;
   try{candidate=asPath(path,modified,Parser);}
   catch{stats.skipped++;return false;}
-  if(!areaPreserved(path,candidate,tol,proposal.span,strict)){stats.skipped++;return false;}
-  const offset=path.offset||[0,0];
+  const sourceRecord=indexed[index],candidateRecord=geometryRecord(candidate);
+  if(!areaPreserved(sourceRecord,candidateRecord,tol,proposal.span,strict)){stats.skipped++;return false;}
+  const offset=path.offset||[0,0],localBounds=expand(proposal.box,tol);
+  const localControls=offset[0]||offset[1]?segs({...candidate,offset:[0,0]}).map(s=>s.controls):
+    candidateRecord.rows.map(row=>row.controls);
   const affected=[...proposal.prevControls,...proposal.controls,
-    ...segs({...candidate,offset:[0,0]}).flatMap(s=>s.controls).filter(p=>overlaps(
-      [p[0],p[1],p[0],p[1]],expand(proposal.box,tol)))];
+    ...localControls.flat().filter(p=>overlaps([p[0],p[1],p[0],p[1]],localBounds))];
   const sweep=expand(bounds(affected.map(p=>shift(p,offset))),tol*1.5);
   try{
-    if(!localTopologySafe(doc,index,path,candidate,sweep,tol,indexed)){stats.skipped++;return false;}
+    if(!localTopologySafe(doc,index,sourceRecord,candidateRecord,sweep,tol,indexed)){stats.skipped++;return false;}
   }catch{stats.limited++;return false;}
   doc.paths[index]=candidate;
-  indexed[index]=geometryRecord(candidate);
+  indexed[index]=candidateRecord;
   stats.weldedNodes++;stats.maxMovementMm=Math.max(stats.maxMovementMm,Math.max(proposal.hull,D(end,p0)));
   return true;
 }
@@ -345,17 +351,19 @@ export function mergeNearbyGeometry(source,indices,tolerance,{
   let total=0;
   for(const index of selected){
     const path=document.paths[index];if(!supported(path))continue;
-    const ignored=new Set();
+    let candidates,cursor;
     for(let step=0;step<maxPerPath;step++){
-      const candidates=tinySegmentCandidates(document.paths[index],tolerance)
-        .filter(x=>!ignored.has(x.command+':'+x.previous));
-      if(!candidates.length)break;
-      const selected=candidates[0];
+      if(!candidates){
+        candidates=tinySegmentCandidates(document.paths[index],tolerance);
+        cursor=0;
+      }
+      if(cursor===candidates.length)break;
+      const selected=candidates[cursor++];
       stats.candidates++;
       if(tryWeld(document,index,selected,tolerance,strict,Parser,stats,indexed)){
-        ignored.clear();total++;
+        candidates=null;total++;
         if(total>=maxWelds){stats.limited++;break;}
-      }else ignored.add(selected.command+':'+selected.previous);
+      }
     }
     if(total>=maxWelds)break;
   }
