@@ -1,4 +1,4 @@
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.93';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.94';
 
 // Conservative world-space hull, computed once per editor session. Endpoint
 // bounds alone miss handles beyond the anchors and translated neighbours.

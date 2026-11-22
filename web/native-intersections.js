@@ -6,8 +6,8 @@ export function prepareNativeIntersections(){
  // Browsers cache rejected dynamic imports by URL. An interrupted first
  // preparation must not poison every later import in this page session.
  const load=()=>kernelRetry?
-   import('./vendor/paper-core.mjs?v=0.2.0-alpha.93&retry='+kernelRetry):
-   import('./vendor/paper-core.mjs?v=0.2.0-alpha.93');
+   import('./vendor/paper-core.mjs?v=0.2.0-alpha.94&retry='+kernelRetry):
+   import('./vendor/paper-core.mjs?v=0.2.0-alpha.94');
  const moduleReady=load().catch(error=>{
    if(kernelRetry>=2)throw error;
    kernelRetry++;return load();
@@ -18,7 +18,7 @@ export function prepareNativeIntersections(){
 // Node tests and dedicated Workers need the synchronous geometry API ready.
 // The page itself loads the kernel only when vector processing actually starts.
 if(typeof document==='undefined')await prepareNativeIntersections();
-import {nativeParts,evaluateBezier,pointDistance,cubicControls} from './native-bezier.js?v=0.2.0-alpha.93';
+import {nativeParts,evaluateBezier,pointDistance,cubicControls} from './native-bezier.js?v=0.2.0-alpha.94';
 const controls=loc=>loc.path.data.controls[loc.curve.index];
 function sourceTime(loc,points){
  const t=loc.time;

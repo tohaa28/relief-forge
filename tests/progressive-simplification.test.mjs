@@ -47,3 +47,16 @@ test('compound rings are retained and unsupported artwork is skipped',()=>{
   assert.equal(commands.filter(command=>command[0]==='Z').length,2);
   assert.ok(result.stats.removed>0);
 });
+
+test('closest anchors win over flatter geometry, across selected contours',()=>{
+  const sharp={points:[[0,0],[4,0],[8,0],[9,3],[9.2,3],[17,8],[22,10]],closed:false};
+  const flat={points:[[0,25],[4,25],[8,25],[12,25]],closed:false};
+  const source={paths:[flat,sharp]};
+  const {changes,stats}=planProgressiveSimplification(source,[0,1],40);
+  assert.equal(stats.removed,1);
+  assert.deepEqual(changes.map(change=>change.index),[1]);
+  const x=changes[0].commands.map(command=>command[1]);
+  assert.equal(x.filter(value=>value===9||value===9.2).length,1);
+  assert.ok(x.includes(4));
+  assert.ok(x.includes(8));
+});
