@@ -1535,3 +1535,7 @@ DoctorTracer получает PNG, созданный из дерева импо
 
 ## 2026-11-22 CI failure quantization candidate
 GitHub Actions https://github.com/tohaa28/relief-forge/actions/runs/45009181173: 434 JS and 17 Rust passed, PNG pHYs and previous input tests PASS; direct DoctorTracer pixel_grid_trace.mjs fails because fitting branch rejected and returned old Rust vector result (no pixelGridFit). Root cause not yet confirmed. Next diagnostic commit aaeca1d prints classification, pixel centre budget and audit error separately; source/private inputs remain unchanged. No deployment.
+
+
+## Quantization diagnostic measurement, 2026-11-22
+Second failed CI https://github.com/tohaa28/relief-forge/actions/runs/45009549102: 30>29 pixel center errors on 160×144 circle, before full audit, candidate rejected and original Rust route retained. Third candidate 4605ac2 tests looser bound ONLY in diagnostic calls, not production, to quantify true mismatch count and audit. No release.

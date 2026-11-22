@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join,resolve,extname,sep} from 'node:path';
 import {chromium} from 'playwright';
 
-const ref='aaeca1d0b3c0e0705301c31744b05c01531fbb35';
+const ref='4605ac2c93a79dd50ad8c0081ada26e70705f43e';
 const root=await mkdtemp(join(tmpdir(),'doctortracer-real-'));
 let server,browser;
 try{
