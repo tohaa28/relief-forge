@@ -51,11 +51,12 @@ function areaOf(part){
 }
 function areaPreserved(before,after,tol,span,strict){
   if(!strict)return true;
-  const x=nativeParts(before),y=nativeParts(after);
+  const x=before.parts,y=after.parts;
   if(x.length!==y.length||x.some((p,i)=>p.closed!==y[i].closed))return false;
   for(let i=0;i<x.length;i++){
     if(!x[i].closed)continue;
-    const a=areaOf(x[i]),b=areaOf(y[i]);
+    const a=before.areas[i]??=areaOf(x[i]);
+    const b=after.areas[i]??=areaOf(y[i]);
     if(Math.abs(a)>1e-9&&Math.sign(a)!==Math.sign(b))return false;
     if(Math.abs(a-b)>Math.max(tol*tol*2,tol*Math.max(span,0)*.55))return false;
   }
@@ -69,16 +70,18 @@ function segmentPath(controls){
 }
 const geometryRecord=p=>{
   if(!supported(p))return null;
-  const rows=segs(p).map(s=>s.controls);
-  return {bounds:rows.length?bounds(rows.flat()):null,rows};
+  const parts=nativeParts(p);
+  const rows=parts.flatMap(part=>part.segments.map(segment=>segment.controls));
+  return {parts,areas:[],bounds:rows.length?bounds(rows.flat()):null,
+    rows:rows.map(controls=>({controls,box:controlsBounds(controls)}))};
 };
 function localCurves(doc,index,replacement,box,indexed,maxLocal=104){
   const rows=[];
   for(let j=0;j<doc.paths.length;j++){
-    const record=j===index?geometryRecord(replacement):indexed[j];
+    const record=j===index?replacement:indexed[j];
     if(!record?.bounds||!overlaps(record.bounds,box))continue;
-    for(const controls of record.rows){
-      if(overlaps(controlsBounds(controls),box)){
+    for(const {controls,box:curveBox} of record.rows){
+      if(overlaps(curveBox,box)){
         rows.push(controls);
         if(rows.length>maxLocal)throw Error('merge-near-local-budget');
       }
@@ -148,17 +151,19 @@ function tryWeld(doc,index,proposal,tol,strict,Parser,stats,indexed){
   let candidate;
   try{candidate=asPath(path,modified,Parser);}
   catch{stats.skipped++;return false;}
-  if(!areaPreserved(path,candidate,tol,proposal.span,strict)){stats.skipped++;return false;}
-  const offset=path.offset||[0,0];
+  const sourceRecord=indexed[index],candidateRecord=geometryRecord(candidate);
+  if(!areaPreserved(sourceRecord,candidateRecord,tol,proposal.span,strict)){stats.skipped++;return false;}
+  const offset=path.offset||[0,0],localBounds=expand(proposal.box,tol);
+  const localControls=offset[0]||offset[1]?segs({...candidate,offset:[0,0]}).map(s=>s.controls):
+    candidateRecord.rows.map(row=>row.controls);
   const affected=[...proposal.prevControls,...proposal.controls,
-    ...segs({...candidate,offset:[0,0]}).flatMap(s=>s.controls).filter(p=>overlaps(
-      [p[0],p[1],p[0],p[1]],expand(proposal.box,tol)))];
+    ...localControls.flat().filter(p=>overlaps([p[0],p[1],p[0],p[1]],localBounds))];
   const sweep=expand(bounds(affected.map(p=>shift(p,offset))),tol*1.5);
   try{
-    if(!localTopologySafe(doc,index,path,candidate,sweep,tol,indexed)){stats.skipped++;return false;}
+    if(!localTopologySafe(doc,index,sourceRecord,candidateRecord,sweep,tol,indexed)){stats.skipped++;return false;}
   }catch{stats.limited++;return false;}
   doc.paths[index]=candidate;
-  indexed[index]=geometryRecord(candidate);
+  indexed[index]=candidateRecord;
   stats.weldedNodes++;stats.maxMovementMm=Math.max(stats.maxMovementMm,Math.max(proposal.hull,D(end,p0)));
   return true;
 }
