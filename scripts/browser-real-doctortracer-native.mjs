@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join,resolve,extname,sep} from 'node:path';
 import {chromium} from 'playwright';
 
-const ref='bdb8ad49464e242b213aea0f618f24bc6aa90bbc';
+const ref='f85879a287f9283836e68a2473d1b929339b9041';
 const root=await mkdtemp(join(tmpdir(),'doctortracer-real-'));
 let server,browser;
 try{
@@ -14,6 +14,8 @@ try{
  git('init','-q');git('fetch','--depth=1','https://github.com/tohaa28/DoctorTracer.git',ref);git('checkout','--detach','FETCH_HEAD');
  execFileSync(process.execPath,['tests/crisp_handoff.mjs'],{cwd:root,stdio:'inherit'});
  execFileSync(process.execPath,['tests/native_raster.mjs'],{cwd:root,stdio:'inherit'});
+ execFileSync(process.execPath,['tests/png_dpi_metadata.mjs'],{cwd:root,stdio:'inherit'});
+ execFileSync(process.execPath,['tests/pixel_grid_trace.mjs'],{cwd:root,stdio:'inherit'});
  const web=join(root,'web');
  const types={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.wasm':'application/wasm','.png':'image/png','.json':'application/json','.svg':'image/svg+xml'};
  server=createServer(async(req,res)=>{
