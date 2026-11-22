@@ -14,8 +14,9 @@ const bounds=pts=>pts.reduce((b,p)=>[
 const overlaps=(a,b,epsilon=0)=>a&&b&&a[0]<=b[2]+epsilon&&b[0]<=a[2]+epsilon&&
   a[1]<=b[3]+epsilon&&b[1]<=a[3]+epsilon;
 const expand=(b,t)=>[b[0]-t,b[1]-t,b[2]+t,b[3]+t];
-const cloneCommands=p=>p.artwork?structuredClone(p.commands):
+const readCommands=p=>p.artwork?p.commands:
   p.points.map((q,i)=>[i?'L':'M',...q]).concat(p.closed?[['Z']]:[]);
+const cloneCommands=p=>readCommands(p).map(command=>command.slice());
 const last=c=>c.slice(-2);
 const allControls=p=>nativeParts(p).flatMap(part=>part.segments.map(s=>s.controls));
 function bboxPath(p){
@@ -104,7 +105,7 @@ function localTopologySafe(doc,index,source,candidate,box,tol,indexed){
 }
 const norm=p=>Math.hypot(...p);
 function tinySegmentCandidates(path,tol){
-  const source=cloneCommands(path),parts=nativeParts({...path,offset:[0,0]}),found=[];
+  const source=readCommands(path),parts=nativeParts({...path,offset:[0,0]}),found=[];
   for(const part of parts){
     if(part.closed&&part.segments.length<=3)continue;
     if(!part.closed&&part.segments.length<=2)continue;
@@ -132,14 +133,14 @@ function tinySegmentCandidates(path,tol){
   return found.sort((a,b)=>a.hull-b.hull);
 }
 function tryWeld(doc,index,proposal,tol,strict,Parser,stats,indexed){
-  const path=doc.paths[index],commands=cloneCommands(path);
+  const path=doc.paths[index],commands=readCommands(path);
   const c=commands[proposal.command],prev=commands[proposal.previous];
   if(!c||!prev||(!proposal.seam&&!['L','Q','C'].includes(c[0]))||
      !['L','Q','C'].includes(prev[0]))return false;
   const end=proposal.seam?proposal.controls.at(-1):last(c),p0=last(prev),delta=minus(end,p0);
   if(D(end,p0)>tol)return false;
-  const modified=structuredClone(commands);
-  const p=modified[proposal.previous];
+  const modified=commands.slice();
+  const p=modified[proposal.previous]=prev.slice();
   p.splice(p.length-2,2,...end);
   if(p[0]==='C'){p[3]+=delta[0];p[4]+=delta[1];}
   else if(p[0]==='Q'){p[1]+=delta[0]*.5;p[2]+=delta[1]*.5;}
@@ -345,17 +346,19 @@ export function mergeNearbyGeometry(source,indices,tolerance,{
   let total=0;
   for(const index of selected){
     const path=document.paths[index];if(!supported(path))continue;
-    const ignored=new Set();
+    let candidates,cursor;
     for(let step=0;step<maxPerPath;step++){
-      const candidates=tinySegmentCandidates(document.paths[index],tolerance)
-        .filter(x=>!ignored.has(x.command+':'+x.previous));
-      if(!candidates.length)break;
-      const selected=candidates[0];
+      if(!candidates){
+        candidates=tinySegmentCandidates(document.paths[index],tolerance);
+        cursor=0;
+      }
+      if(cursor===candidates.length)break;
+      const selected=candidates[cursor++];
       stats.candidates++;
       if(tryWeld(document,index,selected,tolerance,strict,Parser,stats,indexed)){
-        ignored.clear();total++;
+        candidates=null;total++;
         if(total>=maxWelds){stats.limited++;break;}
-      }else ignored.add(selected.command+':'+selected.previous);
+      }
     }
     if(total>=maxWelds)break;
   }
