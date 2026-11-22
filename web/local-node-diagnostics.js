@@ -1,4 +1,4 @@
-import {nativeParts,controlsBounds,pointDistance,evaluateBezier} from './native-bezier.js?v=0.2.0-alpha.94';
+import {nativeParts,controlsBounds,pointDistance,evaluateBezier} from './native-bezier.js?v=0.2.0-alpha.95';
 
 // A manual edit never starts the full-document Rust/Union/optimizer pipeline.
 // Re-evaluate only the native Bézier witnesses near the pointer, preserving

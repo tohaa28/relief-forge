@@ -60,3 +60,31 @@ test('closest anchors win over flatter geometry, across selected contours',()=>{
   assert.ok(x.includes(4));
   assert.ok(x.includes(8));
 });
+
+test('out-and-back spike is removed before a closer ordinary pair',()=>{
+  const spike={points:[[0,-4],[0,0],[5,.18],[0,.4],[0,4]],closed:false};
+  const nearby={points:[[12,-4],[12,-.1],[12,-.05],[12,4]],closed:false};
+  const {changes}=planProgressiveSimplification({paths:[nearby,spike]},[0,1],50);
+  assert.deepEqual(changes.map(c=>c.index),[1]);
+  assert.deepEqual(changes[0].commands,[['M',0,-4],['L',0,0],['L',0,.4],['L',0,4]]);
+});
+
+test('bent spike is removed together and joins the surrounding curve with a cubic bridge',()=>{
+  const spike={points:[[-.3,-4],[0,0],[5,.12],[5.05,.25],[5,.38],[0,.55],[.5,4]],closed:false};
+  const {changes,stats}=planProgressiveSimplification({paths:[spike]},[0],50);
+  assert.equal(stats.removed,3);
+  assert.equal(changes[0].commands[2][0],'C');
+  assert.deepEqual(changes[0].commands[2].slice(-2),[0,.55]);
+  assert.deepEqual(changes[0].commands[1],['L',0,0]);
+});
+
+test('spike repair crosses the start of a ring and distinguishes a normal acute corner',()=>{
+  const ring={points:[[5,.18],[0,.4],[0,4],[-4,4],[-4,-4],[0,-4],[0,0]],closed:true};
+  const ringPlan=planProgressiveSimplification({paths:[ring]},[0],50);
+  assert.equal(ringPlan.stats.spikes,1);
+  assert.equal(ringPlan.changes[0].commands.at(-1)[0],'Z');
+  assert.ok(!ringPlan.changes[0].commands.some(command=>command[1]===5));
+  const acute={points:[[-4,-2],[0,0],[5,.18],[0,.4],[-4,2],[0,4]],closed:false};
+  const acutePlan=planProgressiveSimplification({paths:[acute]},[0],50);
+  assert.equal(acutePlan.stats.spikes,0);
+});
