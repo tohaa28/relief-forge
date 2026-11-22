@@ -1531,3 +1531,7 @@ DoctorTracer получает PNG, созданный из дерева импо
 
 
 ## 2026-11-22 · CI-only DoctorTracer PR #5 candidate f85879a287f9283836e68a2473d1b929339b9041. Tests actual Potrace mask WASM + Rust WASM via tests/pixel_grid_trace.mjs, and PNG 300/600/1200 DPI pHYs reading via tests/png_dpi_metadata.mjs; keeps existing browser native raster integration. This branch test/doctortracer-quantization-0215 is CI-only and must NEVER be merged into relief-forge main; alpha.92 main checkpoint 45b52068847c8f879f182530c8efdd5fec57a89b is not modified. Test results pending. No original private EPS stored.
+
+
+## 2026-11-22 CI failure quantization candidate
+GitHub Actions https://github.com/tohaa28/relief-forge/actions/runs/45009181173: 434 JS and 17 Rust passed, PNG pHYs and previous input tests PASS; direct DoctorTracer pixel_grid_trace.mjs fails because fitting branch rejected and returned old Rust vector result (no pixelGridFit). Root cause not yet confirmed. Next diagnostic commit aaeca1d prints classification, pixel centre budget and audit error separately; source/private inputs remain unchanged. No deployment.
