@@ -2,10 +2,10 @@
 self.onmessage=async({data})=>{
  const progress=message=>self.postMessage({type:'progress',message});
  try{
-  const {ghostscriptRasterArgs}=await import('./ghostscript-raster.js?v=0.2.0-alpha.93');
-  const {epsProgram,epsMetadata}=await import('./eps-pipeline.js?v=0.2.0-alpha.93');
-  const {pdfProgram}=await import('./pdf-pipeline.js?v=0.2.0-alpha.93');
-  const {downloadBinary}=await import('./asset-download.js?v=0.2.0-alpha.93');
+  const {ghostscriptRasterArgs}=await import('./ghostscript-raster.js?v=0.2.0-alpha.94');
+  const {epsProgram,epsMetadata}=await import('./eps-pipeline.js?v=0.2.0-alpha.94');
+  const {pdfProgram}=await import('./pdf-pipeline.js?v=0.2.0-alpha.94');
+  const {downloadBinary}=await import('./asset-download.js?v=0.2.0-alpha.94');
   const args=ghostscriptRasterArgs(data.format,data.dpi,data.pageIndex);
   const program=data.format==='eps'?epsProgram(data.bytes):pdfProgram(data.bytes);
   if(data.format==='eps')epsMetadata(program);

@@ -1,16 +1,20 @@
-import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.93';
-import {evaluateBezier,lerpPoint,nativeParts,pointDistance,sampleNativeParts} from './native-bezier.js?v=0.2.0-alpha.93';
-import {validateCurveChange,validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.93';
+import {geometryCommands} from './eps-export.js?v=0.2.0-alpha.94';
+import {evaluateBezier,nativeParts,pointDistance,sampleNativeParts} from './native-bezier.js?v=0.2.0-alpha.94';
+import {validateCurveChange,validateDocumentCurveChange} from './curve-quality.js?v=0.2.0-alpha.94';
+
+const compareCandidates=(a,b)=>a.distance-b.distance||a.error-b.error||a.order-b.order;
 
 class CandidateQueue{
+  sequence=0;
   values=[];
   push(value){
     let i=this.values.length;
     const heap=this.values;
+    value.order=this.sequence++;
     heap.push(value);
     while(i>0){
       const parent=Math.floor((i-1)/2);
-      if(heap[parent].cost<=value.cost)break;
+      if(compareCandidates(heap[parent],value)<=0)break;
       heap[i]=heap[parent];i=parent;
     }
     heap[i]=value;
@@ -21,8 +25,8 @@ class CandidateQueue{
     let i=0;
     while(2*i+1<heap.length){
       let child=2*i+1;
-      if(child+1<heap.length&&heap[child+1].cost<heap[child].cost)child++;
-      if(heap[child].cost>=last.cost)break;
+      if(child+1<heap.length&&compareCandidates(heap[child+1],heap[child])<0)child++;
+      if(compareCandidates(heap[child],last)>=0)break;
       heap[i]=heap[child];i=child;
     }
     heap[i]=last;
@@ -49,51 +53,72 @@ function join(left,right){
   }
   let error=pointDistance(original(split),evaluateBezier(controls,split));
   for(let i=1;i<8;i++)error=Math.max(error,pointDistance(original(i/8),evaluateBezier(controls,i/8)));
-  return {controls,cost:error+Math.min(l,r)*.12};
+  return {controls,error};
 }
 
-function simplifyPart(part,ratio){
+const capacity=part=>Math.max(0,part.segments.length-(part.closed?3:1));
+
+function contourState(part,queue){
   const edges=part.segments.map(segment=>segment.controls);
   const count=edges.length+(part.closed?0:1);
-  const budget=Math.floor(Math.max(0,count-(part.closed?3:2))*ratio);
-  if(!budget)return null;
   const nodes=Array.from({length:count},(_,i)=>({previous:i-1,next:i+1,
     outgoing:edges[i],active:true,revision:0}));
   nodes.at(-1).next=part.closed?0:-1;
-  const queue=new CandidateQueue();
-  let floor=0,removed=0;
+  const limit=capacity(part);
+  const state={removed:0,remove,commands};
+  for(let i=1;i<count;i++)enqueue(i);
+  return state;
+
   function enqueue(index){
     const node=nodes[index];
-    if(!node||index===0||!node.active||node.next<0)return;
+    if(!limit||!node||index===0||!node.active||node.next<0)return;
     node.revision++;
-    const fit=join(nodes[node.previous].outgoing,node.outgoing);
-    if(fit)queue.push({index,revision:node.revision,controls:fit.controls,cost:Math.max(floor,fit.cost)});
+    const left=nodes[node.previous].outgoing,right=node.outgoing;
+    const fit=join(left,right);
+    if(!fit)return;
+    const distance=Math.min(pointDistance(left[0],left.at(-1)),pointDistance(right[0],right.at(-1)));
+    queue.push({state,index,revision:node.revision,distance,...fit});
   }
-  for(let i=1;i<count;i++)enqueue(i);
-  while(removed<budget&&queue.values.length){
-    const next=queue.pop(),node=nodes[next.index];
-    if(!node.active||node.revision!==next.revision)continue;
+
+  function remove(candidate){
+    const node=nodes[candidate.index];
+    if(state.removed===limit||!node.active||node.revision!==candidate.revision)return false;
     const left=nodes[node.previous],right=nodes[node.next];
-    floor=next.cost;
-    left.outgoing=next.controls;
+    left.outgoing=candidate.controls;
     left.next=node.next;
     right.previous=node.previous;
     node.active=false;
-    removed++;
-    enqueue(node.previous);enqueue(node.next);
+    state.removed++;
+    if(state.removed<limit){
+      enqueue(node.previous);
+      enqueue(node.next);
+    }
+    return true;
   }
-  if(!removed)return null;
-  const commands=[['M',...part.start]];
-  for(let i=0;i>=0;){
-    const {next,outgoing}=nodes[i];
-    if(!outgoing)break;
-    if(next!==0||outgoing.length!==2)commands.push(
-      [({2:'L',3:'Q',4:'C'})[outgoing.length],...outgoing.slice(1).flat()]);
-    if(next===0)break;
-    i=next;
+
+  function commands(){
+    const out=[['M',...part.start]];
+    for(let i=0;i>=0;){
+      const {next,outgoing}=nodes[i];
+      if(!outgoing)break;
+      if(next!==0||outgoing.length!==2)out.push(
+        [({2:'L',3:'Q',4:'C'})[outgoing.length],...outgoing.slice(1).flat()]);
+      if(next===0)break;
+      i=next;
+    }
+    if(part.closed)out.push(['Z']);
+    return out;
   }
-  if(part.closed)commands.push(['Z']);
-  return {commands,removed};
+}
+
+function simplifyContours(entries,budget){
+  const queue=new CandidateQueue();
+  const contours=entries.map(({parts})=>parts.map(part=>capacity(part)?contourState(part,queue):null));
+  while(budget>0&&queue.values.length){
+    const candidate=queue.pop();
+    if(candidate.state.remove(candidate))budget--;
+  }
+  return contours;
 }
 
 function nesting(path){
@@ -115,6 +140,7 @@ export function planProgressiveSimplification(document,indices,percent,tolerance
   if(!(percent>0&&percent<=100))return {changes,stats};
   const result={...document,paths:document.paths.slice()};
   const ratio=(percent/100)**2;
+  const entries=[];
   for(const index of new Set(indices)){
     const path=document.paths[index];
     if(!path||path.kind==='image')continue;
@@ -124,12 +150,24 @@ export function planProgressiveSimplification(document,indices,percent,tolerance
       if(command[0]==='M')originalParts.push([]);
       originalParts.at(-1).push(command);
     }
+    entries.push({index,path,parts,originalParts});
+  }
+  const budget=Math.floor(entries.reduce((sum,{parts})=>
+    sum+parts.reduce((n,part)=>n+capacity(part),0),0)*ratio);
+  if(!budget)return {changes,stats};
+  const planned=simplifyContours(entries,budget);
+  for(const [entryIndex,entry] of entries.entries()){
+    const {index,path,parts,originalParts}=entry;
+    let contours=planned[entryIndex];
+    let remaining=contours.reduce((n,contour)=>n+(contour?.removed||0),0);
+    if(!remaining)continue;
     let accepted=false,originalNesting;
-    for(let level=0;level<6;level++){
-      const partsChanged=parts.map(part=>simplifyPart(part,ratio/2**level));
-      const removed=partsChanged.reduce((n,part)=>n+(part?.removed||0),0);
+    for(let level=0;level<6&&remaining;level++){
+      if(level)[contours]=simplifyContours([entry],remaining);
+      const removed=contours.reduce((n,contour)=>n+(contour?.removed||0),0);
+      remaining=Math.floor(removed/2);
       if(!removed)break;
-      const commands=partsChanged.flatMap((part,i)=>part?.commands||originalParts[i]);
+      const commands=contours.flatMap((contour,i)=>contour?.removed?contour.commands():originalParts[i]);
       const candidate={...path,kind:'vector',offset:[0,0],artwork:path.artwork||'<path/>',commands};
       if(!validateCurveChange(path,candidate,{tolerance,nodeTolerance:tolerance}).accepted)continue;
       if(parts.length>1){
@@ -144,7 +182,7 @@ export function planProgressiveSimplification(document,indices,percent,tolerance
       accepted=true;
       break;
     }
-    if(!accepted&&parts.some(part=>Math.floor(Math.max(0,part.segments.length-(part.closed?3:1))*ratio)>0))
+    if(!accepted)
       stats.protected++;
   }
   if(changes.length>1||changes.length&&document.paths.length>1){
